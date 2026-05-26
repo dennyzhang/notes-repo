@@ -1,0 +1,145 @@
+# Team MyClaw for OT Workstream — runtime config.
+#
+# Loaded by team_bot.py when the `ot-team` MyClaw instance receives a GChat
+# @mention. Operational knobs only — domain/triage values live in
+# ../triage_config.yaml (signals, SLO, pipeline stages).
+#
+# Tracker: T266536788
+# Plan:    https://docs.google.com/document/d/1MQM6zZjfO26VcaIEPmgxJYKSzB0_FaAsXfwpWYMTQlY/edit
+
+workstream: ot
+phase: 2_controlled
+workstream_owner: "PE (Denny / Paul Lu)"
+
+# GChat space the bot listens in. `myclaw init ot-team` (run 2026-04-25)
+# created and bound this space. team_bot.py refuses to run if this is reset
+# to TBD or omitted (D102499943 safety gate).
+target_space_id: spaces/AAQAVOjYc80
+
+# Per-product reliability routing.
+#
+# 2026-05-13 design change: routing is now EMPTY by default. The bot no
+# longer guesses an "OT escalation owner" per product. Rationale (operator
+# in spaces/AAQAVOjYc80 thread yO-CQRIsrlQ): "if we can triage the problem,
+# the escalation will be clear. The escalation part is yielded to the
+# triage part. Instead of guessing which one to escalate, we should focus
+# on the triage."
+#
+# Triage outputs surface the following owners directly from authoritative
+# sources, and the operator chooses the escalation based on those:
+#   - SEV owner: meta sevmanager.sev metadata --sev=<id> -o json (.owner_unixname)
+#   - Model owner: meta ai.model-series metadata --model-id=<id> (.owner)
+#   - Source oncall: meta ai.mast-job metadata --name=<job> (.oncall) or
+#                    SEV metadata (.oncall_short_name)
+#   - Workplace post author: meta workplace.post content --post-id=<id> (.author)
+#   - Alert assignee: meta oncall.feed item-detail --id=<id> (.assigned_user)
+#
+# Per-product entries are KEPT but EMPTY. team_bot.py treats empty/missing
+# as "no suggestion" — drafted replies omit the "OT escalation: @<unixname>"
+# line entirely. Re-populate ONLY if a specific routing rule lands by
+# explicit team agreement (not by per-incident guess); see
+# references/escalation-history.md for the rationale of past attempts.
+routing:
+  mrs: ""
+  ig: ""
+  video: ""
+  default: ""
+
+# Response mode:
+#   shadow           — Phase 1. Bot drafts replies, logs to shadow_log_path,
+#                      never sends. Promote to reply_on_mention when Phase 1
+#                      exit criteria hit.
+#   reply_on_mention — Phase 2. Bot replies only when @mentioned, only in
+#                      pattern-matched lanes.
+mode: reply_on_mention
+
+# Kill-switch: any space member typing `/mute` pauses the daemon for
+# duration_minutes. Re-check every minute.
+kill_switch:
+  enabled: true
+  duration_minutes: 60
+
+# Shadow log file, relative to the instance home (~/.myclaw-ot-bot/).
+shadow_log_path: shadow-log.md
+
+# Passive-mode keyword. team_bot.run_team_bot() classifies + drafts only
+# when raw_input contains this string (case-insensitive). Stored lowercase
+# as the canonical form — the comparison is `.lower()` on both sides, so
+# users typing "!ot-bot" or "!OT-BOT" still match.
+#
+# The leading "!" (NOT "@") is intentional. WIB bots are not reachable via
+# GChat's @-mention autocomplete — that's a product limitation: the bot's
+# identity is proxied through the universal "Meta Bot" Google App, so
+# typing "@" never surfaces a suggestion for individual WIB bots. Using
+# "!" makes the invocation explicit instead of misleading users into
+# waiting for an autocomplete that never appears.
+#
+# Without the guard, the bot would reply to every message in target_space
+# — fine for a 1:1 DM, noisy in a shared OT space. Empty / missing falls
+# back to legacy "always classify" mode for backward compatibility.
+#
+mention_keyword: "!ot-bot"
+
+# Reply formatting (applies once mode flips to reply_on_mention).
+# team_bot.py runs `prefix_template.format(confidence=..., route=...)` and
+# prepends the result to the master-agent body. Single template keeps the
+# rendered prefix syntactically complete (no dangling brackets) and makes
+# policy changes a yaml edit, not a code change.
+#
+# Format choices:
+#   - `ot-bot` matches the invocation handle (`!ot-bot`) so the
+#     identity in the prefix mirrors what the user types to invoke the
+#     bot. (The WIB display_name in GChat membership is still
+#     "OT Triage Bot" — that's a separate WIB-config surface.)
+#   - `{confidence:.0%}` renders 0.78 as "78%" — engineers think in
+#     decimals, everyone else thinks in percentages.
+#   - `suggested owner` (vs. the prior `route`) is plain English. `route`
+#     was a code-internal term that leaked into user output.
+reply:
+  prefix_template: "[ot-bot | confidence: {confidence:.0%} | suggested owner: {route}]"
+
+# Welcome message posted once when the bot lands in a new space (membership
+# event MEMBER_ADDED for our own bot_id). Tells new joiners what the bot
+# does and how to invoke it. Static text — no templating, no per-space
+# customization. Lives in yaml so a wording change is a config edit, not
+# a code change. Multi-line via yaml block scalar to keep diff readability
+# (a single very long string would wrap unhelpfully).
+welcome_message: |
+  👋 Hi — I'm ot-bot. I help triage MRS OT job failures.
+
+  How to use me — start your message with `!ot-bot` (case-insensitive)
+  followed by one of:
+  • `!ot-bot <MAST job id>`     — investigate a job failure
+  • `!ot-bot <SEV id>`          — match against known patterns
+  • `!ot-bot <Workplace post>`  — read + suggest next step
+  • `!ot-bot <runbook path>`    — fetch + summarize
+
+  To pause: type /mute  (60 min)
+  Owner: @dennyzhang
+
+# Pattern-matched lanes — a lightweight intent classifier in team_bot.py
+# checks each incoming @mention against these keys in order. First match
+# wins. Unmatched @mentions draft a polite "out of scope" reply instead of
+# guessing.
+#
+# Key = lane name (what team_bot.py detects); value = descriptor shown in
+# the shadow log so oncall reviewers can spot-check classification quality.
+# Adding a new lane requires a team_bot.py change too, so keep this list
+# short.
+#
+# Lanes added 2026-04-29 (T266536788) after backtest on Apr 26-29 OT user
+# group posts found the original 4-lane set missed real OT issues that
+# referenced model series IDs, MLHub shortlinks, or had no specific ID
+# at all. Conditional lanes (paste, diff, ot_general) gate on title
+# keywords — see `ot_title_keywords` in triage_config.yaml.
+lanes:
+  oncall_summary: "skip-route: notification only, no triage call (status post)"
+  sev_id: "known-pattern lookup against known-patterns.md"
+  mast_job_id: "master-agent triage via meta ai.mast-job"
+  mlhub_url: "fetch MAST job via meta ai.mast-job, then master-agent triage"
+  model_series: "fetch model via meta ai.model, then master-agent triage"
+  workplace_post: "fetch post body via meta workplace.post, then master-agent triage"
+  runbook_path: "retrieve + summarize"
+  paste: "fetch paste via meta paste, brief diagnosis (low-confidence — title-gated)"
+  diff: "fetch diff metadata via meta phabricator.diff, brief diagnosis (low-confidence — title-gated)"
+  ot_general: "title-keyword fallback when no ID matched — flagged for human review"

@@ -1,0 +1,30 @@
+{
+  "audited_at": "2026-05-18T21:00:00Z",
+  "fbpkg": "light_cli",
+  "version_count": 796,
+  "version_cap": 800,
+  "headroom": 4,
+  "pinned_models_count": 283,
+  "confirmed_orphans": [],
+  "new_orphans": [],
+  "resolved_orphans": [],
+  "predicted_next_cap": "2026-05-18",
+  "growth_rate_per_day": 14.0,
+  "audit_method": "meta ai.model-series metadata --model-id=<id> -o json; all returning valid model_id = ALIVE",
+  "spot_check_recent_instances": [
+    {"model_id": "2125606109", "latest_instance": "2026-05-15 21:13:05"},
+    {"model_id": "2125913074", "latest_instance": "2026-05-18 14:03:11"},
+    {"model_id": "2126025623", "latest_instance": "2026-05-18 14:02:41"},
+    {"model_id": "2126030135", "latest_instance": "2026-05-18 13:30:03"},
+    {"model_id": "2126189932", "latest_instance": "2026-05-18 14:03:40"}
+  ],
+  "key_finding": "Two consecutive weekly audits confirm all 283 pinned model IDs are ALIVE. Zero orphan tags. Orphan cleanup is NOT a viable remediation path. Cap raise via fbpkg oncall is the ONLY fix.",
+  "previous_audit": {
+    "date": "2026-05-15",
+    "version_count": 754,
+    "headroom": 46,
+    "confirmed_orphans": 0
+  },
+  "week_over_week_growth": 42,
+  "notes": "CRITICAL: headroom=4. At 14 ver/day, cap will be hit within hours. fbpkg meta --version-limit raise blocked by ephemeral_limit validation (1086 ephemerals, limit 255). Must go through fbpkg oncall (mrs_ml_release_oncall)."
+}

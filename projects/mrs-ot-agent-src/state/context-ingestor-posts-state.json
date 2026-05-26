@@ -1,0 +1,40 @@
+{
+  "last_run_epoch": 1779134063,
+  "per_expert": {
+    "dennyzhang": {
+      "last_catchup_date": "2026-05-18",
+      "last_post_time_epoch": 1778616368,
+      "skip_until_epoch": 0
+    },
+    "lupaul": {
+      "last_catchup_date": "2026-05-18",
+      "last_post_time_epoch": 1778006718,
+      "skip_until_epoch": 0
+    },
+    "llu6": {
+      "last_catchup_date": "2026-05-18",
+      "last_post_time_epoch": 0,
+      "skip_until_epoch": 1781552640
+    },
+    "yabinzh": {
+      "last_catchup_date": "2026-05-18",
+      "last_post_time_epoch": 1778019505,
+      "skip_until_epoch": 0
+    },
+    "dkotfis": {
+      "last_catchup_date": "2026-05-18",
+      "last_post_time_epoch": 1779117106,
+      "skip_until_epoch": 0
+    },
+    "prgzz": {
+      "last_catchup_date": "2026-05-18",
+      "last_post_time_epoch": 1778711248,
+      "skip_until_epoch": 0
+    },
+    "peiyangy": {
+      "last_catchup_date": "2026-05-18",
+      "last_post_time_epoch": 1778793798,
+      "skip_until_epoch": 0
+    }
+  }
+}

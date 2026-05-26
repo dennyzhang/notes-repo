@@ -1,0 +1,43 @@
+{
+  "audited_at": "2026-05-13T05:10:00Z",
+  "fbpkg": "light_cli",
+  "version_count": 724,
+  "version_cap": 800,
+  "headroom": 76,
+  "pinned_models_count": 278,
+  "confirmed_orphans": [],
+  "uncertain_candidates": [
+    {
+      "model_id": "2132160077",
+      "model_type": "ig_textpost_feed_xapp_u2m_retrieval",
+      "owner": "tianyic",
+      "last_instance": "2026-03-17",
+      "days_stale": 57,
+      "pinned_version": "4648",
+      "note": "version shared with 6 other model tags — removing this tag alone does not free a slot"
+    },
+    {
+      "model_id": "2139705840",
+      "model_type": "ig_textpost_feed_u2m_retrieval",
+      "owner": "akoz",
+      "last_instance": "2026-01-23",
+      "days_stale": 110,
+      "pinned_version": "4046",
+      "note": "version shared with other tags — removing this tag alone may not free a slot"
+    },
+    {
+      "model_id": "876487490",
+      "model_type": "facebook_marketplace_mtml_tab_local_click",
+      "owner": "dingtianyang",
+      "last_instance": "2026-03-25",
+      "days_stale": 49,
+      "pinned_version": "3156",
+      "note": "version shared with other tags — removing this tag alone may not free a slot"
+    }
+  ],
+  "new_orphans": [],
+  "resolved_orphans": [],
+  "predicted_next_cap": "2026-05-20",
+  "finding": "275/278 pinned models are actively creating instances (within 30 days). The real accumulation pattern is ml_deps_graph retention leak (T271102844): models accumulate in_use_by_model tags over time but they are never cleaned up when models upgrade to newer light_cli versions.",
+  "recommended_action": "Escalate to fbpkg oncall for version_limit raise (blocked by ephemeral_limit validation error). Long-term: fix T271102844."
+}

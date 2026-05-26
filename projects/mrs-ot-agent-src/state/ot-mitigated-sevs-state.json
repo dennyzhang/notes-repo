@@ -1,0 +1,26 @@
+{
+  "processed_ids": [
+    "S657170",
+    "S663935",
+    "S658916",
+    "S661749",
+    "S625796",
+    "S662543",
+    "S657894",
+    "S667493",
+    "S648074",
+    "S664767",
+    "S666242",
+    "S635148",
+    "S666465",
+    "S658462",
+    "S667565",
+    "S666195",
+    "S636464",
+    "S661322",
+    "S666434",
+    "S665446"
+  ],
+  "last_run_epoch": 1779768375,
+  "last_run_note": "2026-05-25 21:00 PDT (2026-05-26 04:05 UTC) \u2014 Query 1 (tagged mvai-online-training): 2 candidates (S658462 'Threads M2M Retrieval Publish Flow Error', S667565 'Feed T2I Holdout publish stale'); Query 2 (title-class backstop): 5 candidates via keyword match (S666195 mtml, S636464 snapshot, S661322/S666434/S665446 Publish); Union: 7 total. Step 4.5 strict OT-title filter: ALL 7 FAIL \u2014 none match KEEP_REGEX (online training / OT job|model / mvai-training-online-). S658462 (Threads M2M Retrieval), S667565 (Feed T2I Holdout model publish stale), S666195 (mtml_offsite_cvr Ads), S636464 (IFR snapshot), S661322/S666434/S665446 (Force Publish F3 batch) \u2014 all skip_silently per step 4.5. Note: S635442 'Tier 1 Retrieval+ESR OT models failing' was in query 2 results but did NOT match title-class regex (MRS_OT not ESR_OT); not admitted to candidate set. 0 new OT SEVs eligible for digest. HEARTBEAT_OK."
+}

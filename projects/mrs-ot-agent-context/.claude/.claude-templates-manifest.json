@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "components": {
+    "plugins": {
+      "mvai-job-monitor": {
+        "installedAt": "2026-05-09T18:42:14.307Z",
+        "scope": "project",
+        "marketplaceName": "claude-templates",
+        "agents": [
+          "claude"
+        ],
+        "agentOnly": false
+      },
+      "mvai-project-tracker": {
+        "installedAt": "2026-05-09T18:42:24.832Z",
+        "scope": "project",
+        "marketplaceName": "claude-templates",
+        "agents": [
+          "claude"
+        ],
+        "agentOnly": false
+      },
+      "mvai": {
+        "installedAt": "2026-05-09T18:42:36.107Z",
+        "scope": "project",
+        "marketplaceName": "claude-templates",
+        "agents": [
+          "claude"
+        ],
+        "agentOnly": false
+      }
+    }
+  }
+}

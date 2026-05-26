@@ -1,0 +1,15 @@
+{
+  "current_week": "2026-W20",
+  "week_commit_hash": "4bbfb2b6f821",
+  "week_diff_id": null,
+  "week_diff_published": false,
+  "last_sync_epoch": 1778959184,
+  "files_synced_this_week": [
+    "team_bot/cron-jobs/ot-alert-monitor.md",
+    "team_bot/cron-jobs/ot-notes-commit-push.md",
+    "team_bot/cron-jobs/ot-notes-fbcode-sync.md",
+    "team_bot/cron-jobs/ot-post-monitor.md",
+    "team_bot/cron-jobs/ot-sev-monitor.md",
+    "team_bot/notes-to-fbcode-sync.sh"
+  ]
+}

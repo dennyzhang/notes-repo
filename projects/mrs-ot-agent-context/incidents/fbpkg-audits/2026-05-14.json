@@ -1,0 +1,13 @@
+{
+  "audited_at": "2026-05-15T06:53:17Z",
+  "fbpkg": "light_cli",
+  "version_count": 754,
+  "version_cap": 800,
+  "headroom": 46,
+  "pinned_models_count": 283,
+  "confirmed_orphans": [],
+  "new_orphans": [],
+  "resolved_orphans": [],
+  "predicted_next_cap": "2026-05-18",
+  "notes": "All 283 pinned model IDs verified ALIVE (second consecutive full audit confirming same). Zero orphan tags detected. Orphan tag cleanup is NOT a viable remediation path for cap pressure at this time. Root cause: legitimate model growth outpacing version cap. Remediation requires fbpkg oncall intervention to raise Version Limit above 800 (direct meta CLI attempt blocked by ephemeral_limit validation). See T271102844."
+}

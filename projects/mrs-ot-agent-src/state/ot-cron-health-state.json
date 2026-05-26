@@ -1,0 +1,233 @@
+{
+  "daily-brief": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 122,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779808945,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*📋 daily-brief* / *🚨 daily-brief* (new SEVs S667849)",
+    "_note": "Clean. Two runs May 26 (08:14+08:22 PDT). Latest: 08:22:25."
+  },
+  "ot-alert-monitor": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 348,
+    "last_alert_epoch": 1779490669,
+    "last_run_epoch": 1779814129,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK",
+    "_note": "Clean. Last completed 09:48 PDT May 26. 10:47 batch in-flight."
+  },
+  "ot-daily-learning-debugging": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 146,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779808370,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "Message delivered. HEARTBEAT_OK",
+    "_note": "Clean. Fired 08:07, completed 08:12 PDT May 26."
+  },
+  "ot-myclaw-backup-nightly": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 18,
+    "last_alert_epoch": 1779702328,
+    "last_run_epoch": 1779788284,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK",
+    "_note": "Clean. Ran 02:37+02:38 PDT May 26. Next fire 02:37 PDT May 27."
+  },
+  "ot-metrics-rollup": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 29,
+    "last_alert_epoch": 1779730864,
+    "last_run_epoch": 1779811255,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK",
+    "_note": "Clean. Fired 09:00 PDT May 26. Next fire 09:00 PDT May 27."
+  },
+  "ot-post-monitor": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 814,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779817779,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK",
+    "_note": "Clean. Last completed 10:49 PDT May 26 (in-flight 10:48 batch complete)."
+  },
+  "ot-sev-monitor": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 163,
+    "last_alert_epoch": 1779713867,
+    "last_run_epoch": 1779814327,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK",
+    "_note": "Clean. Last completed 09:52 PDT May 26. 10:47 batch in-flight."
+  },
+  "ot-daily-learning-mitigated-sevs": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 120,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779768396,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK",
+    "_note": "Daily 21:00 UTC. Ran 21:06 PDT May 25 (clean). Next fire 14:00 PDT May 26."
+  },
+  "ot-daily-learning-mitigated-alerts": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 119,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779772432,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK {alerts_processed: 1, patterns_matched: 1 (CL-003), archives_written: 1}",
+    "_note": "Ran 22:13 PDT May 25 (clean). Next fire ~22:13 PDT May 26."
+  },
+  "ot-daily-learning-mitigated-posts": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 120,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779770279,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "State updated. Zero new posts resolved within the last 24h",
+    "_note": "Ran 21:37 PDT May 25 (clean). Next fire 21:30 PDT May 26."
+  },
+  "ot-sev-tag-review": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 57,
+    "last_alert_epoch": 1779380085,
+    "last_run_epoch": 1779808656,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*📋 ot-sev-tag-review* 17 auto-applied #mvai-online-training",
+    "_note": "Weekday 08:09 PDT. Completed 08:17 PDT May 26 (17 auto-applied). Next fire Wed May 27."
+  },
+  "ot-shift-summary": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 3,
+    "last_alert_epoch": 1779799964,
+    "last_run_epoch": 1779810161,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*📋 ot-shift-summary* **19 May - 26 May | Outgoing: dennyzhang → Incoming: lupaul**",
+    "_note": "Recovered. Two clean runs 08:41+08:42 PDT May 26. Next fire Tue Jun 2."
+  },
+  "ot-knowledge-distillation": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 64,
+    "last_alert_epoch": 1779324290,
+    "last_run_epoch": 1779741389,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*📚 ot-knowledge-distillation — 2026-05-25* 7 new summaries scanned.",
+    "_note": "Weekday 13:30 PDT. Ran 13:36 PDT May 25 (clean). Next fire 13:30 PDT May 26."
+  },
+  "ot-knowledge-curation": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 128,
+    "last_alert_epoch": 1779324290,
+    "last_run_epoch": 1779775803,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*📚 ot-knowledge-curation* 0 diffs drafted · 5 mega-learnings appended",
+    "_note": "Nightly 23:00 PDT. Ran 23:10 PDT May 25 (clean). Next fire 23:00 PDT May 26."
+  },
+  "ot-cron-health-watch": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 118,
+    "last_alert_epoch": 1779799964,
+    "last_run_epoch": 1779817952,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK {jobs_audited: 20, transitions: 0, alerts_posted: 0, recoveries: 0, auto_mitigated: 0, mitigation_failures: 0, ordering_bugs: 0, suppressed_repeats: 20}",
+    "_note": "Self-entry (excluded from audit). Ran ~10:47 PDT May 26."
+  },
+  "ot-fbpkg-cap-watch": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 80,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779743056,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*📦 ot-fbpkg-cap-watch* light_cli — 852/850 versions (headroom: -2, OVER CAP). 0 orphan tags.",
+    "_note": "Weekly Monday 14:00 UTC. Fired May 25 14:04 (clean). Next fire Mon Jun 2."
+  },
+  "ot-notes-fbcode-sync": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 13,
+    "last_alert_epoch": 1779561535,
+    "last_run_epoch": 1779801365,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK",
+    "_note": "4x/day. Last clean run 06:15+06:16 PDT May 26. May 25 failures (12:15, 18:15) self-recovered. Next fire 12:15 PDT."
+  },
+  "ot-notes-fbcode-sync-weekly": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 35,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779750155,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*📅 ot-notes-fbcode-sync-weekly* W22 submitted D106305010.",
+    "_note": "Weekly Monday 09:00 PDT. Last run May 25 (clean). Next fire Mon Jun 2."
+  },
+  "ot-notes-commit-push": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 469,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779817684,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK {files_committed: 6, commit: 51a2fb66ff64, pushed: true, consecutive_failures: 0}",
+    "_note": "Clean. Last completed 10:48 PDT May 26."
+  },
+  "ot-myclaw-weekly-restart": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 35,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779519642,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*🔄 ot-myclaw-weekly-restart* Weekly restart scheduled in 15s.",
+    "_note": "Weekly Saturday 00:00 PDT. Fired 2026-05-23. Next fire Sat 2026-05-31."
+  },
+  "ot-disk-watch": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 145,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779817560,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK {mounts_checked: 4, mounts_skipped: 0, transitions: 0, alerts_posted: 0}",
+    "_note": "Every 15 min. Clean. Last run 10:46 PDT May 26."
+  },
+  "_meta": {
+    "last_audit_epoch": 1779817952,
+    "bootstrap_run": false,
+    "jobs_audited": 20,
+    "transitions": 0,
+    "alerts_posted": 0,
+    "recoveries": 0,
+    "auto_mitigated": 0,
+    "mitigation_failures": 0,
+    "ordering_bugs": 0,
+    "suppressed_repeats": 20,
+    "_detail": {
+      "note": "~10:52 PDT May 26 2026 (Tuesday)",
+      "transitions": "0 — all 20 manifest jobs healthy, no state changes since 10:37 audit",
+      "suppressed": "20 — all manifest jobs in same healthy state",
+      "ordering_bugs": "0 — 5 top-level 🚨 msgs in 24h (3 alert-monitor, 1 sev-monitor S667687, 1 cron-health recovery); none followed by [OUT-OF-SCOPE retraction within 15 min",
+      "missed_completions": "0 — no Evergreen kill signature in daemon log; all firings completed within expected windows",
+      "hung": "0 — daemon log shows clean firing→completion for all jobs",
+      "new_since_last_audit": "ot-disk-watch 10:46 clean; ot-post-monitor 10:36+10:49 clean; ot-notes-commit-push 10:48 clean; all 10:47 batch (alert-monitor, sev-monitor, notes-commit-push) in-flight within window"
+    }
+  }
+}

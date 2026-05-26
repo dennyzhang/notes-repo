@@ -1,0 +1,7 @@
+{
+  "enabledPlugins": {
+    "mvai-job-monitor@claude-templates": true,
+    "mvai-project-tracker@claude-templates": true,
+    "mvai@claude-templates": true
+  }
+}

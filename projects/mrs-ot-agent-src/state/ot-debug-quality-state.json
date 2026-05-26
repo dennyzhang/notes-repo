@@ -1,0 +1,553 @@
+{
+  "last_run_epoch": 1779725587,
+  "weekly_scores": [
+    {
+      "week": "2026-W20",
+      "issues_scored": 14,
+      "no_initial_triage": 29,
+      "backfill_excluded": 9,
+      "match_pct": 0.71,
+      "cluster_accuracy": 0.75,
+      "verdict_accuracy": 0.89,
+      "root_cause_avg": 0.74,
+      "owner_accuracy": 0.67,
+      "mitigation_pct": 0.84,
+      "miss_classes": {
+        "cluster_wrong": 0,
+        "cluster_missed": 1,
+        "both_none": 10,
+        "owner_wrong": 0,
+        "no_initial_triage": 29
+      },
+      "special_flags": {
+        "missed_real_issue": 0,
+        "false_page": 0
+      },
+      "per_issue": [
+        {
+          "id": "ALERT-A898952803114953",
+          "composite": 0.54,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE",
+          "archive_class": "P38/P17 (Boxcar/fbpkg)",
+          "miss_class": "root_cause_drift"
+        },
+        {
+          "id": "ALERT-A4366891846955592",
+          "composite": 0.54,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE",
+          "archive_class": "P38/P17 companion",
+          "miss_class": "root_cause_drift"
+        },
+        {
+          "id": "ALERT-A2126294138",
+          "composite": 0.58,
+          "grade": "PARTIAL",
+          "bot_verdict": "NO_ACTION/TRANSIENT_NOISE",
+          "archive_class": "2 real serving signals + 2 dead detectors",
+          "miss_class": "missed_real_serving_signal"
+        },
+        {
+          "id": "ALERT-A708481502288258",
+          "composite": 0.78,
+          "grade": "GOOD",
+          "bot_verdict": "THRESHOLD_MISFIT",
+          "archive_class": "THRESHOLD_MISCONFIGURED",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A2382297228909438",
+          "composite": 0.78,
+          "grade": "GOOD",
+          "bot_verdict": "THRESHOLD_MISFIT",
+          "archive_class": "THRESHOLD_MISCONFIGURED (companion)",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1336064448378593",
+          "composite": 0.76,
+          "grade": "GOOD",
+          "bot_verdict": "AUTO_RESOLVED/TRANSIENT_NOISE",
+          "archive_class": "FALSE_ALARM/TRANSIENT",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A878102693-413",
+          "composite": 0.77,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S665163",
+          "archive_class": "P58/ZippyDB RE throttling",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S664296",
+          "composite": 0.5,
+          "grade": "PARTIAL",
+          "bot_verdict": "DEGRADED/P51-or-P30",
+          "archive_class": "P51/P30 confirmed (degraded postmortem)",
+          "miss_class": "degraded_triage_no_owner"
+        },
+        {
+          "id": "SEV-S665222",
+          "composite": 0.7,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/Silvertorch_NaN+GPU_quota",
+          "archive_class": "REAL_OT_FAILURE confirmed (Silvertorch NaN+GPU quota)",
+          "miss_class": "owner_not_cited",
+          "bot_run": 660,
+          "bot_run_at": "2026-05-17T17:37PT"
+        },
+        {
+          "id": "ALERT-A1201406268614142",
+          "composite": 0.69,
+          "grade": "GOOD",
+          "bot_verdict": "NO_ACTION/DETECTOR_BROKEN",
+          "archive_class": "DETECTOR_BROKEN (ZippyDB-induced transient)",
+          "miss_class": "root_cause_partial_miss",
+          "bot_run": 607,
+          "bot_run_at": "2026-05-17T14:30PT"
+        },
+        {
+          "id": "ALERT-A2387001468469120",
+          "composite": 0.67,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/ZippyDB_S665163",
+          "archive_class": "CL-003/P58 ZippyDB throttling",
+          "miss_class": "MISSED_CLUSTER_CL003",
+          "bot_run": 428,
+          "bot_run_at": "2026-05-17T02:24PT"
+        },
+        {
+          "id": "ALERT-A1703030847735006",
+          "composite": 1.0,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/CL-017/P56/yufengma",
+          "archive_class": "CL-017/P56 Shampoo NaN confirmed",
+          "miss_class": null,
+          "bot_run": 498,
+          "bot_run_at": "2026-05-17T08:25PT"
+        },
+        {
+          "id": "ALERT-A25209897055308328",
+          "composite": 0.97,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/CL-017/P56/yufengma",
+          "archive_class": "CL-017/P56 Shampoo NaN confirmed",
+          "miss_class": null,
+          "bot_run": 703,
+          "bot_run_at": "2026-05-17T20:32PT"
+        },
+        {
+          "id": "ALERT-A977255094865118",
+          "composite": 0.82,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/CL-003",
+          "archive_class": "CL-003/P58 ZippyDB S665163",
+          "miss_class": "wrong_zippy_sev_cited",
+          "bot_run": 703,
+          "bot_run_at": "2026-05-17T20:32PT"
+        }
+      ],
+      "notes": "W20 UPDATED (13:18 PT addendum). Monitors started 2026-05-15. 6 new May-17 archives scored after morning run. 29 issues still have no_initial_triage (pre-monitor window). May-17 cohort (6 issues): 100% match. May-15/16 cohort (8 issues): 50% match. Cluster citation improved by May-17 (CL-017 cited perfectly; 1 MISSED_CLUSTER on CL-003). No MISSED_REAL_ISSUE or FALSE_PAGE. No trend yet (W20 is W2 baseline; W19 had no scored data)."
+    },
+    {
+      "week": "2026-W21",
+      "issues_scored": 17,
+      "no_initial_triage": 7,
+      "backfill_excluded": 1,
+      "match_pct": 0.88,
+      "cluster_accuracy": 0.64,
+      "verdict_accuracy": 0.88,
+      "root_cause_avg": 0.84,
+      "owner_accuracy": 0.72,
+      "mitigation_pct": 0.83,
+      "miss_classes": {
+        "cluster_wrong": 1,
+        "cluster_missed": 4,
+        "both_none": 4,
+        "owner_wrong": 2,
+        "no_initial_triage": 7
+      },
+      "special_flags": {
+        "missed_real_issue": 0,
+        "false_page": 0
+      },
+      "per_issue": [
+        {
+          "id": "SEV-S665323",
+          "composite": 0.48,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE",
+          "archive_class": "REAL_OT_FAILURE (root cause not documented)",
+          "miss_class": "owner_not_cited"
+        },
+        {
+          "id": "SEV-S665707",
+          "composite": 0.72,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA",
+          "archive_class": "UPSTREAM_INFRA (Sandcastle OOM chronic)",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S666007",
+          "composite": 0.9,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/CONVEYOR_REGRESSION",
+          "archive_class": "CONVEYOR_REGRESSION/fbpkg-cap",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S667544",
+          "composite": 1.0,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION/TRANSIENT_NOISE/DPP-Zeus-TTL",
+          "archive_class": "TRANSIENT_NOISE/DPP Zeus TTL",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1011200521237714",
+          "composite": 0.8,
+          "grade": "GOOD",
+          "bot_verdict": "NO_ACTION/THRESHOLD_MISFIT/Scuba-formula-bug",
+          "archive_class": "THRESHOLD_MISFIT/CL-013",
+          "miss_class": "MISSED_CLUSTER"
+        },
+        {
+          "id": "ALERT-A1427819186056622",
+          "composite": 0.77,
+          "grade": "GOOD",
+          "bot_verdict": "NO_ACTION/DETECTOR_BROKEN",
+          "archive_class": "DETECTOR_BROKEN/CL-018",
+          "miss_class": "MISSED_CLUSTER"
+        },
+        {
+          "id": "ALERT-A1480195820275950",
+          "composite": 0.84,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/TRANSIENT_NOISE/CL-003",
+          "archive_class": "TRANSIENT_NOISE/CL-003",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1600949354510906",
+          "composite": 0.74,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/THRESHOLD_MISFIT",
+          "archive_class": "TRANSIENT_NOISE/CL-003",
+          "miss_class": "class_mismatch"
+        },
+        {
+          "id": "ALERT-A1621571482326635",
+          "composite": 0.82,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/CL-003",
+          "archive_class": "NO_ACTION/UPSTREAM_INFRA/CL-003",
+          "miss_class": "verdict_level_diff"
+        },
+        {
+          "id": "ALERT-A813403845176709",
+          "composite": 0.72,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE/CONVEYOR_REGRESSION+CL-017/yufengma",
+          "archive_class": "REAL_OT_FAILURE/CL-017 primary (S665902 wrong attribution)",
+          "miss_class": "wrong_secondary_rc"
+        },
+        {
+          "id": "ALERT-A1009946182010606",
+          "composite": 0.92,
+          "grade": "EXCELLENT",
+          "bot_verdict": "PAGE/REAL_OT_FAILURE_RECURRING/ronghuang/kmeans-corpus",
+          "archive_class": "REAL_OT_FAILURE_RECURRING/ronghuang",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1670185680650606",
+          "composite": 0.6,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/ZippyDB-Scribe",
+          "archive_class": "REAL_OT_FAILURE/CL-013/scribe-example-age",
+          "miss_class": "MISSED_CLUSTER+class_mismatch"
+        },
+        {
+          "id": "ALERT-A1386657526635645",
+          "composite": 0.67,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/CL-012/StuckJobDetector",
+          "archive_class": "REAL_OT_FAILURE/CL-001/FULL_SNAPSHOT-CREATING",
+          "miss_class": "WRONG_CLUSTER"
+        },
+        {
+          "id": "ALERT-A997443402676035",
+          "composite": 0.8,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/ZippyDB-CL-003",
+          "archive_class": "UPSTREAM_INFRA/CL-003",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1553698676550071",
+          "composite": 0.84,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/CL-003/S667358",
+          "archive_class": "NO_ACTION/UPSTREAM_INFRA/CL-003",
+          "miss_class": "verdict_level_diff"
+        },
+        {
+          "id": "ALERT-A26934055329519355",
+          "composite": 0.76,
+          "grade": "GOOD",
+          "bot_verdict": "(implied NO_ACTION)/UPSTREAM_INFRA",
+          "archive_class": "NO_ACTION/UPSTREAM_INFRA/CL-003",
+          "miss_class": "MISSED_CLUSTER"
+        },
+        {
+          "id": "ALERT-A969840302247434",
+          "composite": 0.84,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S667071-Scribe",
+          "archive_class": "UPSTREAM_INFRA/S667071",
+          "miss_class": null
+        }
+      ],
+      "notes": "W21 (May 18-24): First full week of live bot monitoring. 17 scored issues (4 SEVs, 13 alerts, 0 posts). 7 no_initial_triage (posts barely covered, 2 SEVs out-of-scope/pre-monitor). 0 MISSED_REAL_ISSUE, 0 FALSE_PAGE. Top miss pattern: MISSED_CLUSTER (4 cases, bot describes pattern but does not cite CL-NNN in run summary). CL-012 vs CL-001 wrong-cluster on A1386657526635645 (StuckJobDetector mechanism confused with snapshot-CREATING symptom cluster). Match pct jumped W20->W21 71->88% but base: W20 had many pre-monitor archives. Strong week on UPSTREAM_INFRA identification."
+    },
+    {
+      "week": "2026-W21",
+      "issues_scored": 20,
+      "no_initial_triage": 12,
+      "backfill_excluded": 0,
+      "match_pct": 0.9,
+      "cluster_accuracy": 0.5,
+      "verdict_accuracy": 0.85,
+      "root_cause_avg": 0.83,
+      "owner_accuracy": 0.5,
+      "mitigation_pct": 0.7,
+      "miss_classes": {
+        "cluster_wrong": 1,
+        "cluster_missed": 3,
+        "both_none": 14,
+        "over_clustered": 0,
+        "owner_wrong": 0,
+        "no_initial_triage": 12
+      },
+      "special_flags": {
+        "missed_real_issue": 0,
+        "false_page": 0
+      },
+      "per_issue": [
+        {
+          "id": "SEV-S665323",
+          "composite": 0.5,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE",
+          "archive_class": "REAL_OT_FAILURE (undocumented)",
+          "miss_class": "root_cause_undocumented+owner_not_cited"
+        },
+        {
+          "id": "SEV-S665707",
+          "composite": 0.75,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA",
+          "archive_class": "UPSTREAM_INFRA/Sandcastle_OOM",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S666007",
+          "composite": 0.83,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/CONVEYOR_REGRESSION",
+          "archive_class": "CONVEYOR_REGRESSION/fbpkg_cap",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S667544",
+          "composite": 0.95,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION/TRANSIENT_NOISE",
+          "archive_class": "TRANSIENT_NOISE/DPP_Zeus_TTL",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1011200521237714",
+          "composite": 0.95,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION/THRESHOLD_MISFIT/CL-013",
+          "archive_class": "THRESHOLD_MISFIT/CL-013",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1455336899399360",
+          "composite": 0.75,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/THRESHOLD_MISFIT",
+          "archive_class": "THRESHOLD_MISFIT/CL-008/STUS_R23",
+          "miss_class": "MISSED_CLUSTER_CL008"
+        },
+        {
+          "id": "ALERT-A1480195820275950",
+          "composite": 0.9,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/TRANSIENT_NOISE/CL-003",
+          "archive_class": "TRANSIENT_NOISE/CL-003/S665163",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1427819186056622",
+          "composite": 0.8,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S660677+S659877",
+          "archive_class": "UPSTREAM_INFRA/S660677+S659877",
+          "miss_class": "MISSED_CLUSTER_CL003"
+        },
+        {
+          "id": "ALERT-A1621571482326635",
+          "composite": 0.73,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S665114",
+          "archive_class": "UPSTREAM_INFRA (verdict=NO_ACTION)",
+          "miss_class": "over_vigilant_MONITOR"
+        },
+        {
+          "id": "ALERT-A813403845176709",
+          "composite": 0.8,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE_yufengma/CONVEYOR_REGRESSION/CL-017",
+          "archive_class": "REAL_OT_FAILURE/NaN_bootstrap+CL-017; S665902 misattributed",
+          "miss_class": "wrong_class_conveyor_vs_nan"
+        },
+        {
+          "id": "ALERT-A1009946182010606",
+          "composite": 0.95,
+          "grade": "EXCELLENT",
+          "bot_verdict": "PAGE_ronghuang/REAL_OT_FAILURE_RECURRING",
+          "archive_class": "REAL_OT_FAILURE/T2I_corpus_collapse",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1600949354510906",
+          "composite": 0.9,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/THRESHOLD_MISFIT/CL-003",
+          "archive_class": "THRESHOLD_MISFIT/CL-003_transient",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A969840302247434",
+          "composite": 0.95,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S667071",
+          "archive_class": "UPSTREAM_INFRA/S667071_Scribe_D106006226",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A2130305043-AGG",
+          "composite": 0.9,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S654082",
+          "archive_class": "UPSTREAM_INFRA/S654082+S667071",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A26934055329519355",
+          "composite": 0.8,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/CL-003",
+          "archive_class": "NO_ACTION/UPSTREAM_INFRA/CL-003",
+          "miss_class": "over_vigilant_MONITOR"
+        },
+        {
+          "id": "ALERT-A1386657526635645",
+          "composite": 0.78,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/CL-012",
+          "archive_class": "REAL_OT_FAILURE/CL-001/publisher_hang",
+          "miss_class": "WRONG_CLUSTER_CL012_vs_CL001"
+        },
+        {
+          "id": "ALERT-A2218864415613563",
+          "composite": 0.65,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S667358",
+          "archive_class": "NEEDS_INVESTIGATION/CL-018/AGG_wrapper",
+          "miss_class": "AGG_class_miss"
+        },
+        {
+          "id": "ALERT-A1955974545038771",
+          "composite": 0.95,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION/THRESHOLD_MISFIT",
+          "archive_class": "THRESHOLD_MISFIT/R16_false_alarm",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1670185680650606",
+          "composite": 0.9,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S654082+S665114",
+          "archive_class": "UPSTREAM_INFRA/S654082+S665114",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1553698676550071",
+          "composite": 0.75,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/S667358",
+          "archive_class": "NO_ACTION/UPSTREAM_INFRA/CL-003",
+          "miss_class": "over_vigilant_MONITOR"
+        }
+      ],
+      "notes": "W21 monitors in full production. 20 scored vs 14 in W20. No MISSED_REAL_ISSUE or FALSE_PAGE. Notable wins: S667544 exact DPP Zeus TTL call, A1009946182010606 T2I corpus collapse exact. Recurring miss: MONITOR vs NO_ACTION for upstream-infra (3 cases) \u2014 bot is slightly over-vigilant on self-resolving CL-003 events. CL-012 vs CL-001 cluster ambiguity on publisher-hang events. post-monitor has no live-triage coverage (all 5 W21 posts = no_initial_triage)."
+    }
+  ],
+  "scored_issue_ids": [
+    "ALERT-A898952803114953",
+    "ALERT-A4366891846955592",
+    "ALERT-A2126294138",
+    "ALERT-A708481502288258",
+    "ALERT-A2382297228909438",
+    "ALERT-A1336064448378593",
+    "ALERT-A878102693-413",
+    "SEV-S664296",
+    "SEV-S665222",
+    "ALERT-A1201406268614142",
+    "ALERT-A2387001468469120",
+    "ALERT-A1703030847735006",
+    "ALERT-A25209897055308328",
+    "ALERT-A977255094865118",
+    "SEV-S665323",
+    "SEV-S665707",
+    "SEV-S651873",
+    "SEV-S665607",
+    "SEV-S666007",
+    "SEV-S667544",
+    "ALERT-A1011200521237714",
+    "ALERT-A1427819186056622",
+    "ALERT-A1480195820275950",
+    "ALERT-A1600949354510906",
+    "ALERT-A1621571482326635",
+    "ALERT-A813403845176709",
+    "ALERT-A1009946182010606",
+    "ALERT-A1670185680650606",
+    "ALERT-A1386657526635645",
+    "ALERT-A997443402676035",
+    "ALERT-A1553698676550071",
+    "ALERT-A26934055329519355",
+    "ALERT-A969840302247434",
+    "ALERT-A1690612485438486",
+    "ALERT-A2218864415613563",
+    "POST-W1218910203488316",
+    "POST-W1321547686606641",
+    "POST-W1324845696276840",
+    "POST-W1324864999608243",
+    "POST-W1326387856122624",
+    "ALERT-A1455336899399360",
+    "ALERT-A1725584478808666",
+    "ALERT-A2130305043-AGG",
+    "ALERT-A1304408738257286",
+    "ALERT-A1955974545038771",
+    "ALERT-A2149157265940350",
+    "ALERT-A997443402676035-449"
+  ]
+}

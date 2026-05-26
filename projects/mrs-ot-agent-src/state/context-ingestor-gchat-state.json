@@ -1,0 +1,34 @@
+{
+  "last_run_epoch": 1779725199,
+  "per_space": {
+    "spaces/AAQAR1xHaQU": {
+      "last_catchup_date": "2026-05-25",
+      "last_msg_create_time": "2026-05-21T10:47:35-07:00",
+      "display_name": "RT Infra WS2: OT Reliability & Understanding",
+      "slug": "rtinfra-ws2",
+      "notes": "10 human msgs; S665521 + MAST metadata injection + D105733308 client buffer bump"
+    },
+    "spaces/AAQAXSNWvcM": {
+      "last_catchup_date": "2026-05-25",
+      "last_msg_create_time": "2026-05-21T14:07:49-07:00",
+      "display_name": "MVAI OT Dev",
+      "slug": "mvai-ot-dev",
+      "notes": "42 human msgs; OTModelMetadata design + snapshot type enum + oncall scope decision"
+    },
+    "spaces/AAQAtGhVkUw": {
+      "last_catchup_date": "2026-05-18",
+      "last_msg_create_time": "2026-05-14T12:11:48-07:00",
+      "display_name": "IG ATS Alerting",
+      "slug": "ig-ats-alerting",
+      "skip_until_epoch": 1782144399,
+      "notes": "0 new msgs since last run; back-off 4 weeks"
+    },
+    "spaces/AAQATpEgSyk": {
+      "last_catchup_date": "2026-05-25",
+      "last_msg_create_time": "2026-05-23T10:49:18-07:00",
+      "display_name": "MRS Online Training Oncall",
+      "slug": "mrs-ot-oncall",
+      "notes": "98 human msgs; RES + PVR + SLICK gate + Yabin departure + oncall scope"
+    }
+  }
+}

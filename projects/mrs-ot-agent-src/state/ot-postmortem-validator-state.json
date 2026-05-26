@@ -1,0 +1,125 @@
+{
+  "validated_digests": [
+    {
+      "digest_run_id": "3941",
+      "job_id": "ot-daily-learning-mitigated-posts",
+      "validation_at": "2026-05-23T05:30:00Z",
+      "verdict_counts": {
+        "confirmed": 4,
+        "corrected": 3,
+        "proposed": 3
+      }
+    },
+    {
+      "digest_run_id": "3958",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-05-23T05:30:00Z",
+      "verdict_counts": {
+        "confirmed": 2,
+        "corrected": 1,
+        "proposed": 0
+      }
+    },
+    {
+      "digest_run_id": "3981",
+      "job_id": "ot-knowledge-curation",
+      "validation_at": "2026-05-23T22:30:00Z",
+      "verdict_counts": {
+        "confirmed": 6,
+        "corrected": 1,
+        "proposed": 2
+      },
+      "notes": "S667071 cited under CL-017 context in summary text; mega-learning file correctly places it under CL-003. Clarification only, not misattribution."
+    },
+    {
+      "digest_run_id": "3983",
+      "job_id": "ot-knowledge-curation",
+      "validation_at": "2026-05-23T22:30:00Z",
+      "verdict_counts": {
+        "confirmed": 6,
+        "corrected": 0,
+        "proposed": 2
+      },
+      "notes": "Second run (clean re-emit). Mega-learning file (2026-W21.md, commit c2c889f7c9e3) correctly attributes all SEVs. P56+P57 proposals novel and distinct."
+    },
+    {
+      "digest_run_id": "4436",
+      "job_id": "ot-daily-learning-mitigated-posts",
+      "validation_at": "2026-05-23T22:30:00Z",
+      "verdict_counts": {
+        "confirmed": 1,
+        "corrected": 0,
+        "proposed": 1
+      },
+      "notes": "HEARTBEAT_OK run (no gchat delivery). P60 ADHOC-tier starcart skip: novel, consistent with memory gotcha_adhoc-tier-starcart-skip.md."
+    },
+    {
+      "digest_run_id": "4456",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-05-23T22:30:00Z",
+      "verdict_counts": {
+        "confirmed": 2,
+        "corrected": 0,
+        "proposed": 0
+      },
+      "notes": "HEARTBEAT_OK run (no gchat delivery). CL-013 + CL-018 citations clean."
+    },
+    {
+      "digest_run_id": "4483",
+      "job_id": "ot-knowledge-curation",
+      "validation_at": "2026-05-24T05:30:00Z",
+      "verdict_counts": {
+        "confirmed": 4,
+        "corrected": 2,
+        "proposed": 1
+      },
+      "notes": "S661936 double-misattribution: cited in empty-RC mega-learning (actual RC_LEN=485, P34 pattern) AND in P61 conveyor regression (actually P34). P62 novel proposal (invalid-detector prefix \u2192 CL-018 sub-class). P61 vs P52 overlap flagged. Reply sent to thread o8l9EyoSZRI.",
+      "reply_message": "spaces/AAQAVOjYc80/messages/o8l9EyoSZRI.UqwBNrD6-Hw"
+    },
+    {
+      "digest_run_id": "4649",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-05-24T05:30:00Z",
+      "verdict_counts": {
+        "confirmed": 2,
+        "corrected": 0,
+        "proposed": 0
+      },
+      "notes": "HEARTBEAT_OK run (no gchat delivery). CL-003\u00d72 citations clean. No reply sent (no parent thread)."
+    },
+    {
+      "digest_run_id": "5242",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-05-25T05:30:00Z",
+      "verdict_counts": {
+        "confirmed": 4,
+        "corrected": 1,
+        "proposed": 0
+      },
+      "notes": "A1553698676550071 (ig_reels_tab_ss_omni_retrieval AGG, model 2144816217): CL-003 citation verified \u2713 (failure-patterns.md L232); CL-013 in R20 context verified \u2713; S667358 title match confirmed (\"Instagram Relevance T20 H100 Scribe Over Quota\", In Progress) \u2713; P50 falsification logic verified \u2713 (STUS published SPARSE_DELTA at 11:52 PDT, alert fired 11:05 PDT). CORRECTION: cron summary claims patterns_proposed=1 (P56) but archive has ZERO P56 mention \u2014 archive says no P-row match. P56 ID already claimed (Shampoo NaN cascade, commit 819fc7701ac2). Naming collision risk; if scribe-lag pattern intended, P58 pending-proposals covers ZippyDB variant; Scribe-quota variant could extend P58 or use P62+ (P56-P61 unapplied). No parent GChat thread (HEARTBEAT_OK digest); no reply sent."
+    },
+    {
+      "digest_run_id": "5242",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-05-25T05:30:00Z",
+      "verdict_counts": {
+        "confirmed": 2,
+        "corrected": 1,
+        "proposed": 0
+      },
+      "notes": "A1553698676550071 (ig_reels_tab_ss_omni_retrieval AGG, model 2144816217): CL-003 citation verified \u2713; S667358 Scribe Over Quota matched \u2713; P50 falsification verified \u2713 (STUS published SPARSE_DELTA 11:52 PDT, alert fired 11:05 PDT). CORRECTION: cron summary claims patterns_proposed=1 (P56) but archive has no P56 mention; P56 ID already claimed (Shampoo NaN cascade, commit 819fc7701ac2). Scribe-quota variant fits P58 (pending) or needs P62+ (P56-P61 all unapplied per W21-mega). No parent GChat thread (HEARTBEAT_OK); no reply sent."
+    },
+    {
+      "digest_run_id": "5801",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-05-26T05:31:46Z",
+      "verdict_counts": {
+        "confirmed": 3,
+        "corrected": 0,
+        "proposed": 0
+      },
+      "notes": "A1021144657237695 (ig_reels_tab_ss_omni_retrieval AGG, model 2144816217): CL-003 citation verified \u2713 (failure-patterns.md L232: Downstream-infra reliability DPP/ZippyDB/Scribe); CL-013 citation in R20 verified \u2713 (failure-patterns.md L172); S665114 title/status verified \u2713 (WS ZippyDB Flash Cluster Flash Bandwidth Quota Low \u2014 ATG0, In Progress, time_mitigated=empty \u2014 exact match to archive); P50 falsification logic verified \u2713 (STUS publishing SPARSE_DELTA continuously \u2192 P50 requires STUS stalled + QPS=0, so falsified correctly); patterns_proposed=0 consistent with archive (no P-row match, no novel proposal). No parent GChat thread (HEARTBEAT_OK digest); no reply sent. 5th CL-003/ZippyDB recurrence on model 2144816217 in 9 days \u2014 pattern holding stable."
+    }
+  ],
+  "last_run_epoch": 1779773506
+}

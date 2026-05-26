@@ -1,0 +1,73 @@
+{
+  "lookback_days": 7,
+  "last_scan": "",
+  "your_name": "YOUR_NAME",
+  "your_role": "YOUR_ROLE (e.g., TL on Infrastructure Reliability)",
+  "peers": [
+    {
+      "name": "Your Manager",
+      "username": "manager_username",
+      "id": "MANAGER_ID",
+      "role": "Engineering Manager, Your Team",
+      "circle": "management"
+    },
+    {
+      "name": "Your TL",
+      "username": "tl_username",
+      "id": "TL_ID",
+      "role": "Tech Lead, Your Team",
+      "circle": "management"
+    },
+    {
+      "name": "Teammate 1",
+      "username": "teammate1",
+      "id": "TEAMMATE1_ID",
+      "role": "Engineer, Your Team",
+      "circle": "team"
+    },
+    {
+      "name": "Teammate 2",
+      "username": "teammate2",
+      "id": "TEAMMATE2_ID",
+      "role": "Engineer, Your Team",
+      "circle": "team"
+    },
+    {
+      "name": "Director (Skip)",
+      "username": "director_username",
+      "id": "DIRECTOR_ID",
+      "role": "Engineering Director",
+      "circle": "leadership"
+    },
+    {
+      "name": "Adjacent Partner",
+      "username": "partner_username",
+      "id": "PARTNER_ID",
+      "role": "Engineer, Partner Team",
+      "circle": "adjacent"
+    }
+  ],
+  "groups": [
+    {
+      "id": "YOUR_GROUP_ID_1",
+      "name": "Your Org Group",
+      "notes": "Leadership direction signals"
+    },
+    {
+      "id": "YOUR_GROUP_ID_2",
+      "name": "Your Team Group",
+      "notes": "Team-level updates"
+    }
+  ],
+  "expertise_domains": [
+    "YOUR_DOMAIN_1 (e.g., model training)",
+    "YOUR_DOMAIN_2 (e.g., deployment pipelines)",
+    "YOUR_DOMAIN_3 (e.g., reliability)",
+    "YOUR_DOMAIN_4 (e.g., monitoring)"
+  ],
+  "oncall_teams": [
+    "your_oncall_team_1",
+    "your_oncall_team_2"
+  ],
+  "_comment": "Adapt the data collection functions in area-monitor.sh to your company's search APIs. The config structure stays the same — only the fetcher changes."
+}

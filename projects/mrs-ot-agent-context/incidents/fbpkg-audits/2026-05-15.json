@@ -1,0 +1,13 @@
+{
+  "audited_at": "2026-05-15T06:25:43Z",
+  "fbpkg": "light_cli",
+  "version_count": 754,
+  "version_cap": 800,
+  "headroom": 46,
+  "pinned_models_count": 283,
+  "confirmed_orphans": [],
+  "new_orphans": [],
+  "resolved_orphans": [],
+  "predicted_next_cap": "2026-05-16 (burst ~48/day) or 2026-05-19 (steady ~12.5/day)",
+  "audit_notes": "All 283 in_use_by_model_<id> tags verified as ALIVE via meta ai.model describe --columns=all. No confirmed orphans. Batch run produced false-positives due to rate-limiting; serial re-verification cleared all 29 apparent DEAD candidates. Orphan-tag cleanup is not a viable remediation path this week -- all tagged models are actively producing instances. Cap-raise via fbpkg oncall (blocked by ephemeral_limit validation) remains the structural fix per T271102844."
+}

@@ -1,0 +1,21 @@
+{
+  "doc_id": "YOUR_GOOGLE_DOC_ID_HERE",
+  "gchat_spaces": {
+    "team": "spaces/YOUR_TEAM_SPACE_ID",
+    "oncall": "spaces/YOUR_ONCALL_SPACE_ID"
+  },
+  "calendar_email": "you@company.com",
+  "people_dir": "context/people",
+  "identity_file": "context/myself/IDENTITY.md",
+  "career_goals_file": "context/myself/CAREER-GOALS.md",
+  "followups_file": "FOLLOWUPS.md",
+  "model": "sonnet",
+  "max_turns": 50,
+  "timeout_seconds": 1800,
+  "scoring": {
+    "min_actions": 3,
+    "min_coaching_rows": 2,
+    "min_score": 50,
+    "max_words": 2000
+  }
+}

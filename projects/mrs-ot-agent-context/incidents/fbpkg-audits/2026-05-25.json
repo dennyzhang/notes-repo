@@ -1,0 +1,20 @@
+{
+  "audited_at": "2026-05-25T21:04:03Z",
+  "fbpkg": "light_cli",
+  "version_count": 852,
+  "version_cap": 850,
+  "headroom": -2,
+  "pinned_models_count": 280,
+  "confirmed_orphans": [],
+  "new_orphans": [],
+  "resolved_orphans": [],
+  "predicted_next_cap": "ALREADY BREACHED (852 > 850 cap)",
+  "growth_rate_per_day": 8.0,
+  "growth_this_week": 56,
+  "key_finding": "Third consecutive audit: all 280 pinned model IDs ALIVE. Zero orphan tags confirmed. Version cap raised 800\u2192850 by oncall between audits, but +56 new versions published this week \u2192 now 2 OVER the 850 cap. Orphan cleanup NOT viable. Cap raise via fbpkg oncall required URGENTLY.",
+  "previous_count": 796,
+  "lifecycle_states_observed": {
+    "UNKNOWN": 280,
+    "unknown_lifecycle_field": 59
+  }
+}

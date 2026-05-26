@@ -1,0 +1,54 @@
+{
+  "doc_url": "https://docs.google.com/document/d/1helRQh0I05stXhMEsroMYxbETPgtdyeNS3Zy55TJe0k/",
+  "doc_id": "1helRQh0I05stXhMEsroMYxbETPgtdyeNS3Zy55TJe0k",
+  "title": "[Bot] OT Oncall Shift",
+  "default_tab_id": "t.sdbn13ll2glq",
+  "default_tab_title": "5/5",
+  "purpose": "Canonical Workplace-equivalent gdoc surface for the weekly OT oncall shift summary. Bot UPDATES the active tab IN-PLACE (one summary per shift window) instead of appending duplicates. Operator may add per-quarter tabs.",
+  "owner": "dennyzhang (per gdoc metadata)",
+  "shared": true,
+  "created_time": "2026-05-07T13:56:31-07:00",
+  "first_synced_by_bot": "2026-05-12T16:42Z",
+  "synced_via": "manual run on operator request — cron path TBD (see standing_open_items below)",
+  "append_protocol": {
+    "tool": "meta google.docs.append markdown --id=<doc_id> --tab-id=<tab_id> --text=<markdown>",
+    "section_format": "Always lead each section with '## YYYY-MM-DD shift summary' header so future runs and operators can chronologically scan.",
+    "delimiter_above_section": "---",
+    "delimiter_below_section": "_End of <date> shift summary._",
+    "dedup_guard": "Before appending, run 'meta google.docs export --id=<doc_id> --format=txt | grep -F \"Oncall Shift Summary\" -c'. If a section for the SAME WINDOW (date range) already exists — detected by matching the date-range string in the heading OR a tab whose title encodes the window — do NOT append. Either UPDATE in place via 'meta google.docs replace-all --find=<old_section_marker>...' OR skip and post only to GChat. Operator confirmed 2026-05-12 (comment AAAB5ghIkmg): duplicate sections covering the same window must be consolidated."
+  },
+  "standing_open_items_from_operator_comments": {
+    "_source": "Comments left on the [Bot] OT Oncall Shift gdoc by operator (dennyzhang). Bot reads this map every shift-summary run and applies as HARD requirements to the rendered draft. New items appended; resolved-but-still-applicable items kept for template stability.",
+    "g_alerts_depth": "Section 4 must list ALL major alerts in the shift, go deep into details, AND pull alert-page comments. Pull via `meta oncall.feed list ...` (existing) AND for each alert: `meta oncall.feed metadata --id=<alert_id> -o json` + `meta oncall.feed comments --id=<alert_id> -o json` to capture investigation notes. Source comment: AAAB5ghIklk.",
+    "h_user_posts_complete": "After running step 5's `meta workplace.post list`, sanity-check the count against the GChat space's `ot-post-monitor` cron output for the same window — these MUST match. If counts diverge, list the missing post URLs explicitly in the section header for operator follow-up.",
+    "i_specific_missing_post": "Posts moved between Workplace groups can be missed. Use `--include-cross-posted` when available; otherwise verify the count check from `h`.",
+    "j_creation_date_column_sorted": "Section 5 user-posts table MUST include a `Created` column. Sort rows oldest → newest by `created` field. Use `YYYY-MM-DD HH:MM PT` rendering. Source comment: AAAB5ghIklw.",
+    "k_adhoc_ask_section": "Add a NEW subsection named 'Adhoc Ask' (default placement: below Section 5). Captures urgent escalations the oncall got drafted into via 1:1 / GChat. Prior shift had Patrick Tan + Shuguang requests. Source: scan the bot's own messages in `spaces/AAQAVOjYc80` whose content matches `(urgent|UBN|escalation|<oncall_unixname>)` and the human reply included a 1:1 mention. Default rendering: `_TODO (oncall): list any 1:1 / GChat escalations this shift_` if the heuristic finds none — never silently omit. Source comment: AAAB5ghIkmI.",
+    "l_diff_summary_top_5": "Section 6 must summarize total diff count + top 5 by impact (heuristic: prefer diffs that close a SEV from this shift, then diffs landed by the outgoing oncall, then highest line-count). Render full diff list as a collapsed `<details>` block beneath the top-5.",
+    "m_sev_stack_column": "Section 3 SEV tables MUST include a `SEV Stack` column. Pull via `meta sevmanager.sev metadata --sev=S<id> -o json | jq -r '.stack // empty'`. The stack is shown on the SEV page (e.g., 'mvai-online-training', 'silvertorch', 'IGML quota'). Render between SEV-id and Title columns. Source comment: AAAB5ghIkk0.",
+    "n_table_background_header_only": "When rendering tables in the gdoc via `meta google.docs.table` or markdown-converted-to-table, set background color (light gray / theme color) ONLY on the HEADER row — NEVER on data rows. Default markdown-table rendering produces alternating-row shading; if that's the default, switch to header-only by passing `--header-only-shading` or post-process via `meta google.docs.format` after the insert. Source comment: AAAB5ghIkkQ.",
+    "o_sort_by_importance": "ALL lists and tables in the shift doc MUST be sorted by importance: oncall direct involvement first, then severity/impact, then issue status. Never sort alphabetically or chronologically unless importance-order would be identical. Applies to: SEV tables, hand-off items, alert lists, WP post lists, diff lists. Source comments: AAAB6SHJgw4, AAAB6SHJgw0.",
+    "p_consolidate_sev_level": "SEV and Level columns MUST be consolidated into one column (e.g., 'S667687 L4') across ALL tables to save horizontal space. Source comment: AAAB6SHJgw8.",
+    "q_filter_oncall_diffs_only": "Diffs closed/open sections MUST filter to oncall-related diffs only. Remove non-oncall diffs (agent sync helpers, myclaw UI fixes, unrelated bot improvements). If total count differs from filtered count, show 'X oncall-related of Y total'. Source comment: AAAB6SHJgwo.",
+    "r_bot_post_score_bottom": "Bot Post Score row MUST be at the BOTTOM of the headline table, not near the top. It is an early-stage metric and should not be the 2nd thing readers see. Source comment: AAAB6SHJgwg.",
+    "s_alert_major_breakdown": "Alerts row MUST specify how many are major (oncall action taken) vs auto-resolved vs low-priority noise. Not just a total count. Source comment: AAAB6SHJgwk.",
+    "t_theme_from_auto_learnings": "Theme bullets section MUST cross-reference auto-learnings/digests/2026-W{NN}.md for the matching week and incorporate curated patterns. Do not rely solely on live SEV list — the weekly digest captures cross-incident patterns the shift summary misses. Source comment: AAAB6SHJgws.",
+    "u_handoff_remove_committed": "Hand-off action items MUST NOT include diffs that are already submitted/committed. If a diff has a Phabricator D-number and is in draft/review, track it in the open diffs section instead. Source comment: AAAB6SHJgww.",
+    "v_all_items_need_urls": "Every referenced item (WP post, SEV, diff, alert) MUST have a URL or ID link. No bare names without links. Source comment: AAAB6SHJgxM.",
+    "w_section4_full_alert_list": "Section 4 (Tasks, Incidents & Alerts) MUST include the FULL alert list from ot-alert-monitor archives, not a reduced count. 'Open 2 alerts' when 24 were triaged is wrong. Source comment: AAAB6SHJgxE.",
+    "consolidate_no_duplicates": "Bot MUST NOT append a new section that duplicates an existing one for the same window. If today's run finds a prior section with the same date-range heading, MERGE the unique data points (Headline numbers, SEV list, Workplace posts, Diffs) from the new section INTO the existing one preserving operator's editorial structure — do NOT delete the new section before merging. CRITICAL: 'consolidate' / 'duplicates' in operator comments means MERGE, not DELETE. See hard_lessons_2026_05_12.L1 for the procedure. Operator confirmed 2026-05-12 (comment AAAB5ghIkmg)."
+  },
+  "resolved_comment_log": {
+    "_purpose": "Track which gdoc comments have been addressed in code so the bot doesn't re-implement the same feedback. Pruned monthly by ot-shift-summary cron.",
+    "AAAB6F3dr8w": "resolved 2026-05-11 — 11pt body font + heading-3 styles applied to template",
+    "AAAB6F3dr-0": "resolved 2026-05-11 — template updated to match operator's edits",
+    "AAAB6GmSv4A": "resolved 2026-05-11 — SEVs reordered: important first, open first",
+    "AAAB6GmSv4s": "resolved 2026-05-11 — S635390 promoted from 'Dropped' to 'Top ongoing issues' table"
+  },
+  "hard_lessons_2026_05_12": {
+    "_purpose": "Mistakes the bot made on 2026-05-12 that MUST NOT recur. Bot reads this on every gdoc-touching run and treats each as a hard precondition.",
+    "L1_consolidate_means_merge_not_delete": "When operator says 'consolidate two sections / they are duplicates', this means MERGE the unique data from the new section INTO the canonical section, NOT 'delete the new one'. The new section may have FRESH data (latest cron pull) that the canonical section lacks. Procedure: (a) diff the two sections key-by-key (Headline numbers, SEV list, Workplace posts, Diffs Produced); (b) for each row that exists in NEW but not in CANONICAL, surgically insert into CANONICAL preserving operator's editorial structure; (c) for each row that exists in BOTH, prefer the value with the more recent timestamp; (d) ONLY THEN delete the duplicate section. If the merge is non-trivial or destructive, RESTORE the deleted content as a clearly-marked APPENDIX and ask the operator before merging. Source: 2026-05-12 incident — bot misread comment AAAB5ghIkmg ('consolidate, duplicates') and deleted the new 5/12 section, losing fresh shift data. Recovered via APPENDIX restoration.",
+    "L2_gdoc_replies_must_prefix_bot_identity": "All gdoc comment replies posted by the bot via 'meta google.docs.comment reply' or 'reply-update' MUST start with '[myclaw-ot bot reply] '. The Meta CLI runs as the operator's user account, so without an explicit prefix, the operator cannot distinguish bot replies from their own. This is the gdoc analogue of the bot's GChat prefix template ('[myclaw-ot | confidence: ...]'). Source: 2026-05-12 incident — 6 replies posted without prefix; operator could not tell they were bot replies. Fixed retroactively via reply-update.",
+    "L3_destructive_gdoc_ops_require_dry_run_first": "Before any 'delete-content range', 'replace-content', or 'replace-all' on the live gdoc, the bot MUST: (a) cache the current export to /tmp first, (b) describe the planned change in a chat reply, (c) wait for explicit operator confirmation. Bot may pre-stage with --dry-run but must NOT commit destructive ops without ack. Append-only ops ('append markdown', 'insert markdown') are exempt from this gate (recoverable via delete). Source: 2026-05-12 incident — bot deleted 11k chars without operator ack on the destructive interpretation."
+  }
+}

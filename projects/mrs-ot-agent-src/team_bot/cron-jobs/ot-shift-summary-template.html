@@ -1,0 +1,76 @@
+<html>
+<head><title>[Bot] OT Oncall Shift</title></head>
+<body>
+<!--
+  OT Shift Summary Template v4 (FORMAT SOURCE OF TRUTH)
+  Approved by operator 2026-05-25 based on the 5/26 tab
+
+  RULES:
+  - NO tables. Everything is bullet lists or narrative.
+  - Shift character is the FIRST paragraph after title (bold)
+  - SEVs filed by oncall go FIRST in HIGH-TOUCH list
+  - Observe-only SEVs: category counts only, no individual links
+  - Daily Timeline includes per-day alerts (from noisy-trends + oncall feed)
+  - Pain Points include trending noisy models (from auto-learnings/noisy-trends.md)
+  - No "End of..." footer line
+  - No FYI/Diffs sections — key diffs in Impact + Timeline, observe-only in Hand-off
+  - Date headings must NOT have hyperlinks
+
+  KNOWN API LIMITATION: gdocs replace embeds <a href> links into headings
+  that cannot be cleared via API. After any gdocs replace, manually remove
+  links from date headings in the UI (select → right-click → Remove link).
+-->
+
+<h2>Oncall Summary for mrs_online_training: {{DATE_RANGE}}</h2>
+<p>Outgoing → <b>{{OUTGOING}}</b>  |  Incoming → <b>{{INCOMING}}</b></p>
+<p><b>{{SHIFT_CHARACTER}}</b></p>
+<!-- SHIFT_CHARACTER: 2 sentences MAX. Lead with impact, not mechanism.
+     Cron can SUGGEST but oncall should finalize.
+     BAD: "Gloo/DistStore publish hangs dominated the shift, blocking two conveyors from P24 regression class."
+     GOOD: "Heavy week — 23 SEVs (5 HIGH-TOUCH), dominated by zombie job pattern and DPP restart. Three conveyor failures unresolved."
+     Rule: no diff numbers, no pattern IDs, no technical jargon. Those go in the timeline. -->
+
+<h3>Overview</h3>
+<ul>
+<li><b>SEVs (HIGH-TOUCH):</b> {{SEV_HT_COUNT}} — {{SEV_HT_LIST}}</li>
+<li><b>SEVs (observe-only):</b> {{SEV_OO_COUNT}} — {{SEV_OO_CATEGORIES}}</li>
+<li><b>Alerts:</b> {{ALERT_ACTION}} actionable of {{ALERT_TOTAL}} total ({{ALERT_AUTO}} auto-resolved)</li>
+<li><b>WP user reports:</b> {{WP_COUNT}} — {{WP_AUTHORS}}</li>
+<li><b>Diffs closed (oncall):</b> {{DIFF_COUNT}}</li>
+<li><b>Difficulty:</b> {{DIFFICULTY}}/5 | <b>Hours:</b> {{HOURS}} | <b>Wakeups:</b> {{WAKEUPS}} | <b>Alert noise:</b> {{NOISE}}/5</li>
+</ul>
+
+<h3>Impact this shift</h3>
+<!-- This section requires HUMAN INPUT — the cron cannot generate insights, only facts.
+     Pre-fill with TODO and link to auto-learnings digest as reference.
+     The oncall fills this with outcomes that changed system state. -->
+<ul>
+<li>TODO (oncall): What outcomes changed the system this shift? Reference: auto-learnings/digests/2026-W{NN}.md</li>
+{{IMPACT_BULLETS}}
+</ul>
+
+<h3>Pain Points</h3>
+<!-- This section requires HUMAN INPUT — cron can suggest pain points from SEV patterns
+     but the oncall must validate and add: proposed fix + CC owner.
+     Reference: auto-learnings/noisy-trends.md for trending noisy models. -->
+<ul>
+<li>TODO (oncall): What systemic issues recurred this shift? Check noisy-trends.md for data.</li>
+{{PAIN_POINTS}}
+</ul>
+
+<h3>Hand-off (incoming oncall)</h3>
+<ol>
+{{HANDOFF_ITEMS}}
+</ol>
+
+<h3>Daily Timeline</h3>
+{{DAILY_TIMELINE}}
+<!-- Per day: H4 heading (NO hyperlink on date), bullet list of:
+     - SEVs oncall engaged with (linked)
+     - WP posts (linked)
+     - Alerts that fired (model + type + resolution)
+     - Diffs landed
+     Source: daily-brief state + GChat bot space + auto-learnings + oncall feed + incidents folder -->
+
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "per_mount": {
+    "/": {
+      "last_state": "ok",
+      "last_pct_used": 55,
+      "last_free_gb": 506,
+      "last_inode_pct": -1,
+      "consecutive_in_state": 148,
+      "prev_state": "ok",
+      "last_run_epoch": 1779817553
+    },
+    "/data/users/dennyzhang/notes": {
+      "last_state": "ok",
+      "last_pct_used": 0,
+      "last_free_gb": 506,
+      "last_inode_pct": -1,
+      "consecutive_in_state": 257,
+      "prev_state": "ok",
+      "last_run_epoch": 1779817553
+    },
+    "/data/users/dennyzhang/fbsource": {
+      "last_state": "ok",
+      "last_pct_used": 0,
+      "last_free_gb": 506,
+      "last_inode_pct": -1,
+      "consecutive_in_state": 258,
+      "prev_state": "ok",
+      "last_run_epoch": 1779817553
+    },
+    "/tmp": {
+      "last_state": "ok",
+      "last_pct_used": 55,
+      "last_free_gb": 506,
+      "last_inode_pct": -1,
+      "consecutive_in_state": 148,
+      "prev_state": "ok",
+      "last_run_epoch": 1779817553
+    }
+  },
+  "alerts_posted_24h": [],
+  "last_run_epoch": 1779817553,
+  "last_raw_debug": {
+    "epoch": 1779817553,
+    "df_h": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       1.2T  614G  506G  55% /",
+    "df_h_vda4": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       1.2T  614G  506G  55% /",
+    "df_i": "Filesystem     Inodes IUsed IFree IUse% Mounted on\n/dev/vda4           0     0     0     - /",
+    "btrfs_fi_usage": "WARNING: cannot read detailed chunk info, per-device usage will not be shown, run as root\nOverall:\n    Device size:\t\t   1.12TiB\n    Device allocated:\t\t 691.38GiB\n    Device unallocated:\t\t 456.00GiB\n    Device missing:\t\t     0.00B\n    Device slack:\t\t  16.00EiB\n    Used:\t\t\t 612.57GiB\n    Free (estimated):\t\t 505.29GiB\t(min: 505.29GiB)\n    Free (statfs, df):\t\t 505.29GiB\n    Data ratio:\t\t\t      1.00\n    Metadata ratio:\t\t      1.00\n    Global reserve:\t\t 512.00MiB\t(used: 0.00B)\n    Multiple profiles:\t\t        no\n\nData,single: Size:647.36GiB, Used:598.07GiB (92.39%)\n\nMetadata,single: Size:44.01GiB, Used:14.50GiB (32.95%)\n\nSystem,single: Size:4.00MiB, Used:112.00KiB (2.73%)"
+  },
+  "last_auto_mitigation_epoch": null
+}

@@ -1,0 +1,47 @@
+# state-symlinks.manifest — canonical list of `~/.myclaw-ot-bot/` paths that should be symlinks into the notes repo
+#
+# Format: <local_path_relative_to_MYCLAW_HOME> -> <notes_path_relative_to_notes_root>
+# Lines starting with `#` and blank lines are ignored.
+#
+# Read by: team_bot/bootstrap.sh `ensure_symlinks()` (idempotent).
+#
+# Lifecycle:
+#   1. First-time migration: bootstrap moves the local file to notes path, replaces with symlink.
+#   2. Fresh devserver reinstall: notes file already exists (via commit cloud / sl pull); bootstrap creates the symlink only.
+#   3. Re-bootstrap on existing devserver: symlink already correct, no-op.
+#   4. Conflict (local file AND notes file both exist as regular files): notes wins, local backed up with timestamp suffix, loud warning.
+#
+# What to put here vs. leave local:
+#   PUT HERE: cron-state JSON, learnings.md — anything we want versioned/reviewable.
+#   LEAVE LOCAL: myclaw.db (sqlite, runtime), *.sock (unix sockets), *.pid (daemon process), backups/ (ephemeral local), config.json (per-deployment).
+#   See RULES.md §"Where state files live" for the policy.
+#
+# Maintained alongside RULES.md classification policy. When you add a new cron whose
+# state should be versioned, add a row here and the next bootstrap picks it up.
+#
+# Updated 2026-05-17 after directory restructure (incidents/, auto-learnings/, human-input/).
+
+# Cron-state JSON — in notes/state/ (these rows ensure new devservers symlink them)
+spaces/AAQAVOjYc80/ot-monitor-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-monitor-state.json
+spaces/AAQAVOjYc80/ot-sev-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-sev-state.json
+spaces/AAQAVOjYc80/sev-tag-asked.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/sev-tag-asked.json
+spaces/AAQAVOjYc80/ot-shift-summary-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-shift-summary-state.json
+spaces/AAQAVOjYc80/ot-disk-watch-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-disk-watch-state.json
+spaces/AAQAVOjYc80/ot-postmortem-validator-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-postmortem-validator-state.json
+spaces/AAQAVOjYc80/ot-human-attention-brief-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-human-attention-brief-state.json
+spaces/AAQAVOjYc80/ot-prompt-change-validator-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-prompt-change-validator-state.json
+
+# Learning ledger — append-only output from ot-daily-learning-debugging cron
+spaces/AAQAVOjYc80/learnings.md -> users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/daily-ledger.md
+
+# Identity files — operator's standing rules, identity, soul, user context.
+# Moved to mrs-ot-agent-src/agent_identity/ (2026-05-17 restructure: code/config → src repo).
+RULES.md -> users/dennyzhang/projects/mrs-ot-agent-src/agent_identity/RULES.md
+IDENTITY.md -> users/dennyzhang/projects/mrs-ot-agent-src/agent_identity/IDENTITY.md
+SOUL.md -> users/dennyzhang/projects/mrs-ot-agent-src/agent_identity/SOUL.md
+USER.md -> users/dennyzhang/projects/mrs-ot-agent-src/agent_identity/USER.md
+
+# NOTE: ot-shift-gdoc-config.json contains per-deployment OAuth-derived doc IDs.
+# Currently NOT migrated — needs operator decision whether doc IDs are
+# per-devserver (leave local) or shared across team (move to notes).
+# Discussion: spaces/AAQAVOjYc80 thread djeMtzxvfbU 2026-05-16.

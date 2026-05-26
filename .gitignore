@@ -1,0 +1,6 @@
+# Transient backup files — excluded to prevent commit-hook rejections
+# (hook allows .json but not .json.bak)
+*.bak
+*.tmp
+*.swp
+*.orig

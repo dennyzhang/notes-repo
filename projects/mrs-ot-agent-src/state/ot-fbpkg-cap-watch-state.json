@@ -1,0 +1,18 @@
+{
+  "last_run_epoch": 1779743043,
+  "last_run_iso": "2026-05-25T21:04:03Z",
+  "previous_orphans": [],
+  "previous_count": 852,
+  "last_alert_epoch": 1779743043,
+  "audit_summary": {
+    "version_count": 852,
+    "version_cap": 850,
+    "headroom": -2,
+    "pinned_models": 280,
+    "confirmed_orphans": 0,
+    "uncertain_candidates": [],
+    "growth_rate_per_day": 8.0,
+    "cap_status": "BREACHED - 852 > 850",
+    "key_finding": "Third consecutive audit: all 280 pinned model IDs ALIVE. Zero orphan tags. Cap raised 800\u2192850 but 56 new versions published \u2192 now 2 OVER cap. Cap raise via fbpkg oncall required URGENTLY."
+  }
+}

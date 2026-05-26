@@ -1,0 +1,138 @@
+{
+  "last_run_epoch": 1779818211,
+  "prompt_snapshots": {
+    "daily-brief": {
+      "prompt_sha256": "e537605cbff515d60234ff57d1f1a009f2bf6c9bde714675809340f3727c7a38",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed (all 21 hashes changed again); static analysis clean \u2014 no pastry-overwrite, no invalid meta subcommands, no 404 URL patterns instructed"
+    },
+    "ot-alert-monitor": {
+      "prompt_sha256": "4bf2a276c17d2cb67d8cba609344802522a3609b940e32ca7def5232db9fdfbe",
+      "last_validated_epoch": 1779817388,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "PERSISTENT (16th+ consecutive, 2026-05-26 10:40 PDT \u2014 edit made but bug survives) | L422 step-d still instructs 'pastry <paste_id> overwrite' despite L461 correction; fix: replace L422 procedural text with meta paste.paste update --paste-id=<id> --content=<new_full_content>"
+    },
+    "ot-cron-health-watch": {
+      "prompt_sha256": "5f01ed49a6d8e9147df99f511a077c31f937cb4a731ff20a8353f7fcfc67a890",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-daily-learning-debugging": {
+      "prompt_sha256": "d885881885f391ce48e023b1babd934284006084ce05267e20688e8e27929f59",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-daily-learning-mitigated-alerts": {
+      "prompt_sha256": "0b21fd1f080e223f1fe5fa493603642fae5d787e3165fe447b88088ade7859d6",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "PERSISTENT (22nd+ consecutive, 2026-05-25 21:30 PDT) | meta oncall.feed item-detail STILL present at L62 + subagent prompt. Fix: replace with meta oncall.feed describe --id=<id> or equivalent valid subcommand."
+    },
+    "ot-daily-learning-mitigated-posts": {
+      "prompt_sha256": "ccfc09f35103d3036f939d443c93a25fe93a52049377829b3416bd3f2826f010",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-daily-learning-mitigated-sevs": {
+      "prompt_sha256": "e14d5db4a0c26e30015a6d7de4c5f79055613c371b904e20431345393c4b0e17",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-disk-watch": {
+      "prompt_sha256": "a542f6867d4fb9684ee2331c40f08dc60bc5c57fa0c6265efc8a85ed388ee049",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-fbpkg-cap-watch": {
+      "prompt_sha256": "33d64f74069ab4a64fcf784065cabd9464b08e761190c44c6df7623c949579dd",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-knowledge-curation": {
+      "prompt_sha256": "a5cf61da237ec8b8de35728d7ec92b2a6a8e4986fab9e21e3926acf41f985fb0",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-knowledge-distillation": {
+      "prompt_sha256": "5aaa8aa4ed32a38ff64e17d43694c633f51d267e5d4759a8657e67e16976d271",
+      "last_validated_epoch": 1779818211,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-26 10:50 PDT | hash changed from ...257e \u2192 ...267e (minor edit, exact delta unknown \u2014 sqlite edited directly). Static analysis clean: no pastry-overwrite, no meta google.docs, no oncall.feed item-detail, no bad URLs; jf submit --draft, sl status guard, arc lint, publish_when_ready forbidden \u2014 all correct. Pre-existing advisory: action table (L43/44/46/49) still references `references/triage-discipline.md` etc (dir renamed to human-input/ on 2026-05-23); not introduced by this change."
+    },
+    "ot-metrics-rollup": {
+      "prompt_sha256": "de9fd518c2974ed0bdf5ecd514baf7a725092c5a2d447edc68e0107e1407502a",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-myclaw-backup-nightly": {
+      "prompt_sha256": "f93fca537744e5a2594607f1fa03de14d24cd95007fa1c951b6909bdd5798372",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-myclaw-weekly-restart": {
+      "prompt_sha256": "ccc9df6362da699b2f2b99776cfb4582f62d9e21382a7ae1ba30b38904b2a379",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-notes-commit-push": {
+      "prompt_sha256": "af4931c17e2e004b5f617adfbfb1086382a32ea5ab6ef4949362108777b8e2cf",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-notes-fbcode-sync": {
+      "prompt_sha256": "c640795081da36a90a2a5ca1b53a7567af45df4075e4be2e85ca0c4701dfc788",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-notes-fbcode-sync-weekly": {
+      "prompt_sha256": "47f26ce43fd0b0877c50a3e614f3f9ddf5db5ecca26830e7e30c0e19a9143295",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-post-monitor": {
+      "prompt_sha256": "3c3b512fa352a5a410aaa906bc1bc9f27e6f8df1ec6bd62f8e75d2366d545487",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "PERSISTENT (13th+ consecutive, 2026-05-25 21:30 PDT) | pastry-overwrite bug still present in JSON-moves-to-paste section (L151). Fix: replace 'via pastry <paste_id> overwrite' with meta paste.paste update --paste-id=<id> --content=<new_content>."
+    },
+    "ot-sev-monitor": {
+      "prompt_sha256": "f89a4cdaae63dd9d5ebaa24a4c5b73a1262da2219b52757822ec3dadd1a3f522",
+      "last_validated_epoch": 1779817388,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "PERSISTENT (18th+ consecutive, 2026-05-26 10:40 PDT \u2014 edit made but bug survives) | L310 step-d still instructs 'pastry <paste_id> overwrite'; fix: replace with meta paste.paste update --paste-id=<id> --content=<new_full_content>"
+    },
+    "ot-sev-tag-review": {
+      "prompt_sha256": "a56a0599588aef2644e919e8774c162d0c0a7f061b0118f844812dbc3784cbb3",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-25 21:30 PDT | bulk-reseed; static analysis clean"
+    },
+    "ot-shift-summary": {
+      "prompt_sha256": "58138f1d4882c8a95be5f1b5aa426adfaf3dbeb3464ab2546140c897c33d972c",
+      "last_validated_epoch": 1779769973,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "PERSISTENT (3rd consecutive, 2026-05-25 21:30 PDT) | step-(e) idempotency L422 still instructs 'meta google.docs.delete-content range' \u2014 violates L369 hard rule 'NEVER meta google.docs.*' for writes. Fix: replace with gdocs batch-update or gdocs content insert-html equivalent."
+    }
+  },
+  "alerts_posted_24h": [
+    "ot-daily-learning-mitigated-alerts",
+    "ot-sev-monitor",
+    "ot-alert-monitor",
+    "ot-post-monitor",
+    "ot-shift-summary"
+  ]
+}
