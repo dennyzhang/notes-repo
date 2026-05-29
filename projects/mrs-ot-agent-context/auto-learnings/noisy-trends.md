@@ -10,6 +10,9 @@ _Written by `ot-daily-learning-mitigated-alerts` cron._
 
 | Run Timestamp PT | Rank | Model (type) | Alert Count (7d) | Signal Breakdown | Notes |
 |---|---|---|---|---|---|
+| 2026-05-28 22:05 PT | 1 | 2144816217 (ig_reels_tab_ss_omni_retrieval holdout/STUS) | 6 | UPSTREAM_INFRA×4, NEEDS_INVESTIGATION×1, THRESHOLD_MISFIT×1 | CL-003 ZippyDB/Scribe cascade; 6th fire in 8d; last: A2449443538836650 ~9h ago; owner: igr_retrieval |
+| 2026-05-28 22:05 PT | 2 | 2130305043 (ig_reels_tab_cs_omni_retrieval baseline) | 6 | UPSTREAM_INFRA×4, TRANSIENT_NOISE×2 | recurring CL-003/AGG; S667358 persistent root; last: A1002291152283272 ~12h ago; P57 confirmed |
+| 2026-05-28 22:05 PT | 3 | 2130324780 (ig_textpost_feed_m2m_retrieval/STUS) | 3 | REAL_OT_FAILURE_RECURRING×1, REAL_OT_FAILURE×1, FULL_SNAPSHOT×1 | DPP+KMEANS corpus recurring; last: A1009946182010606 ~159h ago; S665454 In Progress; owner: ronghuang |
 | 2026-05-27 22:05 PDT | 1 | 2130305043 (ig_reels_tab_cs_omni_retrieval baseline) | 4 | AGG+SPARSE_DELTA×4 | recurring CL-003/AGG; tied for top |
 | 2026-05-27 22:05 PDT | 2 | 2144816217 (ig_reels_tab_ss_omni_retrieval holdout/STUS) | 4 | client_lag_in_seconds×4 | CL-003 ZippyDB/Scribe cascade; DETECTOR_BROKEN classified by bot |
 | 2026-05-27 22:05 PDT | 3 | 2130324780 (ig_textpost_feed_m2m_retrieval/STUS) | 3 | FULL_SNAPSHOT×3 | DPP stuck recurrent; v48 RUNNING ~18.6h 0 FULL_SNAPSHOT as of 21:15 PDT; S665454 status unconfirmed; owner: ronghuang; 886797001 tied at 3 |
@@ -39,6 +42,7 @@ _Written by `ot-daily-learning-mitigated-sevs` cron._
 
 | Run date | Rank | Model | SEV count (7d) | Top class(es) | Notes |
 |---|---|---|---|---|---|
+| 2026-05-28 21:00 PT | — | (no chronic-SEV models) | 0 | — | — |
 | 2026-05-27 21:00 PDT | — | (no chronic-SEV models) | 0 | — | No model_id appeared in ≥2 distinct resolved-SEV archives in last 7d |
 | 2026-05-26 21:00 PDT | — | (no chronic-SEV models) | 0 | — | — |
 | 2026-05-19 21:00 PT | — | (no chronic-SEV models) | 0 | — | No model_id appeared in ≥2 resolved-SEV archives in last 7d |

@@ -77,12 +77,66 @@ if [ "$DRY_RUN" -eq 0 ]; then
             fi
         fi
     else
-        # New-commit mode: working copy must be clean.
-        DIRTY=$(sl status "fbcode/pe_mrs_ml/mrs_ot_agent/" 2>/dev/null | grep -vE '^[?!]' | grep -v '^$' | wc -l)
-        if [ "$DIRTY" -gt 0 ]; then
-            echo "ERROR: fbcode/pe_mrs_ml/mrs_ot_agent/ has uncommitted modifications. Aborting." >&2
-            sl status "fbcode/pe_mrs_ml/mrs_ot_agent/" >&2
-            exit 1
+        # New-commit mode: working copy must be clean — OR every dirty file must
+        # be content-identical to notes (in which case auto-revert: the change
+        # is already preserved in notes, fbcode write was a stray duplicate).
+        DIRTY_LIST=$(sl status "fbcode/pe_mrs_ml/mrs_ot_agent/" 2>/dev/null | grep -E '^[MA]' | awk '{print $2}')
+        if [ -n "$DIRTY_LIST" ]; then
+            DIVERGENT_LIST=""
+            IDENTICAL_LIST=""
+            while IFS= read -r fbcode_path; do
+                [ -z "$fbcode_path" ] && continue
+                rel="${fbcode_path#fbcode/pe_mrs_ml/mrs_ot_agent/}"
+                # Reverse .dot → .dot.txt mapping for notes lookup
+                notes_rel="$rel"
+                if [ "$rel" = "team_bot/architecture.dot" ]; then
+                    notes_rel="team_bot/architecture.dot.txt"
+                fi
+                notes_src="$NOTES_SRC/$notes_rel"
+                fbcode_abs="$HOME/fbsource/$fbcode_path"
+                is_identical=0
+                if [ -f "$notes_src" ]; then
+                    if cmp -s "$notes_src" "$fbcode_abs"; then
+                        is_identical=1
+                    else
+                        # Newline-normalized fallback: tolerate trailing-newline-only
+                        # drift (heartbeat double-write / editor sentinel diff). If
+                        # contents match after normalizing the final newline on both
+                        # sides, treat as identical → safe auto-revert (notes is SoT).
+                        if cmp -s <(awk 'BEGIN{ORS=""} {if(NR>1)print "\n"; print}' "$notes_src") \
+                                  <(awk 'BEGIN{ORS=""} {if(NR>1)print "\n"; print}' "$fbcode_abs"); then
+                            is_identical=1
+                        fi
+                    fi
+                fi
+                if [ "$is_identical" -eq 1 ]; then
+                    IDENTICAL_LIST="${IDENTICAL_LIST}${fbcode_path}\n"
+                else
+                    DIVERGENT_LIST="${DIVERGENT_LIST}${fbcode_path}\n"
+                fi
+            done <<< "$DIRTY_LIST"
+
+            if [ -n "$DIVERGENT_LIST" ]; then
+                echo "ERROR: fbcode/pe_mrs_ml/mrs_ot_agent/ has uncommitted modifications that DIVERGE from notes (manual review required):" >&2
+                printf "%b" "$DIVERGENT_LIST" >&2
+                if [ -n "$IDENTICAL_LIST" ]; then
+                    echo "(Note: also had identical-to-notes dirty files which would have auto-reverted:)" >&2
+                    printf "%b" "$IDENTICAL_LIST" >&2
+                fi
+                echo "Resolve by either: (a) backport divergent fbcode content to notes, then run again; or (b) sl revert if the divergent fbcode write was a mistake." >&2
+                exit 1
+            fi
+
+            # All dirty files are content-identical to notes — auto-revert.
+            echo "[notes-to-fbcode-sync] auto-recovery: $(printf "%b" "$IDENTICAL_LIST" | grep -c .) dirty file(s) match notes exactly; reverting (notes is SoT, content already preserved):" >&2
+            printf "%b" "$IDENTICAL_LIST" >&2
+            while IFS= read -r fbcode_path; do
+                [ -z "$fbcode_path" ] && continue
+                if ! sl revert --reason "intent - auto-revert; sync precondition recovery; content identical to notes (SoT)" "$fbcode_path" 2>&1 >&2; then
+                    echo "ERROR: sl revert failed on $fbcode_path. Aborting." >&2
+                    exit 1
+                fi
+            done <<< "$(printf "%b" "$IDENTICAL_LIST")"
         fi
     fi
 fi

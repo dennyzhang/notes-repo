@@ -10,6 +10,37 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
 
 ## Procedure
 
+0. **WEEKLY-DIFF DEDUPE GATE (MANDATORY, 2026-05-28 thread `LlBe4tLd2zY` after D106697344 + D106735261 both ended up as unlanded `Needs Review` for W22 simultaneously).** Before locating commits to fold, check Phabricator for any existing unlanded `[OT bot weekly sync]` diff for the CURRENT ISO week. If one exists, AMEND/STACK onto it instead of creating a fresh duplicate:
+
+   ```bash
+   THIS_WEEK=$(date -u +%Y-W%V)
+   # Search Phab for unlanded diffs by this author whose title matches the current week
+   EXISTING=$(meta phabricator.diff search --author=dennyzhang --status=needs-review,changes-planned -o json 2>/dev/null \
+     | jq -r --arg w "$THIS_WEEK" '.[]? | select(.title | contains("[OT bot weekly sync] notes->fbcode " + $w)) | .number' \
+     | head -1)
+   if [ -n "$EXISTING" ]; then
+     # Existing unlanded weekly diff for this week. Two safe responses:
+     # (a) AMEND mode: jump to that diff's local commit (if present) and add fresh drift onto it (preferred).
+     # (b) ESCALATE mode: if local commit isn't present (e.g. different devserver), post a one-line gchat
+     #     "⚠️ [weekly-sync] D$EXISTING already unlanded for $THIS_WEEK — skipping new submit to avoid duplicate.
+     #      Land/abandon D$EXISTING and re-run, or amend it manually." and exit clean.
+     # AMEND attempt:
+     LOCAL=$(sl log -r "draft() & desc('Differential Revision: https://phabricator.intern.facebook.com/D$EXISTING')" \
+       -T '{node|short}\n' 2>/dev/null | head -1)
+     if [ -n "$LOCAL" ]; then
+       echo "[weekly-sync] amending D$EXISTING (commit $LOCAL) instead of creating duplicate"
+       sl goto "$LOCAL" --reason "amend onto existing weekly-sync diff to avoid duplicate - sl help goto"
+       # Proceed with step 1 below, but skip the `sl fold` step c (no new-commit-to-fold; just sl amend onto $LOCAL)
+       export WEEKLY_AMEND_MODE=1
+     else
+       meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --as-meta-bot --text="⚠️ [weekly-sync] D$EXISTING already unlanded for $THIS_WEEK on Phab but no local commit on this devserver — skipping new submit to avoid duplicate. Land/abandon D$EXISTING and re-run."
+       exit 0
+     fi
+   fi
+   ```
+
+   **Why this gate matters:** D106697344 (Thu 13:06 PT, 54 files) and D106735261 (Thu 18:15 PT, 72 files) both ended up `Needs Review` for W22 because the cron at 18:15 didn't check for an existing unlanded weekly diff before submitting. The `phabdiff` filter in step 1 prevents re-folding ALREADY-SUBMITTED local commits, but it doesn't prevent creating a fresh diff when intra-week 4×/day commits accumulate on top. Result: reviewers had two parallel weekly diffs for the same week with overlapping content (D106735261 is a superset of D106697344). Dedupe gate makes the cron idempotent at the week level, not just the commit level.
+
 1. **Locate accumulated sync commits** in fbcode draft stack, **excluding any commit that already has a phabdiff** (those are already submitted; folding them would update an old diff rather than create a fresh weekly one):
    ```
    cd ~/fbsource

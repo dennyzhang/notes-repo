@@ -61,7 +61,12 @@
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668181-2026-05-26.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S655000.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S667355.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-25-W1332867342141342.md"
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-25-W1332867342141342.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-1473457624222843-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/critical-2026-05-27-A27534791649462484.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-938817701854850-2026-05-28.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668689-2026-05-27.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668720-2026-05-27.md"
   ],
   "diffs_drafted": [
     "D106127555",
@@ -78,7 +83,12 @@
       "type": "r18_validation_evidence",
       "signal": "SEV-S668181-2026-05-26 is single bot_self_correction(R18 wrong scope: FBLearner batch model wrongly classified as MAST OT failure → T4 serving-stage). Below threshold (need ≥2 for new rule; R18 already exists). Deferred for validation-evidence update if a 2nd R18 correction occurs.",
       "detected": "2026-05-27"
+    },
+    {
+      "type": "conveyor_regression_boost_pp",
+      "signal": "S668720 (2026-05-27): mvai/light_cli aarch64 BOOST_PP_LIMIT_SEQ=256 overflow when 257th entry added to __DISABLED_FEATURE_SWITCHES. Single occurrence; no existing P-row for conveyor Boost.PP overflow. Deferred pending 2nd occurrence.",
+      "detected": "2026-05-28"
     }
   ],
-  "last_run_epoch": 1779914611
+  "last_run_epoch": 1780001623
 }

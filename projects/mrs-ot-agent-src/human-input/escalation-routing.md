@@ -10,7 +10,7 @@
 
 | Symptom | Check This First | If Confirmed → Team | Oncall |
 |---------|------------------|---------------------|--------|
-| High example age, multiple jobs | `scribe_read_proxy.client_lag_in_seconds` per job | DPP (consumer lag) | `dpp_starvation` |
+| High example age, multiple jobs | `scribe_read_proxy.client_lag_in_seconds` per job | DPP (consumer lag) | `dpp_worker` |
 | High example age, single job | DPP starvation ODS + job config (worker count, threads) | DPP or model owner (config) | `dpp_client` |
 | Scribe write QPS drop | `ptail_flow.<category>.output.lines.rate.60` | Scribe / upstream producer | `scribe` |
 | Scribe category-level ingestion lag spike | `rfe.sli.<category>.ingestion_lag_ms` | ScribeOne / LogDevice | `logdevice` |
@@ -119,9 +119,8 @@ done
 
 | Team | Oncall Rotation | Scope |
 |------|----------------|-------|
-| DPP starvation | `dpp_starvation` | DPP workers falling behind, read lag, data starvation |
+| DPP starvation (symptom: workers falling behind, read lag) | `dpp_worker` | DPP worker process issues + starvation symptoms — `dpp_starvation` rotation deprecated 2026-05-28 (not staffed; per mpoggy in D106697344) |
 | DPP client | `dpp_client` | General DPP client-side issues |
-| DPP worker | `dpp_worker` | DPP worker process issues |
 | ScribeOne / LogDevice | `logdevice` | Storage-level read/write issues |
 | Scribe | `scribe` | Scribe producer / write-side issues |
 | MAST scheduler | `di_tetris` / `mast_optimizer` | Job scheduling, placement, preemption |

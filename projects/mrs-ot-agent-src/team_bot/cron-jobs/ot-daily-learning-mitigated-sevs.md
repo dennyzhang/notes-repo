@@ -32,7 +32,7 @@ Procedure:
 4. **Scope check via `scope_check` capability — MANDATORY** (same single-source-of-truth as ot-sev-monitor; do not inline regex):
    ```bash
    meta sevmanager.sev metadata --sev=S<id> -o json | \
-       buck2 run -q fbcode//pe_mrs_ml/mrs_ot_agent:scope_check -- --stdin
+       buck2 run fbcode//pe_mrs_ml/mrs_ot_agent:scope_check -- --stdin 2>/dev/null
    ```
    Drop any candidate where `in_scope=false`. Add to processed_ids silently — DO NOT post any "out of scope" closure note. The 2026-04-30 S657101 leak happened via closure-note channel.
 

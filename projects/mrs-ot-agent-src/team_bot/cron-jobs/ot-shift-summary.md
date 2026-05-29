@@ -615,6 +615,61 @@ This prevents the recurrence of the 2026-05-12 issue where the bot appended a `5
 
 ### 11. Cleanup + heartbeat
 
+**TUE→TUE WINDOW (operator thread `WhmgQGD72MQ` 2026-05-28: "as you know the oncall starts on Tue. So we should always start with Tue and ends on the next Tue.")**: shift window = Tue 09:00 PT → next Tue 09:00 PT. Pre-flight assert: `[ "$(date -d "$WINDOW_START" +%u)" = "2" ]` (weekday must be Tuesday). If not, recompute (find most recent Tuesday 09:00 PT ≤ NOW). Tab title (M/D format), section headers, frontmatter dates MUST all reflect Tue→Tue. Reject any Mon-start or Sun-start math.
+
+**DETERMINISTIC SORT KEY (operator thread `WhmgQGD72MQ` 2026-05-28: "you should order the SEVs by importance"):** every list/table in the shift summary uses this 5-key sort, applied in order:
+1. Oncall-robocalled / paged this shift (DESC: paged first)
+2. Oncall-filed / oncall-engaged via chat or sev comment (DESC: engaged first)
+3. Severity (SEV0 > SEV1 > SEV2 > SEV3 > SEV4 > non-SEV)
+4. This-shift before carryover (this_shift=1 first)
+5. Status (OPEN > IN_PROGRESS > MITIGATED > CLOSED)
+
+Bot-internal / low-confidence rows last. Document the sort key inline in EACH section header (e.g., `### SEVs HIGH-TOUCH (sort: robocalled → engaged → severity → this-shift → status)`).
+
+**ROBOCALL / PAGE AUDIT (mandatory section, before HIGH-TOUCH; operator thread `WhmgQGD72MQ` 2026-05-28: "S668272 — oncall got robocalled Wed night. why this is not captured?"):** every shift summary MUST have a `### 🚨 Critical alerts (robocalled this shift)` section at the top, surfacing every SEV/alert that paged a human oncall during the window. Detection:
+- `meta sevmanager.sev list ... -o json | jq '.[] | select(.auto_detected == true and .detection_method_tags | contains(["page"]))'`
+- Cross-reference with `meta pagerduty.events list --range="<WINDOW_START> .. <WINDOW_END>"` if available (or oncall.feed audit).
+- For each: enumerate (SEV/alert link, model, paged-oncall unixname, time-paged, current status).
+- If sevmanager has indexing lag (<6 min before run), manually reconcile from sev gchat first message timestamp.
+
+NEVER omit a robocall from the shift summary; missing one is the highest-impact failure mode for this doc.
+
+**CARRYOVER / FYI TWO-GATE FILTER (operator gdoc comments — S659671 + S659877 leaked into prior shift's carryover list):** every SEV in the carryover or observe-only section MUST pass BOTH gates:
+1. **OT-scope gate:** tag includes `mvai-online-training` OR `ai.model-series describe` confirms OT stack (training_stack in {MVAI, SILVERTORCH}).
+2. **Oncall-engagement gate:** sevmanager.chat shows ≥1 message from current OR prior shift's oncall during the SEV's lifetime, OR oncall_unixname IS the current/prior oncall.
+
+If EITHER gate fails → drop silently. Anti-regression: S659671 (not OT-tagged, IFR error rate T4 serving) and S659877 (IGML T4 serving — no oncall engagement) MUST drop, not appear in observe-only list.
+
+**DIFFS-CLOSED FILTER (operator gdoc comments — bot-internal diffs cluttered the diffs list):** the "Diffs landed" section excludes bot-internal/sync/tooling diffs. Whitelist: tag `mrs-ot-reliability` OR path prefix `fbcode/pe_mrs_ml/` (oncall-authored fixes only — NOT auto-generated sync diffs from `ot-notes-fbcode-sync`/`ot-notes-fbcode-sync-weekly`). For each surviving diff: prepend a 3-8 word descriptor pulled from `diff title` (first line). NEVER emit bare `D<id>` tokens.
+
+**ALERTS SECTION (operator gdoc comments — "need to know 'critical alerts' fired, which robocalled oncall"):** alerts section emits TWO counts (total triaged / major or UBN) and enumerates every major/UBN alert inline with (alert-name, model, paged-oncall-name, detector-page URL). Never lump as a single total. Use `short_id` from `meta oncall.feed metadata --id=<numeric> -o json` as the href (the bare-numeric `?alert_id=<id>` URL does NOT resolve for [AGG] alerts — verified 2026-05-28 thread `WR9DFGuQ3dU` on alert A2449443538836650).
+
+**SECTION-EXCLUSION RULES (operator thread `WhmgQGD72MQ` 2026-05-28 21:47 PT — two generic feedback):**
+
+1. **NO BOT-AUTONOMOUS-WORKFLOW CONTENT in the shift summary.** The shift summary is for the HUMAN ONCALL READER and focuses on HUMAN SIGNALS (real SEVs, alerts that paged a human, user-filed Workplace posts, human oncall actions / diffs). DO NOT include bullets about: bot tooling fixes shipped that session, sqlite cron registrations, prompt amendments, cron-health alerts that auto-mitigated, parity validators, gchat wrapper amendments, OAuth refreshes, memory file updates, cheatsheet edits, any bot self-improvement work. These are autonomous workflows — their existence is the bot doing its job in the background, NOT a signal the human oncall needs to act on. Pre-push assert: scan the draft for patterns like "Bot tooling fixes shipped", "registered via surgical INSERT", "wrapper inlined", "parity validator added", "cron-health alert auto-mitigated", "[Denny session]" — these are leak markers; if any appear, cut the entire bullet (not just rephrase).
+
+2. **TRUNK-HEALTH SEVs ARE LEAST PRIORITY.** SEVs tagged `mrs_ml_release_oncall` (or similar trunk-health workstream tags) are OWNED by the release oncall, not the MRS OT oncall. The MRS OT oncall does NOT need to action them. Render rule: do NOT list trunk-health SEVs in HIGH-TOUCH or observe-only sections. Aggregate to a SINGLE one-line bullet at the bottom of the SEV section: `Trunk-health SEVs handled by release oncall (not actionable here): N` — link IDs only if N ≤ 3; otherwise just the count. Never headline. Identification: tag includes `mrs_ml_release_oncall` OR title contains `cogwheel TGIF validation` / `trunk_metrics_test` / similar trunk-side keywords.
+
+**≤4-PAGE HARD CAP (pre-push gate, 2026-05-28 operator thread `WhmgQGD72MQ`):** the rendered ghtml MUST fit in ≤4 printed pages. Concrete gates before `gdocs replace`:
+
+1. Body byte count: `wc -c` on the filled ghtml file ≤ 13000 bytes. Over budget → cut, do NOT push.
+2. Section count: ≤ 6 top-level `<h3>` sections. Over budget → consolidate.
+3. NO "End of <date> shift summary" footer line (operator flagged: "adds no value, remove it").
+4. NO "FYI:" filler bullets (operator flagged: "adds no value").
+5. ALL SEV mentions clickable `<a href="https://www.internalfb.com/sevmanager/view/<id>">S<id></a>` — NEVER render bare `S<id>` (operator flagged: "why SEV is not clickable? same for all SEVs").
+6. SEVs sorted by importance: oncall_involvement DESC → severity DESC (SEV0/1 > SEV2 > SEV3 > non-SEV) → issue_status (OPEN > MITIGATED > CLOSED). Applies to §3 SEV tables, §4 alerts, §5 user posts, §6 diffs. Pre-push assert: each list/table monotonic on the 3-key sort.
+
+If over budget, cut in this order: (a) historical Daily Timeline entries BEFORE current shift, (b) carryover SEV detail (one-line reference, not full enrichment), (c) drop "Oncall Improvements" section if it's just template, (d) move observe-only SEVs to a one-line aggregate, (e) drop redundant Pain Points already covered in mega-learnings.
+
+**Mid-shift mode (added 2026-05-28):** if invoked outside the Tuesday 08:30 PT scheduled slot AND `last_window_end` for current week's shift tab already exists, switch to MID-SHIFT mode:
+- WINDOW_START = current shift start (most recent Tuesday 09:00 PT)
+- WINDOW_END = now (not today 09:00 PT)
+- Section header: `Oncall Summary for mrs_online_training: <SHIFT_START> - <NOW> (mid-shift, ~HH:MM PT)`
+- Framing: "Active oncall: <name> (since <handover_date>)" — NOT "Outgoing → X | Incoming → Y" (that's end-of-shift framing).
+- Daily Timeline: scope to current shift only (skip days before WINDOW_START).
+- HIGH-TOUCH scoped to current shift only (drop prior-shift mitigated/closed SEVs).
+- ≤4-page gate still applies — mid-shift snapshots tend to be shorter so cap is rarely tight.
+
 Respond `HEARTBEAT_OK posted-shift-summary <DATE_RANGE>`.
 
 ## Safety

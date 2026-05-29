@@ -1,0 +1,15 @@
+{
+  "_comment": "Source-of-truth config for ot-gdoc-context-sync cron. Each entry materializes as <slug>.md in this directory. Add an entry to onboard a new gdoc; remove to stop syncing. Slugs must be unique kebab-case (matched against filename).",
+  "docs": [
+    {
+      "doc_id": "1PpkGgLqAB6y5Z7jJWnKgNw-N2VuuNvKIwQW0XyOluPM",
+      "slug": "ot-reliability-meeting-notes",
+      "title": "OT Reliability - Meeting Notes"
+    },
+    {
+      "doc_id": "1mpy7J9r-GCkUTNjQzzdWsJDWbFC9iJ3ctZsFdvyX-qs",
+      "slug": "mrs-ot-reliability-cross-team-followups",
+      "title": "[MRS OT Reliability] Cross-Team Follow-ups"
+    }
+  ]
+}

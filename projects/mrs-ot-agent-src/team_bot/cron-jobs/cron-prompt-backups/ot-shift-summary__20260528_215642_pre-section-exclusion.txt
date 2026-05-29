@@ -1,0 +1,705 @@
+[ot-shift-summary cron] Weekly. Auto-draft the MRS Online Training oncall **shift summary** for the outgoing oncall to review/edit and post to the `mrs.ot` Workplace group. Runs Tuesday 8:30 AM PT, covering the rolling 7-day window ending at the cron run.
+
+**Audience model.** This is a DRAFT for the outgoing oncall — not the final post. The bot pre-fills every section that comes from data (SEVs, alerts, diffs, posts, bot-self-metrics) and leaves human-judgment fields as `TODO:` markers. Outgoing oncall reviews, fills the gaps, and pastes to `https://fb.workplace.com/groups/mrs.ot`. Bot does NOT post to mrs.ot directly.
+
+**Authoritative references — read these into context before drafting.**
+- **ghtml template (FORMAT SOURCE OF TRUTH):** `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-shift-summary-template.html` — fill `{{PLACEHOLDER}}` markers with data, push via `gdocs replace --tab-id <TAB> --from <filled_template>`. The template encodes all layout, sort order, column structure, and row ordering decisions. Do NOT regenerate the format from scratch — always start from the template.
+- Canonical capture protocol: `fbcode/minimal_viable_ai/agent/skills/mvai-ot/reliability/shift-summary.md` (the same skill the human oncall uses; this cron implements its automation surface)
+- Standing operator rules: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/state-templates/ot-shift-gdoc-config.json` → `standing_open_items_from_operator_comments` (rules o-w added 2026-05-25)
+- Reference rendered output (Workplace shape): `https://fb.workplace.com/groups/mrs.ot/posts/1318460240248719` (28 Apr - 05 May, Paul Lu)
+- Older reference: `https://fb.workplace.com/groups/mrs.ot/posts/1312466374181439` (21 Apr - 28 Apr)
+
+State file: `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-shift-summary-state.json` — `{"last_run_epoch": <int>, "last_window_end": "YYYY-MM-DD"}`. Time budget: ~10 min.
+
+## Procedure
+
+### 0. Bootstrap from daily-brief state files (PREFER over live re-query)
+
+The `daily-brief` cron (weekday 8:14 AM PT) persists each day's brief to `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/daily-brief-state/daily-brief-<YYYY-MM-DD>.md` with YAML frontmatter listing `sev_ids`, `diff_ids`, `wp_post_ids`. **Use these as the primary input for steps 3-6.** They're already pre-filtered through MRS-org scope + privacy gates (per `daily-brief.md` rules).
+
+```bash
+ls ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/daily-brief-state/daily-brief-*.md \
+  | tail -7   # past 7 days; will be 0-5 files (weekday-only cron, no Sat/Sun)
+```
+
+Parse frontmatter from each file:
+- Union `sev_ids` across all files → input set for Step 3 (skip live `meta sevmanager.sev list` call; only run `meta sevmanager.sev metadata` per id for enrichment).
+- Union `wp_post_ids` → input set for Step 5.
+- Union `diff_ids` → input set for Step 6.
+- Bodies of each file → "what was hot each day" — concatenate by date in chronological order under a new Section 7 ("Daily timeline") in the rendered draft.
+
+**Fallback:** if a date is missing (cron didn't run, holiday, day of week without daily-brief) OR a file's `entries: 0` frontmatter says quiet day, skip that day silently. If ALL 7 days are missing → daily-brief pipeline is broken; emit a `WARN: no daily-brief state found for <WINDOW_START>..<WINDOW_END>; falling back to live re-query` line at the top of the rendered draft and proceed with the original Step 3-6 live-query flow as a degraded path.
+
+**For Step 4 (alerts):** alerts are not yet captured in daily-brief frontmatter (only SEVs / diffs / WP posts). Continue Step 4 with live `meta oncall.feed list` as before. Wire alerts into daily-brief frontmatter in a follow-up.
+
+### 1. Window resolution
+
+- `WINDOW_END` = today, 09:00 America/Los_Angeles (the formal shift handover slot). Render as `YYYY-MM-DD`.
+- `WINDOW_START` = `WINDOW_END` minus 7 days. Render as `YYYY-MM-DD`.
+- Date range string for the title: `<MMM DD> - <MMM DD>` (e.g., `28 Apr - 05 May`) using shift-end day's month names.
+- If `last_window_end` in state == today's `WINDOW_END`: stop, respond `HEARTBEAT_OK already-ran-today`. Same-day re-trigger guard.
+
+### 2. Identify the outgoing + incoming oncall
+
+```bash
+meta oncall.rotation current --name=mrs_online_training --output=json | jq -r '.unixname'
+```
+
+Current oncall = INCOMING for the shift that starts today. The OUTGOING oncall is whoever was on call yesterday, OR (more reliable) pull recent rotation history:
+
+```bash
+meta oncall.rotation history --name=mrs_online_training --limit=14 --output=json
+```
+
+Pick the entry whose `end_time` ≈ `WINDOW_END`. If history CLI doesn't exist or returns nothing usable, fall back to: outgoing = `last_known_oncall` from state (set on previous run), incoming = current. Worst case if both unknown: render outgoing as `<unknown — oncall please fill>`.
+
+### 3. Pull SEVs in the window
+
+**PREFER:** Use the `sev_ids` union from Step 0's daily-brief state files as the input set; skip the two `list` calls below and go directly to per-SEV `metadata` enrichment. Only fall back to the live `list` queries if Step 0 emitted the `WARN: no daily-brief state` degraded-path marker OR a state file's `entries: 0` covered every day in the window.
+
+Live-query fallback (degraded path only):
+
+```bash
+meta sevmanager.sev list --tags=mvai-online-training \
+  --created-after="<WINDOW_START> 09:00 PT" \
+  --columns=sev_number,level,title,status,owner_unixname,created,time_closed,url \
+  --output=json --limit=100
+```
+
+ALSO query SEVs CLOSED in the window (caught by `time_closed` falling inside even if created earlier):
+
+```bash
+meta sevmanager.sev list --tags=mvai-online-training \
+  --closed-after="<WINDOW_START> 09:00 PT" \
+  --closed-before="<WINDOW_END> 09:00 PT" \
+  --columns=sev_number,level,title,status,owner_unixname,created,time_closed,url \
+  --output=json --limit=100
+```
+
+Union, dedupe by `sev_number`. For each SEV: pull `meta sevmanager.sev metadata --sev=S<id> -o json` (extract `overview`, `incident_impact`, `root_cause`, `time_closed`).
+
+**MANDATORY CROSS-CHECK against ot-sev-state (per L61, 2026-05-28).** Tag-based queries miss SEVs filed without the `mvai-online-training` tag (auto-detected or human-filed). Cross-reference `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-sev-state.json` `diagnosed_ids` for the window:
+
+```bash
+python3 -c "
+import json
+s = json.load(open('/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-sev-state.json'))
+window_start_epoch = <WINDOW_START_EPOCH>
+seen = [sid for sid, meta in s['diagnosed_ids'].items()
+        if meta.get('added_epoch', 0) >= window_start_epoch]
+print(f'ot-sev-state diagnosed {len(seen)} SEVs in window: {seen}')
+"
+```
+
+For any SEV in `diagnosed_ids` but NOT in the tagged-list union: pull `meta sevmanager.sev metadata --sev=S<id>` and decide — if OT-scoped per title regex (`/OT[ -]?job|online[ -]?training|mvai|MAST|silvertorch|MRS/i`) OR if SEV gchat shows oncall robocall → ADD to candidate set + auto-tag via `meta sevmanager.sev update --sev=S<id> --add-tag=mvai-online-training` for future runs.
+
+**Source of the L61 fix:** S668272 [IG Feed ESR] Sparse Streaming OT job failure, created 2026-05-26 21:51 PT, robocalled Denny. ot-sev-monitor missed first run (6-min indexing lag, see memory `sevmanager-indexing-lag`); SEV never received `mvai-online-training` tag; shift-summary Step 3 tag-query missed it; surfaced only after Denny's comment AAAB6WPRTi8. Double-miss = silent flywheel failure.
+
+**Org filter — MANDATORY pre-render.** Pipe each SEV through `scope_check` (see `daily-brief.md` rule 4). Drop sibling-org SEVs silently. Cite the leak that made this rule (S657101 Ads `ads_mtml`).
+
+**HARD SCOPE FILTER — drop `mrs_ml_release_oncall`-tagged SEVs (2026-05-28, thread `Rk8bGR2CQK8`).** Trunk-health workstream owns these end-to-end and has its own oncall; surfacing them in the OT shift summary creates noise + double-coverage confusion. For every candidate SEV (including those that pass the org filter above), query its tags via:
+
+```bash
+# canonical: meta sevmanager.sev list does NOT return per-SEV tag arrays; use a tag-membership query instead.
+# Build the drop-set ONCE per window, then filter the candidate list in-memory:
+DROP_SET=$(meta sevmanager.sev list --tags=mrs_ml_release_oncall \
+  --created-after="<WINDOW_START> 09:00 PT" \
+  --columns=sev_number --output=json --limit=200 | jq -r '.[].sev_number' | sort -u)
+# Drop silently (same handling as sibling-org SEVs); log to internal pre-finalize gate count only.
+```
+
+Applies to ALL sections: §3 Daily timeline, §4 Top ongoing, §5 SEVs handled, Hand-off, Headline-numbers Detail cells. The filter is silent (no `TODO` line, no "dropped N" callout in the operator-facing draft). Internal `_pre_finalize_gates_log.json` records the dropped IDs for debugging. Sibling-org filter precedent (S657101) + new filter share the same drop-handling path.
+
+**Bucketize per skill template Section 3:**
+- **Handled** — SEV owner ∈ OT IC set (`dennyzhang`, `lupaul`, `llu6`, `yabinzh` + rotation members), OR SEV carries `mvai-online-training` AND triage_events row exists with `auto_tag_applied=1` from the bot.
+- **On-Demand Support** — tagged but owner is outside the OT IC set; team contributed via comments / GChat but didn't own.
+- **Related** — adjacent failures referenced in triage cross-references (e.g., a ZippyDB SEV1 that broke OT publish).
+
+### 4. Pull alerts in the window
+
+```bash
+meta oncall.feed list --oncall=mrs_online_training \
+  --item-type-is=Alert \
+  --created-time-is-after="<WINDOW_START> 09:00 PT" \
+  --columns=id,short_id,title,priority,assigned_user,created_time,closed_time \
+  --output=json --limit=200
+```
+
+Bucketize per skill template Section 4:
+- **Major Alerts** — alerts that triggered oncall investigation or action. Cross-reference triage_events table where `cron_job_id='ot-alert-monitor'`.
+- **Auto-Recovered Alerts** — alerts that closed within 30 min and never triggered triage_events. Batch into a 1-line count.
+- **Low-Priority Noise** — NaN-metric alerts, dead-detector alerts, AGG wrappers that resolved as CL-018.
+
+**IMPORTANT:** Section 4 MUST include the FULL alert list from the oncall feed, not a reduced count. "Open 2 alerts" when 24 were triaged is wrong — render the full breakdown. (Operator feedback 2026-05-25, comment AAAB6SHJgxE)
+
+Drop the `mrs_online_training OMH` rotation-level catchall URL — emit per-alert `short_id` URLs only (same gotcha as ot-alert-monitor cron step 7a).
+
+### 5. Pull Workplace posts (mrs.ot, group 1084744250286987)
+
+**ALWAYS LIVE-QUERY (HARD).** Do NOT use daily-brief `wp_post_ids` as the primary input here — `daily-brief.md` filters posts to "high-confidence relevance to an active SEV or open question", which is too tight for shift-summary semantics (operator needs every user post in the window, including how-do-I and team-asks). Daily-brief frontmatter is REFERENCE-ONLY for posts; cross-check at end.
+
+```bash
+meta workplace.post list --group-id=1084744250286987 \
+  --after="<WINDOW_START>T00:00:00-07:00" \
+  --before="<WINDOW_END>T23:59:59-07:00" \
+  --output=json --limit=50
+```
+
+Skip prior shift summary posts (title regex `^Oncall Summary for mrs_online_training`). For each remaining post: cross-reference the bot's auto-triage from triage_events + `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-monitor-state.json` (`processed_post_ids.<id>.notification_outcome`) to populate "verdict" + "reply status" fields (the bot's own diagnosis IS the verdict draft).
+
+**MANDATORY CROSS-CHECK (per L60, 2026-05-28).** After the live query returns N posts, run:
+
+```bash
+python3 -c "
+import json
+s = json.load(open('/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-monitor-state.json'))
+window_start_epoch = <WINDOW_START_EPOCH>
+window_end_epoch = <WINDOW_END_EPOCH>
+seen = [pid for pid, meta in s['processed_post_ids'].items()
+        if window_start_epoch <= meta.get('added_epoch', 0) <= window_end_epoch]
+print(f'ot-monitor-state saw {len(seen)} posts in window: {seen}')
+"
+```
+
+If the live-query count != ot-monitor-state count, the section header MUST list the divergence explicitly (`⚠️ live:N, monitor:M — diff: <ids>`). Silent dropping a post is a flywheel failure per `[[tool-failure-fix-or-escalate]]`.
+
+**Source of the L60 fix:** 2026-05-28 mid-shift snapshot for 5/26 → 5/28 shipped with "WP user reports: 0 new in window" while Hao Sha (1336024098492333, 5/27 11:11 PT, MC12 arm3 example age) and Sanket Karnik (1336148551813221, 5/27 15:01 PT, gflag add) were both in `ot-monitor-state.processed_post_ids`. Root cause: prior step 5 read daily-brief frontmatter `wp_post_ids: []` and skipped the live query. Denny flagged via comment AAAB6WPRTiI ("that's not true").
+
+### 6. Pull diffs from OT developers in the window
+
+**PREFER:** Use the `diff_ids` union from Step 0's daily-brief state files as the input set; skip the per-author `list` loop and go directly to per-diff `metadata` enrichment. Live-query fallback (degraded path only):
+
+For each unixname in the OT IC set (`dennyzhang`, `lupaul`, `llu6`, `yabinzh` + current rotation members from step 2):
+
+```bash
+meta phabricator.diff list --author-is=<unixname> \
+  --updated-after="<WINDOW_START>" --updated-before="<WINDOW_END>" \
+  --columns=id,title,status,updated_time --output=json --limit=30
+```
+
+Filter to OT-scoped paths (same as `daily-brief.md` rule 2): `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/`, `fbcode/minimal_viable_ai/`, `fbcode/silvertorch/`, `fbcode/ip_runtime/`, or paths matching `online_training`/`mvai`/`ot_agent`. Dedupe across authors. Bucket: **Diffs Produced** (Closed/Committed in window) vs **Open Diffs** (Needs Review / Changes Planned).
+
+### 7. Bot Post Score (self-report from triage_events)
+
+Query the bot's own triage activity for the window:
+
+```sql
+sqlite3 /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db <<SQL
+SELECT
+  COUNT(*) AS total_triages,
+  SUM(CASE WHEN validator_outcome='confirmed' THEN 1 ELSE 0 END) AS confirmed,
+  SUM(CASE WHEN validator_outcome='discrepancies' THEN 1 ELSE 0 END) AS discrepancies,
+  SUM(CASE WHEN auto_tag_applied=1 THEN 1 ELSE 0 END) AS auto_tagged
+FROM triage_events
+WHERE ts_notified BETWEEN '<WINDOW_START> 09:00:00' AND '<WINDOW_END> 09:00:00';
+SQL
+```
+
+Bot Post Score format: `<confirmed>/<total_triages>` (e.g., `7/9`) — matches the convention in past posts. If `total_triages == 0`, render `0/0 (no auto-triage activity in window)`.
+
+### 8. Pre-finalize gates (skill rules — port to bot)
+
+Per `shift-summary.md` "Pre-Finalize Checks", run two HARD checks before emitting the draft:
+
+a. **Tag hygiene** — for each SEV in Section 3 "Handled", verify `mvai-online-training` is in tags via `meta sevmanager.sev metadata --sev=S<id> -o json | jq -r '.tags // empty' | grep -c mvai-online-training`. Any miss → emit a `TODO:` line in the draft Oncall Improvements section: `MISSING tag #mvai-online-training on S<num> — outgoing oncall: add at <url>`.
+
+b. **SEV-Review enrollment** — query for any SEV in last 14 days carrying `#mvai-online-training-review`:
+
+```bash
+meta sevmanager.sev list --tags=mvai-online-training-review --created-after="14 days ago" --columns=sev_number --output=json
+```
+
+If empty: this shift is the enrollment shift → emit `TODO: SEV-Review enrollment due — pick a teaching SEV from this shift and add #mvai-online-training-review tag`. If non-empty: render `SEV-Review last enrolled: S<num> (<date>); next due ~<date+14>`.
+
+### 9. Render the draft — TEMPLATE v3 (2026-05-25, operator-approved)
+
+**FORMAT SOURCE OF TRUTH:** `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-shift-summary-template.html`
+
+**CRITICAL: Do NOT regenerate the format. Do NOT add tables. Do NOT add sections.** Read the template, fill `{{PLACEHOLDER}}` markers with data from steps 0-8, push the filled template to the gdoc tab. The template IS the format.
+
+**MANDATORY PRE-PUSH SORT LINT (2026-05-28, comment `AAAB6WPRTgE` on tab `6/2`):** RULE 55 (3-tier sort: oncall_involvement DESC → severity DESC → status DESC) was declared 2026-05-25 but was NOT being enforced — comment `AAAB6WPRTgE` flagged `(S667849, S665454)` rendered out-of-order on tab `6/2`. Before calling `gdocs apply`, run the in-process lint below on every SEV-bearing list/table (Overview observe-only line, Hand-off `<ol>`, Daily Timeline within-day groupings, Section 4 Top Ongoing, Section 5 Handled). If any list is non-monotonic on the 3-key, **ABORT and re-sort** — do NOT push.
+
+```python
+# Sort lint (run before gdocs apply)
+INVOLVE = {"high-touch": 3, "observe-only": 2, "none": 1}
+SEVERITY = {0: 4, 1: 4, 2: 3, 3: 2, 4: 1}   # L0/L1 tied as most-severe
+STATUS = {"OPEN": 3, "IN PROGRESS": 3, "MITIGATED": 2, "CLOSED": 1}
+def sort_key(s):  # s is dict with involvement / level / status
+    return (-INVOLVE[s["involvement"]], -SEVERITY[s["level"]], -STATUS[s["status"].upper()])
+for section_name, sevs in sev_lists.items():
+    keys = [sort_key(s) for s in sevs]
+    if keys != sorted(keys):
+        raise SortLintAbort(f"{section_name} not in RULE 55 order: {[s['sev_id'] for s in sevs]}")
+```
+
+Each SEV entry MUST carry `[L<n> <STATUS>]` bracket annotation inline so the operator can verify the sort visually. Lint is BLOCKING — failure means re-sort and re-run, never push the violating draft.
+
+**The exact structure (7 sections, no tables):**
+
+```
+Title + Outgoing → Incoming
+Shift character (bold opening paragraph — 2 sentences)
+Overview (bullet list — NOT a table)
+Impact this shift (what CHANGED, quantified)
+Pain Points (problem → proposed fix → CC owner)
+Hand-off (sorted by urgency)
+Daily Timeline (MAIN SECTION — events grouped by day)
+FYI (observe-only SEVs + alerts — ONE line each)
+```
+
+**Key rules:**
+
+**RULE 61 — TODO markers MUST be visually loud (2026-05-28, thread `Rk8bGR2CQK8`).** Every `TODO` line the bot emits is a human-input marker the outgoing oncall relies on. Plain inline text blends with surrounding bullets and gets missed. Wrap EVERY `TODO` occurrence (in bullets, paragraphs, table cells, sub-bullets) as:
+
+```html
+<p style="background:#FFF2CC;padding:6px;border-left:4px solid #F1C232;margin:4px 0;"><b>📌 TODO (oncall):</b> <action text></p>
+```
+
+When the TODO is inside a `<ul><li>`, replace the entire `<li>...TODO...</li>` with the styled `<p>` block (do NOT nest the styled block inside `<li>` — gdoc renders nested block elements oddly). When inside a table `<td>` cell, drop the outer `<p>` styling and use a `<span style="background:#FFF2CC;font-weight:bold;">📌 TODO: <text></span>` instead (cells can't host block-level styling cleanly). Apply uniformly — do NOT mix styled/unstyled TODOs in one draft. Pre-push lint: `grep -E '^[^<]*TODO\\b' <draft.ghtml>` matches → ABORT (bare TODOs without styling block).
+
+**RULE 62 — Bot-activity entries in Daily Timeline MUST be ≤1 line (2026-05-28, thread `Rk8bGR2CQK8`).** Bot self-triage entries (`bot:`, `auto-triaged`, `L<NN> ledger`, `CL-XXX cluster`, `P<NN> proposal`, `validator <verdict>`) bloat the timeline with internal chatter the operator doesn't read. Trim every BOT entry to ONE concise line. Format:
+
+```
+bot: triaged S<id> as <cluster> [confidence:low|med|high]
+bot: ledger L<NN> — <≤8-word summary>
+bot: P<NN> proposal — <≤8-word summary>
+```
+
+NO narrative, NO internal P-row chatter, NO validator self-references, NO CL-XXX cluster expositions, NO "rule added to surface" meta-commentary. Cross-link via the L<NN> / P<NN> token only — the daily-ledger holds detail. Human-oncall entries STAY verbose (action + context + outcome) — only BOT entries are trimmed. Pre-push lint: any `bot:` line >120 chars OR containing `validator|ledger noted|R\d+ lesson|cron health` → ABORT and re-trim.
+
+**RULE 63 — Daily Timeline scannability format: bucket headings + bold IDs + quiet-day collapse (2026-05-28, comment `AAAB6WPRTgI` on tab `6/2`).** Operator feedback: "this section is not scannable. Critical info got buried in pool of text." A flat bullet list under each `<h4>` day is unreadable. Required structure per day:
+
+1. **Day heading** (existing `<h4>YYYY-MM-DD (Day) — <subtitle></h4>`) — KEEP.
+2. **Bucket sub-labels in fixed order** — bold inline at start of a parent `<li>`, each followed by child `<li>` rows prefixed `↳`:
+   - `<b>🔴 Major:</b>` — L0/L1/L2 SEVs OR oncall-PAGEd OR oncall-filed-SEV. SKIP IF 0 ENTRIES.
+   - `<b>⚠️ Watching:</b>` — L3/L4 OPEN SEVs the oncall is tracking (handover carry-forwards, new-this-day observe-only). SKIP IF 0.
+   - `<b>🤖 Bot:</b>` — bot self-activity (alerts auto-triaged, ledger L<NN>, P<NN>). For days with >5 events total, COLLAPSE to a single line: `↳ bot: triaged N alerts + M ledger entries (L<X>–L<Y>)`. SKIP IF 0.
+   - `<b>👤 Oncall:</b>` — human oncall actions: handover events, WP posts, diff status, escalations. SKIP IF 0.
+3. **SEV entry format** inside any bucket: `↳ <b><a href=fburl.com/sev/S###>S###</a></b> [L<n> <STATUS>]</span> — <1-line outcome, no prose>`. NO multi-line continuations. NO narrative paragraphs.
+4. **Quiet day**: literal nothing-happened day renders as a single line `<h4>YYYY-MM-DD (Day) — (quiet)</h4>` with NO `<ul>` below (RULE 57 reinforcement).
+5. **Bucket ordering is FIXED** (Major → Watching → Bot → Oncall) regardless of which buckets are present — operator reads top-down for "what's on fire" first.
+6. **Pre-push lint**: for each day-section, assert (a) buckets present are in order, (b) all SEV entries start with bold-ID-then-bracket-status pattern via regex `<b><span[^>]*><a[^>]+>S\d+</a></b> \[L\d (?:OPEN|CLOSED|MITIGATED)\]`, (c) NO bullet exceeds 240 chars. Mismatch → ABORT.
+
+Source: comment AAAB6WPRTgI on tab `6/2` (doc `1helRQh0I05stXhMEsroMYxbETPgtdyeNS3Zy55TJe0k`). Example before/after preserved in `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/notes/2026-05-28-rule63-example.md` (if needed for regression).
+
+1. **NO tables anywhere.** Overview is a bullet list. Metrics are one pipe-separated line.
+2. **Shift character is the first thing the reader sees** — bold paragraph before Overview.
+3. **Impact = outcomes, not activity.** "Eliminated 2 weekly UBNs" not "landed 2 diffs."
+4. **Daily Timeline is the main section.** Every SEV, alert, user report grouped by the day it happened. Every SEV/diff/post is a clickable link.
+5. **Observe-only SEVs = one FYI line.** Not 10 separate paragraphs.
+6. **No Diffs section.** Key diffs referenced in Impact + Daily Timeline.
+7. **No FYI section.** Observe-only SEVs go in Hand-off. Auto-resolved alerts mentioned in Overview count.
+8. **No theme bullets section.** Shift character covers themes in 2 sentences.
+9. **No "End of..." footer.**
+10. **Date headings must NOT have hyperlinks.** After any gdocs replace, manually remove links from date headings.
+11. **Per-day alerts in Daily Timeline.** Pull from noisy-trends.md + oncall feed for each day's alerts.
+12. **Pain Points include trending noisy models.** Pull top 3 from auto-learnings/noisy-trends.md.
+13. **Observe-only SEVs: category counts only, no individual links.** Links only in Hand-off where they're actionable.
+
+**Data sources for Daily Timeline:**
+- daily-brief state files (steps 0, 3-6)
+- OT bot GChat space (`spaces/AAQAVOjYc80`) — read bot triage threads for per-SEV context
+- auto-learnings/digests/2026-W{NN}.md — cross-incident patterns
+- WP posts from mrs.ot group
+- SEVs filed by oncall: `meta sevmanager.sev search --creator-is=<oncall_unixname> --time-created-is-after=<WINDOW_START> --time-created-is-before=<WINDOW_END>` — these are always HIGH-TOUCH (strongest signal)
+
+**Template placeholder reference:**
+
+| Placeholder | Source | Notes |
+|---|---|---|
+| `{{DATE_RANGE}}` | Step 1 | "19 May - 26 May" |
+| `{{OUTGOING}}`, `{{INCOMING}}` | Step 2 | Display names, not unixnames |
+| `{{SHIFT_CHARACTER}}` | Computed | 2 sentences: what dominated, how heavy, what's unresolved |
+| `{{SEV_HT_COUNT}}`, `{{SEV_HT_LINKED}}` | Step 3 | HIGH-TOUCH SEVs with clickable links |
+| `{{SEV_OO_COUNT}}`, `{{SEV_OO_CATEGORIES}}` | Step 3 | Observe-only grouped by category (not bare IDs) |
+| `{{ALERT_ACTION}}`, `{{ALERT_TOTAL}}`, `{{ALERT_AUTO}}` | Step 4 | Actionable / total / auto-resolved counts |
+| `{{WP_COUNT}}`, `{{WP_AUTHORS}}` | Step 5 | Author display names |
+| `{{DIFF_COUNT}}` | Step 6 | Oncall-related only count |
+| `{{DIFFICULTY}}`, `{{HOURS}}`, `{{WAKEUPS}}`, `{{NOISE}}` | Oncall fills | One line, pipe-separated |
+| `{{IMPACT_BULLETS}}` | Shift observation + auto-learnings digest + diffs landed | `<li>` items — outcomes that changed system state. Cross-ref auto-learnings/digests/2026-W{NN}.md for patterns identified this shift. |
+| `{{PAIN_POINTS}}` | Shift observation | `<li>` items — problem + proposed fix + CC owner |
+| `{{HANDOFF_ITEMS}}` | Steps 3-6 | `<li>` items sorted by urgency |
+| `{{DAILY_TIMELINE}}` | Steps 0-6 + GChat + auto-learnings | `<h4>` per day + `<ul>` per day's events |
+| `{{FYI_SEVS}}` | Step 3 | One line: carryovers + bot-triaged |
+| `{{FYI_ALERTS}}` | Step 4 | One line: auto-resolved count + resolved items |
+
+#### SLICK SLI probe (runs before template fill)
+
+  ```bash
+  # Discover SLIs for the service (resolve the actual service-id via slick.service first if mrs_online_training is not the canonical id):
+  meta slick.sli list --service-id=mrs_online_training --output=json
+  # Performance over the shift window (epoch seconds; performance returns all SLIs for the service):
+  meta slick.sli performance --service-id=mrs_online_training \
+    --start-time=<WINDOW_START_EPOCH> --end-time=<WINDOW_END_EPOCH> --output=json
+  ```
+
+  Surface red signals inline: `<sli_name>: <status> (value=<v>, budget_burn=<b>)`. If the probe fails (CLI error, empty result, network) → fall back to the TODO + dashboard links so the oncall fills:
+  - `TODO (oncall): Discovery Online Models SLI — green / yellow / red? value? budget burn?  https://fburl.com/monitoring/rkhcqpuj`
+  - `TODO (oncall): Instagram Online Models SLI — green / yellow / red? value? budget burn?  https://fburl.com/monitoring/gmdu02yq`
+
+- **Headline numbers** — explicit table, render in this row order. **Schema MUST match 5/12 reference tab exactly: 3 columns `[Metric, Count, Detail]` — NO `#` column.** (Operator-validated 2026-05-18: 5/12 is the canonical layout; any divergence is a regression.)
+
+  | Metric | Count | Detail |
+  |---|---|---|
+  | SEVs touched this shift | `<n>` | linked SEV IDs |
+  | SEVs Remaining Open | `<n>` | linked SEV IDs |
+  | SEVs on-demand support | `<n>` | Live filter: sevmanager mvai-online-training |
+  | SEVs closed | `<n>` | linked SEV IDs + status transitions |
+  | In-progress carryovers | `<n>` | linked SEV IDs from Section 2 |
+  | Alerts | `<n> total` | `<major> major (oncall action)` + `<auto> auto-resolved` + `<noise> low-priority noise`; linked alert IDs for major only |
+  | Workplace user reports | `<n>` | author display names with WP post URLs — EVERY item MUST have a link |
+  | Diffs closed | `<n> oncall-related` | oncall-related diffs only (SEV fixes, OT reliability, monitoring). Exclude non-oncall diffs (agent sync, myclaw UI, unrelated bot improvements). If filtering changes total, show "X oncall-related of Y total" |
+  | Diffs open | `<n>` | breakdown by author |
+  | Bot Post Score | `<confirmed>/<total>` | from step 7. **Render LAST in the table** — this metric is early-stage and unreliable when triage_events is empty |
+
+  Rendering rules for this table (apply per `cheatsheets/gdocs/rules.md`):
+  - **Use markdown link syntax `[label](url)`, NOT `<a href>` HTML tags.** Markdown links convert to native gdoc hyperlinks everywhere (bullets, paragraphs, table cells). `<a href>` only converts inside table cells and leaves literal HTML in bullets/paragraphs. Source: 2026-05-18 visual-state verification failure on 5/18 tab. See `cheatsheets/gdocs/rules.md` "Visual-State Verification" section.
+  - Header row background `#C9DAF8`, body 11pt Arial.
+  - Column widths via `updateTableColumnProperties` (FIXED_WIDTH): Metric=180pt, Count=80pt, Detail=340pt.
+  - Detail cell SEV IDs: `[S###](https://www.internalfb.com/sevmanager/view/###)` — NO `S` prefix in URL path (RULES.md URL validity).
+  - Detail cell Diff IDs: `[D###](https://www.internalfb.com/diff/###)`.
+  - Detail cell Alert IDs: `[A###](https://www.internalfb.com/onedetection/alert?alert_id=###)`.
+  - Detail cell Workplace posts: `[<topic>](https://fb.workplace.com/groups/mrs.ot/permalink/<id>/)`.
+  - Count cells are **computed at render time from the same source as the Detail cell**, not duplicated.
+  - **Freshness re-check (mandatory):** for every SEV ID destined for the SEVs Remaining Open row, re-fetch `meta sevmanager.sev metadata --sev=S<id> -o json | jq -r '.status'` immediately before render. Drop any SEV whose live status is `Mitigated`, `Closed`, `Resolved`, or `Invalid`. Same re-check governs the carryover list in Section 2.
+  - Source query for `SEVs Remaining Open`:
+
+    ```bash
+    meta sevmanager.sev list --tags=mvai-online-training --status='In Progress' \
+      --columns=sev_number,level,title,owner_unixname --output=json --limit=100
+    ```
+
+  **Global rendering rules (apply to ALL tables and lists in the entire doc):**
+  - **Sort by importance everywhere.** ALL tables sort by: oncall direct involvement first, then severity/impact, then issue status. ALL hand-off lists sort by urgency. Never sort alphabetically or chronologically unless importance-order would be identical. (Operator feedback 2026-05-25, comments AAAB6SHJgw4/AAAB6SHJgw0)
+  - **Consolidate SEV+Level columns.** In ALL SEV tables, merge SEV and Level/Lvl into one column (e.g., "S667687 L4"). Saves horizontal space. (Operator feedback 2026-05-25, comment AAAB6SHJgw8)
+  - **Every referenced item needs a URL.** Every WP post, SEV, diff, alert in any table or list MUST have a clickable link. No bare names. (Operator feedback 2026-05-25, comment AAAB6SHJgxM)
+  - **Hand-off items: no already-committed diffs.** Diffs that are already submitted/in-review belong in the open diffs section, not hand-off. Only include items that require action by the incoming oncall. (Operator feedback 2026-05-25, comment AAAB6SHJgww)
+
+- **Theme section** (skill section 1 second bullet) — REQUIRED ≥6 substantive bullets, NO template fallback, NO `TODO (oncall)` here (per L12). **MUST cross-reference `auto-learnings/digests/2026-W{NN}.md`** for the matching week and incorporate curated cross-incident patterns (e.g., DPP session restart fleet-wide impact, P59 preload deadlock, detector formula false positives, CL-003 cascade scale). The weekly digest captures patterns the shift summary's live-SEV-only view misses. (Operator feedback 2026-05-25, comment AAAB6SHJgws). Compute cross-SEV pattern frequencies and emit one bullet per pattern that fires ≥1× in the window. Mandatory categories the bot checks (emit only if hit):
+  - (a) **Long-running L3s without mitigation** — any SEV `level==3` AND `status=='In Progress'` AND `(now - created).days >= 5`. List the SEV ids + age.
+  - (b) **Package-cluster failures** — ≥2 SEVs touching same package within 48h (e.g., light_cli, fire-app, mvai_ig_ranking).
+  - (c) **NCCL / DPP hang family** — titles match `nccl|stuckjob|gloo|dpp|deadlock|hang`. Cross-link to P24/P30 if applicable.
+  - (d) **MB warmup / capacity-class** — titles match `mb\d|warmup|ramp|qps|slow`. Cross-link to known 3h-warmup pattern.
+  - (e) **Multi-region serving degradation** — titles match `region|fallback|serving error|error rate`.
+  - (f) **Bot monitoring health** — if `triage_events COUNT(*) == 0` for window → emit "Bot triage dark for full window — investigate ot-alert-monitor / ot-sev-monitor / ot-post-monitor cron health".
+  - (g) **Long-tail patterns** — if <6 categories fire above, supplement with per-PG SEV-count distribution (e.g., "IG: 4 SEVs / Facebook: 6 / Threads: 3") and per-cluster-pattern (CL-001/CL-003/CL-013/CL-014/CL-017) frequency to reach 6.
+
+#### Section 1b: Hand-off action items (incoming oncall)
+
+Render this section IMMEDIATELY after Section 1 Headline numbers — it is the primary action surface for the incoming oncall and must not be buried near the doc tail.
+
+Source: union of (a) any `TODO (oncall):` markers emitted by step 8 pre-finalize gates, (b) Section 2 carryover SEVs whose `investigation_summary` is empty, (c) any Section 5 Workplace post lacking a verdict, (d) any Section 3 SEV with `status==In Progress` and no `mvai-online-training-review` tag past 14 days.
+
+Format: numbered list, each item `<n>. <action> — <linked artifact> — owner: <incoming_unixname>`. SEV/diff/task IDs MUST be explicit `<a>` anchors (same rule as Headline numbers Detail cells). If empty, render `✅ No hand-off action items — clean shift.`
+
+#### Section 2: Ongoing Issues
+
+For each SEV with `status==In Progress` AND created before `WINDOW_START`:
+- **Re-fetch live status first** (same freshness rule as Section 1 SEVs Remaining Open). Drop any SEV whose live `metadata.status` is no longer `In Progress`. This guards against carryover entries surviving past mitigation (caught 2026-05-09 with S660546 carrying after mitigation).
+- Bullet: `S<num> [L<level>]: <title>` (SEV id rendered as `<a href="https://www.internalfb.com/sevmanager/view/<num>">S<num></a>` — NO `S` prefix in URL path per RULES.md URL validity) then sub-bullets pulled from `investigation_summary` field of metadata. If empty → `TODO (oncall): 1-line status update needed`.
+
+#### Section 3: SEVs (5/12-schema canonical, operator-validated 2026-05-18)
+
+Render **TWO tables** matching 5/12 reference layout exactly:
+
+**Table A: Top ongoing issues** — 4 columns, sorted L3 first then activity. Source: live SEV state + ot-bot deep-triage replies. Cap at 8 rows.
+
+| SEV | Symptom | Root cause / Verdict | Status & next |
+|---|---|---|---|
+| `[S<num>](https://www.internalfb.com/sevmanager/view/<num>) [L<lvl>] <title>` | 1-line symptom from `metadata.overview` or `metadata.incident_impact` | derived via root-cause fallback chain (see below) | live `status` + 1-line next action |
+
+**Table B: Closed this week — per-SEV** — 6 columns, all closed-in-window SEVs.
+
+| # | SEV | Severity | Title | Root cause | Mitigation & follow-up |
+|---|---|---|---|---|---|
+| `<n>` | `[S<num>](...)` | `L<lvl>` | metadata.title | metadata.root_cause OR derived | metadata.remediation OR status-based |
+
+**Table C: OT-IC vs Bot triage signals** — 4 columns, per closed SEV.
+
+| SEV | OT IC in SEV gchat | Bot triage | Verdict |
+|---|---|---|---|
+| `[S<num>](...)` | `<unixname>` if OT IC in 17-name set posted in SEV gchat, else `none` | `yes (N)` from triage_events count, else `none` | `OWNED` if both yes, `observed-only` if bot-only, `not involved` if neither |
+
+Then one trailing summary line under Table C: `Net: X of Y closed SEVs had real OT IC ownership; Z had observed-only; rest not involved.`
+
+**Bucketing (used to select which SEVs go in Table B / Table C):**
+- **Handled** — SEV owner ∈ OT IC set (`dennyzhang`, `lupaul`, `llu6`, `yabinzh` + rotation members), OR SEV carries `mvai-online-training` AND triage_events row exists with `auto_tag_applied=1`.
+- **On-Demand Support** — tagged but owner outside OT IC set; team contributed via comments/GChat but didn't own.
+- **Related** — adjacent failures referenced in triage cross-references.
+
+Skip subsections with zero entries.
+
+**Root-cause fallback chain (MANDATORY, per L12 — do not allow `TODO (oncall)` here).** For every SEV whose `metadata.root_cause` is empty, derive a one-line root cause by walking this chain until non-empty:
+
+1. **Overview first sentence** — `metadata.overview.split('.')[0]` truncated to 140 chars.
+2. **Title pattern match** — known-pattern dictionary (P05/OOM, P12/TCPStore, P17/fbpkg-expiry, P24/NCCL-hang, P30/DPP-pkg, P38/Boxcar, snapshot-publish, MB-warmup, multi-region-fallback, tenant-overload, preemptive-launch, dpp-segfault). Render as `<pattern-family>: <title-derived summary>`.
+3. **Impact field first sentence** — `metadata.incident_impact.split('.')[0]`.
+4. **Owner + status only** — `(open — <owner> investigating, see SEV gchat)` for In Progress; `(closed; see SEV gchat)` for Closed.
+
+NEVER emit `TODO (oncall)` in the root_cause cell.
+
+**Mitigation derivation (MANDATORY).** `metadata.remediation` if non-empty; else: `Mitigated` → "Mitigated (no detail in SEV remediation field)"; `Closed` → "Closed; resolution in SEV gchat"; `Cleanup` → "Mitigated, in Cleanup"; `In Progress` → "Open — see SEV gchat". Never `TODO (oncall)`.
+
+#### Section 4: Tasks, Incidents & Alerts (5/12 schema: 3-col bucket table)
+
+Render as **a single 3-col bucket-summary table** matching 5/12 layout, NOT a per-alert detail table:
+
+| Bucket | Count | Detail |
+|---|---|---|
+| Actionable | `<n>` | `[A<id>](...)` per actionable alert, 1-line each with time + title + assignee |
+| Auto-recovered (≤30 min) | `<n>` | alerts that closed within 30 min and never triggered triage_events |
+| Low-priority | `<n>` | NaN-metric / dead-detector / threshold-misfit alerts; cross-link to associated SEV if known |
+| Notable | `<n>` | systemic patterns spotted (e.g., hung-job detection gap, coverage holes) |
+
+Use markdown link syntax `[label](url)` for ALL alert IDs.
+
+#### Section 5: User Reports and Feedback (5/12 schema: 3-col table)
+
+**Schema MUST match 5/12 reference: 3 columns `[Author, Topic, Summary & Reply status]`** — NOT the older 5/6-column variant (5/12 dropped Created and Takeaway columns; operator validated 2026-05-18).
+
+| Author | Topic | Summary & Reply status |
+|---|---|---|
+| `[<display_name>](https://www.internalfb.com/profile/<unixname>)` | `[<topic_line>](<post_url>)` | `<summary>` + `auto-replied by bot` if triage_events row exists; else `(N comments — TODO confirm resolved)`; else `unanswered` |
+
+Skip past shift summaries (title regex `^Oncall Summary for mrs_online_training`). Header bg `#C9DAF8`, body 11pt Arial. Column widths (FIXED_WIDTH): Author=130pt, Topic=300pt, Summary=240pt.
+
+**Per-post enrichment (MANDATORY, per L12).** For each post id, call:
+```bash
+meta workplace.post content --post-id=<id> --output=json
+```
+Extract: `author.name`, `author.unixname`, `message` (post body), `comment_count`, `created_time`. Derive:
+- **Topic cell** = first line of `message` (strip leading `#` markdown heading marker, truncate at 90 chars). Use markdown link syntax `[topic](post_url)`. Never use placeholder text.
+- **Author cell** = `[display_name](https://www.internalfb.com/profile/<unixname>)`. If unixname missing, slug from display_name (`John Doe` → `johndoe`).
+- **Summary & Reply status cell** = 1-sentence diagnosis from triage_events.bot_diagnosis if present, then status: `auto-replied by bot` / `(N comments — TODO confirm)` / `unanswered`. Match 5/12 patterns: `"Diagnosed (90%); awaiting reply"`, `"TODO (oncall): S<id> in progress"`, `"TODO (oncall): guidance posted"`.
+
+**Link syntax: use markdown `[label](url)`, NOT `<a href>` HTML tags.** (Per `cheatsheets/gdocs/rules.md` Visual-State Verification rule; `<a href>` only converts inside table cells but markdown `[label](url)` works in bullets/paragraphs/headers too.)
+
+#### Section 6: Oncall Improvements
+
+- **Diffs Produced** — table from step 6 closed-bucket. Columns: diff id (rendered as `<a href="https://www.internalfb.com/diff/D###">D###</a>`), title, motivation (cross-ref to a SEV or alert if the diff lands a fix; else `TODO (oncall): standalone improvement`).
+- **Open Diffs** — table from step 6 open-bucket. Same diff-id anchor rule.
+- **Pre-finalize gates** — explicit table (NOT a verbatim TODO paste). Render this BEFORE Systemic Issues:
+
+  | Gate | Status | Owner | Evidence link |
+  |---|---|---|---|
+  | Tag hygiene (`mvai-online-training` on every Section 3 Handled SEV) | ✅ pass / ⚠️ N missing | bot | per-SEV anchor list |
+  | SEV-Review enrollment (last 14d carries `mvai-online-training-review`) | ✅ enrolled S### / ⚠️ due | bot | `<a href="...">S###</a>` or empty |
+  | Three-question gate pass rate (Section 3+4+5) | `<pass>/<total>` | bot | dropped-row count + reason |
+  | Org-scope filter (no sibling-org SEVs leaked) | ✅ clean / ⚠️ leak | bot | leaked SEV anchor + reference S657101 |
+
+  Apply `cheatsheets/gdocs/rules.md` post-push checklist. Header bg `#C9DAF8`, body 11pt Arial. Column widths via `updateTableColumnProperties` (FIXED_WIDTH, scalar columnIndices): Gate=130pt, Status=60pt, Owner=80pt, Evidence link=200pt. Step 8 still emits the underlying `TODO:` markers — they additionally feed the Hand-off action items section above.
+
+- **Systemic Issues** — `TODO (oncall): list any pattern-level gaps spotted this shift`.
+- **Tasks** — `TODO (oncall): file or link any GSD task work`. Task IDs as `<a href="https://www.internalfb.com/tasks/?t=###">T###</a>`.
+- Footer links (always render): `Online Training GSD: https://www.internalfb.com/gsd/3382026308735140` (matches past posts' Better Engineering link).
+
+**Note:** Bot Post Score moved to Section 1 Headline numbers (row #2) — it is the primary KPI for bot health and belongs at the top, not buried in Oncall Improvements.
+
+#### Section 7: Daily timeline (NEW — sourced from Step 0 daily-brief state)
+
+If Step 0 found ≥1 daily-brief state file, render this section as the LAST section before the footer. Format: one collapsible block per date (chronological order), each containing the verbatim brief body from that date's state file. Header line per day: `### <YYYY-MM-DD> (<weekday>) — <SEV count> SEVs · <diff count> diffs · <wp post count> WP posts` (counts pulled from frontmatter).
+
+If Step 0 fell back to live re-query (no state files), skip this section entirely and emit a `WARN: Daily timeline unavailable — daily-brief cron output missing` line at the very top of the rendered draft.
+
+This section is the answer to operator comment AAAB57N4fXs (2026-05-09): "You have a daily cron job to summarize issues. The oncall shift summary should take them as input for the time period."
+
+### 10. Post to bound space + append to gdoc + persist state
+
+**(a) GChat notification (existing)** — send to `spaces/AAQAVOjYc80`:
+
+```
+📋 [Weekly OT Shift Summary | <DATE_RANGE>]
+Outgoing: <outgoing_unixname> → Incoming: <incoming_unixname>
+
+<Section 1 + summary stats inline — keep ≤ 800 chars for the lead message>
+
+Full draft pasted in thread reply.
+Also appended to gdoc: https://docs.google.com/document/d/1helRQh0I05stXhMEsroMYxbETPgtdyeNS3Zy55TJe0k/
+```
+
+Then send a threaded reply with the FULL rendered draft (Sections 1-6). Cap the threaded reply at GChat's 4096-char message ceiling — if the draft exceeds, split into multiple threaded messages numbered `(1/N)`, `(2/N)`, etc.
+
+**(b) Append to canonical OT Oncall Shift gdoc.** This is the persistent operator-facing surface — Workplace post is downstream/manual; gdoc is the source of truth the team browses week-to-week. Bot-config: read `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-shift-gdoc-config.json` for `doc_id` + `default_tab_id` (do NOT hard-code; operator may add per-quarter tabs). If config file missing, fall back to `doc_id=1helRQh0I05stXhMEsroMYxbETPgtdyeNS3Zy55TJe0k`, `tab_id=t.sdbn13ll2glq`.
+
+**HARD GATES — read `hard_lessons_2026_05_12` from the config and enforce these on every gdoc-touching op:**
+- **L1 — 'consolidate' means MERGE, not DELETE.** If the operator's gdoc already has a section for this window: NEVER delete it. MERGE the fresh data into operator's existing structure, or restore as APPENDIX and ask before merging.
+- **L2 — every gdoc reply MUST start with `[myclaw-ot bot reply] `.** Meta CLI runs as the operator; without the prefix, replies look like operator self-replies.
+- **L3 — NO destructive op without ack.** Before any `delete-content range`, `replace-content`, or `replace-all`: cache current export, describe planned change in chat, wait for explicit operator confirmation. Append-only ops are exempt.
+
+**Authoring rule — author as ghtml, NEVER as markdown** (per `cheatsheets/gdocs/rules.md` HARD RULE: markdown→ghtml import wraps every heading in `<span style="font-size:11pt">` overriding H1/H2/H3 defaults AND splits emoji surrogate pairs). The shift summary contains H2/H3 headings + emoji (⚠️ 🔴 🆕 📊) — markdown is FORBIDDEN here. Render the draft as a ghtml file with: `<h2>` for title, `<h3>` for sections, `<h4>` for subsections; `<table><tr><td>...</td></tr></table>` for tables with `<td><b>Header</b></td>` (NOT `<th>` — ghtml drops `<th>` content silently); `<a href="URL">label</a>` for ALL SEV/D/A/T/W IDs (works inside both bullets and `<td>` cells); `<ul>/<ol>/<li>` for lists; `<p>` for paragraphs; `<b>/<i>/<code>` for inline. NO `---` separators (cheatsheet HARD RULE: ugly in gdocs).
+
+**Push via `gdocs` (standalone) — NEVER `meta google.docs.*`** (per cheatsheet HARD RULE, learned 2026-05-17). The two CLIs go through different transports; `meta google.docs.*` quietly drops bold-in-headers, drops `<a>` link wrappers, and pollutes headings with font-size spans. **The previous `meta google.docs.append markdown` recipe was wrong on three of these axes simultaneously.** Use `gdocs replace --tab-id` for a fresh tab (no comments) or `gdocs content insert-html --tab-id` to add into an existing tab that may carry comments:
+
+```bash
+DOC_ID=$(jq -r .doc_id /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-shift-gdoc-config.json)
+TAB_TITLE="$(date -d "$WINDOW_END" +%-m/%-d)"  # e.g., 5/26 — matches tab_convention.naming
+TAB_ID=$(gdocs tabs "$DOC_ID" 2>/dev/null | awk -v t="$TAB_TITLE" '$2==t {print $1}')
+NEW_TAB_CREATED=0
+if [ -z "$TAB_ID" ]; then
+  TAB_ID=$(gdocs add-tab "$DOC_ID" --title "$TAB_TITLE" 2>&1 | awk '/tabId:/{print $2}')
+  NEW_TAB_CREATED=1
+fi
+
+# Fresh tab path (no comments, safe full-replace):
+gdocs replace "$DOC_ID" --tab-id "$TAB_ID" --from /tmp/ot-shift-summary-${WINDOW_END}.html --full-replace-removes-comments
+
+# Existing-tab-with-comments path (gated by comment-count check):
+COMMENTS=$(gdocs comments list "$DOC_ID" --untrusted-authors-mode 2>/dev/null | grep -c "^[a-zA-Z0-9]\{20,\}")
+if [ "$COMMENTS" -gt 0 ]; then
+  # round-trip: gdocs edit -> modify ghtml -> gdocs apply (preserves comments)
+  # OR insert-html with --after-heading anchor for additive updates
+  gdocs content insert-html "$DOC_ID" "@/tmp/ot-shift-summary-${WINDOW_END}.html" --tab-id "$TAB_ID" --after-heading "Oncall Summary"
+fi
+```
+
+**Tab-reorder limitation (re-verified 2026-05-28, gotcha_gdoc-tab-ordering.md, ledger L57).** `gdocs add-tab` has NO `--index` / position option and Docs API v1 STILL rejects `moveTab` (`Unknown name "moveTab"` HTTP 400). New tabs always land at the END (rightmost). Denny wants latest week LEFTMOST. There is no programmatic workaround. If `NEW_TAB_CREATED=1`, the cron MUST emit a gchat escalation to the operator:
+
+```bash
+if [ "$NEW_TAB_CREATED" -eq 1 ]; then
+  meta google.chat.message send --as-meta-bot --space-name=spaces/AAQAVOjYc80 \
+    --text="🚫 New tab \`$TAB_TITLE\` created at the END (index=$(gdocs tabs list "$DOC_ID" | awk -v t="$TAB_ID" '$1==t {print $3}')). \`moveTab\` is not in Docs API v1 (re-verified 2026-05-28). **Please drag \`$TAB_TITLE\` to the leftmost position in the UI.** Tab: https://docs.google.com/document/d/$DOC_ID/edit?tab=$TAB_ID"
+fi
+```
+
+**Prefix-text-stuck-on-resolved-comment trap (learned 2026-05-28, ledger L57).** `--full-replace-removes-comments` removes the COMMENT but NOT the anchor text when the comment is `resolved=true`. If a stale prefix like `[Bot] OT Oncall Shift` is anchored on a resolved comment, the prefix will survive every `gdocs replace`. Detection (run BEFORE replace):
+
+```bash
+gdocs comments list "$DOC_ID" --untrusted-authors-mode 2>/dev/null | grep -F "[Bot] OT Oncall Shift" && \
+  echo "WARN: resolved-comment anchors found; switch to gdocs edit -> strip locally -> gdocs apply round-trip instead of replace"
+```
+
+Cleanup recipe (orphans the resolved comments, removes the text):
+```bash
+gdocs edit "$DOC_ID" --tab-id "$TAB_ID" --output /tmp/tab-scrub.html
+# remove the offending <p data-idx="...">[Bot] OT Oncall Shift</p> and adjacent empty <p>s
+gdocs apply "$DOC_ID" /tmp/tab-scrub.html --tab-id "$TAB_ID"
+```
+
+The draft body MUST start with `<h2>Oncall Summary for mrs_online_training: <DATE_RANGE></h2>` and end with `<p><i>End of <DATE_RANGE> shift summary.</i></p>`. Provenance line as `<p><i>Generated by: ot-shift-summary cron (weekly Tue 8:30 AM PT) | Source: fbcode/pe_mrs_ml/mrs_ot_agent/team_bot/cron-jobs/ot-shift-summary.md | Last updated: YYYY-MM-DD HH:MM PT</i></p>` immediately under the H2 (cheatsheet HARD RULE: provenance on every auto-generated doc).
+
+**POST-PUSH CHECKLIST — MANDATORY (per `cheatsheets/gdocs/rules.md`).** After `gdocs replace`/`insert-html`, run ALL of these in one `gdocs batch-update` call:
+
+1. **Header bg `#C9DAF8` on every table's row 0.** `updateTableCellStyle` with `tableRange.tableCellLocation.{tableStartLocation.index, rowIndex=0, columnIndex=0}`, `rowSpan=1`, `columnSpan=<table_cols>`, `tableCellStyle.backgroundColor.color.rgbColor={red:0.788, green:0.855, blue:0.973}`, `fields="backgroundColor"`.
+2. **Proportional FIXED_WIDTH columns on every table.** `updateTableColumnProperties` — one request per column, `columnIndices` MUST be a SCALAR integer (cheatsheet learned 2026-04-28: PHP backend rejects array form). Default widths per shift-summary table:
+   - Headline numbers (11×3): `[180, 80, 340]`
+   - Ongoing carryovers (Nx5): `[80, 50, 280, 100, 180]`
+   - Top ongoing SEVs (Nx6): `[80, 40, 150, 240, 200, 200]`
+   - Tasks/Alerts (4×3): `[160, 60, 400]`
+   - User reports (Nx4): `[90, 120, 280, 200]`
+   - Open diffs (Nx5): `[80, 270, 60, 80, 200]`
+   - Pre-finalize gates (4×4): `[300, 120, 80, 180]`
+3. **Verify visual state.** `gdocs get <DOC>` (NOT `--text`) and grep the tab block for: (a) every SEV/D/A label that should be a hyperlink IS wrapped in `<a href="...">` (cheatsheet learned 2026-05-18: `--text` export hides this — must verify against ghtml export); (b) NO `<span style="font-size:` polluting any `<h2>/<h3>/<h4>` (cheatsheet learned 2026-05-20: markdown imports cause this); (c) no `???`/`??` rendering on emoji.
+
+NOTE: `gdocs` (`/usr/local/bin/gdocs`) and `meta google.docs.*` look interchangeable but are NOT — different transports. ANY write op uses `gdocs`. ANY env-var-controlled feature (`GOOGLE_MUX_UNTRUSTED_AUTHORS_MODE=1`) works ONLY with `gdocs`. Cron-prompt history: `meta google.docs.append markdown` was the recipe pre-2026-05-25 and is now FORBIDDEN.
+
+**(c) Apply operator-feedback rules** (from comments on prior 5/5 section, anchors `[g]…[l]`). Read these from `ot-shift-gdoc-config.json → standing_open_items_from_operator_comments`. They are HARD requirements for the rendered draft:
+
+- **`[g]` Alerts depth.** Section 4 must list every actionable alert in window with details + on-page comments. Pull via `meta oncall.feed list ...` (existing) AND for each alert: `meta oncall.feed metadata --id=<alert_id> -o json` + `meta oncall.feed comments --id=<alert_id> -o json` to capture investigation notes.
+- **`[h]` User posts completeness.** After running step 5's `meta workplace.post list`, sanity-check the count against the GChat space's `ot-post-monitor` cron output for the same window — these MUST match. If counts diverge, list the missing post URLs explicitly in the section header for operator follow-up.
+- **`[i]` Specific missing post.** Confirmed pattern: posts moved between Workplace groups can be missed. Use `--include-cross-posted` when available; otherwise verify the count check from `[h]`.
+- **`[j]` Creation Date column, sorted.** Section 5 user-posts table MUST include a `Created` column. Sort rows oldest → newest by `created` field. Use `YYYY-MM-DD HH:MM PT` rendering.
+- **`[k]` Add new "Adhoc Ask" subsection** (under Section 4 or Section 5 — operator's choice; default below Section 5). Captures urgent escalations the oncall got drafted into via 1:1 / GChat (e.g., prior shift had Patrick Tan + Shuguang requests). Source: scan the bot's own messages in `spaces/AAQAVOjYc80` whose content matches `(urgent|UBN|escalation|<oncall_unixname>)` and the human reply included a 1:1 mention. Default rendering: `_TODO (oncall): list any 1:1 / GChat escalations this shift_` if the heuristic finds none — never silently omit.
+- **`[l]` Diff summary, top 5 only.** Section 6 must summarize total diff count + top 5 by impact (heuristic: prefer diffs that close a SEV from this shift, then diffs landed by the outgoing oncall, then highest line-count). Render full diff list as a collapsed `<details>` block beneath the top-5.
+- **`[m]` SEV Stack column.** Section 3 SEV tables MUST include a `SEV Stack` column (between SEV-id and Title). Pull via `meta sevmanager.sev metadata --sev=S<id> -o json | jq -r '.stack // empty'`. Source comment: AAAB5ghIkk0.
+- **`[n]` Table background — header only.** When rendering tables, set background color (light gray / theme color) ONLY on the HEADER row — NEVER on data rows. Default markdown-converted-to-table rendering can produce alternating-row shading; if it does, post-process via `meta google.docs.format` after the insert to clear data-row shading. Source comment: AAAB5ghIkkQ.
+
+**(d) Persist state.** Write `last_run_epoch`, `last_window_end`, `last_known_oncall = <outgoing_unixname>` to `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-shift-summary-state.json`. Also write `last_gdoc_append_epoch` + `last_gdoc_section_heading` to a new key for the gdoc-side dedup guard.
+
+**(e) Idempotence + dedup guard.** Before appending in (b), `meta google.docs export --id=<doc_id> --format=txt | grep -F "<DATE_RANGE>" -c` — if ≥1, a section for THIS WINDOW already exists (could be operator-curated or prior bot run). Do NOT append a duplicate. Instead:
+
+  1. Locate the existing section's start/end indices via `meta google.docs structure --id=<doc_id> --tab-id=<tab_id> -o json` (look for HEADING elements containing the date range).
+  2. UPDATE in place: render fresh body, then either (a) `meta google.docs.delete-content range --start=<s> --end=<e>` followed by an `insert` at `<s>`, or (b) targeted `replace-all` on individual cells if only a few values changed.
+  3. If you can't safely locate the section (ambiguous heading), SKIP the gdoc write and log `gdoc-update-skipped ambiguous-section <DATE_RANGE>`. Still send the GChat post.
+
+This prevents the recurrence of the 2026-05-12 issue where the bot appended a `5/12` section duplicating the operator's existing `5/5` section (both labelled `5/5 – 5/12`). See `consolidate_no_duplicates` rule in `ot-shift-gdoc-config.json`.
+
+### 11. Cleanup + heartbeat
+
+**≤4-PAGE HARD CAP (pre-push gate, 2026-05-28 operator thread `WhmgQGD72MQ`):** the rendered ghtml MUST fit in ≤4 printed pages. Concrete gates before `gdocs replace`:
+
+1. Body byte count: `wc -c` on the filled ghtml file ≤ 13000 bytes. Over budget → cut, do NOT push.
+2. Section count: ≤ 6 top-level `<h3>` sections. Over budget → consolidate.
+3. NO "End of <date> shift summary" footer line (operator flagged: "adds no value, remove it").
+4. NO "FYI:" filler bullets (operator flagged: "adds no value").
+5. ALL SEV mentions clickable `<a href="https://www.internalfb.com/sevmanager/view/<id>">S<id></a>` — NEVER render bare `S<id>` (operator flagged: "why SEV is not clickable? same for all SEVs").
+6. SEVs sorted by importance: oncall_involvement DESC → severity DESC (SEV0/1 > SEV2 > SEV3 > non-SEV) → issue_status (OPEN > MITIGATED > CLOSED). Applies to §3 SEV tables, §4 alerts, §5 user posts, §6 diffs. Pre-push assert: each list/table monotonic on the 3-key sort.
+
+If over budget, cut in this order: (a) historical Daily Timeline entries BEFORE current shift, (b) carryover SEV detail (one-line reference, not full enrichment), (c) drop "Oncall Improvements" section if it's just template, (d) move observe-only SEVs to a one-line aggregate, (e) drop redundant Pain Points already covered in mega-learnings.
+
+**Mid-shift mode (added 2026-05-28):** if invoked outside the Tuesday 08:30 PT scheduled slot AND `last_window_end` for current week's shift tab already exists, switch to MID-SHIFT mode:
+- WINDOW_START = current shift start (most recent Tuesday 09:00 PT)
+- WINDOW_END = now (not today 09:00 PT)
+- Section header: `Oncall Summary for mrs_online_training: <SHIFT_START> - <NOW> (mid-shift, ~HH:MM PT)`
+- Framing: "Active oncall: <name> (since <handover_date>)" — NOT "Outgoing → X | Incoming → Y" (that's end-of-shift framing).
+- Daily Timeline: scope to current shift only (skip days before WINDOW_START).
+- HIGH-TOUCH scoped to current shift only (drop prior-shift mitigated/closed SEVs).
+- ≤4-page gate still applies — mid-shift snapshots tend to be shorter so cap is rarely tight.
+
+Respond `HEARTBEAT_OK posted-shift-summary <DATE_RANGE>`.
+
+## Safety
+
+- **Never auto-post to mrs.ot Workplace group.** This is a draft for the human oncall; they paste it manually. Rationale: the published shift summary is read by the entire MRS-org leadership rotation, including non-OT principals — wrong information at this surface costs the team's trust budget. Skill's "Workplace is read-only" rule applies.
+- **No SEV mutations.** Don't apply tags, don't comment, don't change owner. Surface `TODO:` markers only. (Tag hygiene fixes are oncall's call — skill says "skill does NOT auto-fix — these are oncall decisions".)
+- **Org filter** — drop sibling-org SEVs silently per `team_lane_scope.is_in_mrs_org_scope()` capability. Source: 2026-04-30 S657101 Ads leak.
+- **Three-question gate** (from `daily-brief.md`): every SEV/alert/post line passes (a) OT-scope, (b) MRS-org, (c) team-visible — drop on any fail.
+- **Same-day rerun guard** — step 1's `last_window_end == today` check prevents accidental double-post when operator manually triggers the cron.
+- **Empty draft handling** — if SEVs / alerts / posts / diffs are all empty AND no in-progress carryovers, render `📋 Quiet shift — no SEVs, no actionable alerts, no Workplace activity. <outgoing_unixname>: confirm before final post.` rather than a multi-page draft of empty sections.
+
+## Learned rules (auto-appended)
+
+- **2026-05-11 — Live status re-check on every carryover/remaining-open SEV.** Daily-brief frontmatter is up to 24h stale. Always re-fetch `meta sevmanager.sev metadata --sev=S<id>` immediately before render and drop SEVs whose live status is no longer `In Progress`. Source: 2026-05-09 oncall-doc comment from operator — S660546 still listed under In-progress carryovers after mitigation.
+- **2026-05-11 — Headline numbers Detail cells require explicit `<a>` anchors.** Bare SEV/Diff/Task numbers in text-path table cells do NOT auto-link (the gdocs preprocessor only auto-links HTML inserts). Apply to ALL Detail-style cells across the rendered draft. Source: 2026-05-10 oncall-doc comment.
+- **2026-05-11 — Bot Post Score is a top-line KPI, not buried in Oncall Improvements.** Position #2 in the Headline numbers table (right after `SEVs touched this shift`).
+- **2026-05-11 — Hand-off action items live near the top, not the tail.** Render immediately after Section 1 Headline numbers — the incoming oncall must see actionable items in the first scroll, before SEV detail walls.
+- **2026-05-11 — SLICK SLI is now machine-probable.** `meta slick.sli list --service-id=mrs_online_training` + per-SLI `meta slick.sli performance --service-id=...` exists (canonical flag is `--service-id` / `-s`, NOT `--service`). Auto-fill before falling back to TODO. Old assumption ("no programmatic API") is obsolete.
+- **2026-05-25 — RULE 32: Headline `SEVs touched this shift` split into two rows.** ROW A = `SEVs (high-touch)` — count + IDs where oncall directly engaged (gchat msg, attached diff/task, SEV-page comment, WP broadcast referencing the SEV). ROW B = `SEVs (observe-only)` — count + IDs that were bot-triaged with no oncall touch this shift. Never merge into one row. Source: comment AAAB6TgHzYA on 5/26 tab.
+- **2026-05-25 — RULE 33: Bot-internal diffs excluded from oncall shift output.** Filter at Section 6 (Diffs Produced + Open Diffs) AND Section 7 (Daily timeline diff bullets): drop any diff whose title starts with `[OT bot]`, `[OT Debuggability]` (unless linked to a SEV), or whose path is under `fbcode/pe_mrs_ml/mrs_ot_agent/team_bot/` / `fbcode/pe_mrs_ml/mrs_ot_agent/notes-to-fbcode-sync*` / `fbcode/pe_mrs_ml/mrs_ot_agent/skills/` (bot-tooling). These are internal bot maintenance, not oncall-visible improvements. Source: comment AAAB6TgHzXo on 5/26 tab (re: D106237863 notes-to-fbcode-sync consolidation guard).
+- **2026-05-25 — RULE 34: Daily timeline section moved up to Section 3.** Order: §1 Headline → §1b Hand-off → §2 Ongoing → **§3 Daily timeline** (was §7) → §4 SEVs opened this shift → §5 Tasks/Incidents/Alerts → §6 User Reports → §7 Oncall Improvements → footer. Rationale: timeline is the reader's narrative entry-point; SEV/alert tables are supporting evidence. Section numbering renumbers correspondingly. Source: comment AAAB6TgHzXg on 5/26 tab.
+- **2026-05-25 — RULE 35: Diff URL MUST have D prefix.** Format: `<a href="https://www.internalfb.com/diff/D######">D######</a>`. Bare `/diff/######` (no D) returns 404 ("document type not supported"). Pre-push lint regex: `href="[^"]*diff/[0-9]` matches → ABORT. Apply to every Diff cell in Section 6 + every diff bullet in Section 7. Source: comment AAAB6TgHzXY on 5/26 tab.
+- **2026-05-25 — RULE 36: Every Author cell in Section 6 (User Reports) gets a profile link.** Even past-shift-summary posts (regex `^Oncall Summary for mrs_online_training`) keep the row AND get the `<a href="https://www.internalfb.com/profile/<unixname>">DisplayName</a>` wrap. Prior bug: regex skipped past-shift posts AFTER hyperlink wrapping, leaving them plain text. Fix: hyperlink-wrap ALL Author cells unconditionally; the past-shift filter (if any) drops the row entirely, not just its hyperlink. Source: comment AAAB6TgHzXU on 5/26 tab (re: Li Lu plain text in 5/19 row).
+- **2026-05-25 — RULE 37: Section 6 user-reports table sorted by Created DESCENDING (latest at top).** Pre-push lint: assert `row[0].created >= row[-1].created` (ISO date comparison). Note this OVERRIDES earlier `[j]` rule which mandated ascending — operator updated convention 2026-05-25. Source: comment AAAB6TgHzXQ on 5/26 tab.
+- **2026-05-25 — RULE 38: Section 5 (Tasks, Incidents & Alerts) MUST union 4 data sources.** (a) `meta monitoring.alert list --oncall mrs_online_training --start-time --end-time --state-is ACTIVE,CLEARED`; (b) `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-alert-monitor-state.json` (cron state); (c) `meta workplace.post list --group-vanity-name=mrs.ot --after --before` filtered to `--tag=incident` or title-matching `incident|UBN`; (d) SEVs linked to `mrs_ml/v1_discovery` SLI via `meta slick.sli alerts --service-id=mrs_ml/v1_discovery`. Bucket into Actionable / Auto-recovered (≤30m) / Low-priority / Notable. Pre-push lint: if total count = 0, comment must say `verified zero — sources (a-d) all returned empty` to distinguish from `not queried`. Source: comment AAAB6TgHzWg on 5/26 tab.
+- **2026-05-25 — RULE 39: cron source-of-truth links never include a commit hash.** Footer provenance link MUST be `https://www.internalfb.com/code/fbsource/fbcode/pe_mrs_ml/mrs_ot_agent/team_bot/cron-jobs/ot-shift-summary.md` (always-current master). Commit-pinned URLs `https://www.internalfb.com/code/fbsource/<sha>/fbcode/...` 404 in browser when the SHA never reached fbsource (e.g., sapling-local-only commits). Source: comment AAAB6TgHzVg on 5/26 tab.
+- **2026-05-25 — RULE 41: Drop `Tasks TODO (oncall)` placeholder block from rendered output.** The footer `Tasks TODO (oncall): file or link any GSD task work` (and similar passive prompts) adds no value to oncall reading the doc — they know to file tasks. If the bot has REAL task IDs to surface (from `meta tasks.task list --oncall mrs_online_training --created-after ...`), render them as concrete bullets; otherwise OMIT the block entirely. Never render the empty-prompt placeholder. Source: comment AAAB6TgHzYw on 5/26 tab.
+- **2026-05-25 — RULE 42: Drop the `Pre-finalize gates` table from rendered output.** Self-referential bot checklist (Tag hygiene / SEV-Review enrollment / Deep-triage backlog / Bot Post Score check) belongs in the cron's internal pre-flight log, NOT in the operator-facing shift summary. Operator reads the summary; bot QC is bot's problem. Move these gates into a `_pre_finalize_gates_log.json` in `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/` for debugging; do NOT render in the gdoc. Source: comment AAAB6TgHzYs on 5/26 tab.
+- **2026-05-25 — RULE 43: NEVER render `TBD` in the Headline numbers table.** Every row must have a concrete count + Detail. If a metric is not computable at render time (e.g., Tue final cron deferral), DROP THE ROW entirely instead of rendering `TBD`. Pre-push lint: `grep -F 'TBD' <draft.ghtml>` matches → ABORT and re-compute or drop. The Headline table is the document's hero metric — TBD rows undermine credibility. Source: comment AAAB6TgHzYo on 5/26 tab.
+- **2026-05-25 — RULE 44: Section 3 SEV table — merge `SEV` + `SEV Lvl` into one cell, sort by oncall involvement first then importance.** Schema change: `[SEV (with Lvl badge), Stack, Title, Status]` (4 columns, was 5). Render format inside the SEV cell: `<a href="https://www.internalfb.com/sevmanager/view/NNNNNN">S######</a> <span style="background:#fed;color:#a00;padding:0 4px;border-radius:3px;">L<n></span>`. Sort key: primary = high-touch (per RULE 32, oncall directly engaged) BEFORE observe-only, secondary = L-level ascending (L1 before L4). Applies to both Table A (Top ongoing) and Table B (Handled). Supersedes `m_sev_stack_column` ordering. Source: comment AAAB6TgHzYk on 5/26 tab.
+- **2026-05-25 — RULE 45: `Bot Post Score` row moves to the BOTTOM of Headline numbers (LAST row).** This SUPERSEDES the 2026-05-11 rule that mandated position #2. Operator updated convention 2026-05-25: Bot Post Score is a bot-self-QC signal, not a top-line oncall KPI — it belongs after all human-facing metrics. Render order: SEVs (high-touch) → SEVs (observe-only) → Alerts → Tasks → Workplace posts → Diffs → … → Bot Post Score (last). Source: comment AAAB6TgHzYg on 5/26 tab.
+- **2026-05-25 — RULE 46: NO `Manual check` placeholders — replace with automated probe + key signal.** Every cell that previously rendered `Manual check` (e.g., Pre-finalize gates evidence column, Hand-off action items) must be replaced with a concrete automated query result. Examples: tag hygiene → `meta sevmanager.sev list --oncall mrs_online_training --has-tag mvai-online-training --created-after <window>` count; SEV-Review enrollment → `meta tasks.task list --tag mvai-online-training-review --created-after <window>` count; Deep-triage backlog → grep `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-monitor-state.json` for pending. If a check is genuinely manual (rare), DROP the row instead of rendering `Manual check`. Pre-push lint: `grep -F 'Manual check' <draft.ghtml>` matches → ABORT. Source: comment AAAB6TgHzYc on 5/26 tab.
+- **2026-05-25 — RULE 47: NO `TODO (oncall) — <thing> deferred to Tue final cron` placeholder lines.** These are bot-deferral apologies, not oncall content. If the data is genuinely deferred, OMIT the line entirely; the Tuesday cron will supply real values on its run. Pre-push lint: `grep -E 'TODO.*deferred.*cron' <draft.ghtml>` matches → ABORT and drop the line. Source: comment AAAB6TgHzYY on 5/26 tab.
+- **2026-05-25 — RULE 48: Timeline grammar — never juxtapose unrelated clauses with comma-splice ambiguity.** Bad: `Bot-triage alone is NOT involvement. Age-monitoring nudges removed. 2026-05-19 (Tue) — handover Denny starting incoming.` Reads as 'not-involved Denny started oncall'. Fix recipe: (1) make timeline entries strict `YYYY-MM-DD (Day) — <event sentence>` format; (2) bot-self-policy notes (e.g., `Bot-triage alone is NOT involvement`) live in a SEPARATE meta-block above/below the timeline, not interleaved with date events; (3) every timeline event sentence has explicit subject (`<unixname>` or `bot`), explicit verb, explicit object — no fragments. Pre-push lint: regex `\b(starting|started)\s+(incoming|outgoing|oncall)\b` matches a timeline line without a unixname-prefix → ABORT. Source: comment AAAB6TgHzYU on 5/26 tab.
+- **2026-05-25 — RULE 49: Section 6 Open Diffs table — strict columnar row format.** Schema: `Diff | Reviewer(s) | Lines | Path | Status | Next-Action`. Bad free-form rows (e.g., `D106194663 review — i2i SLI DENSE_DELTA restore, 89 lines, CFHG path — needs reviewer.`) split into columns. Reviewer cell = comma-list of `<a href=https://www.internalfb.com/profile/<unixname>>name</a>`. Lines = signed (`+89/-3`). Path = top-level dir (`fbcode/configerator/`). Status ∈ {Open, Approved, Land-blocked, Land-failed}. Next-Action = one of `needs reviewer | needs land | needs rebase | waiting on Sandcastle`. Source: comment AAAB6TgHzfA on 5/26 tab.
+- **2026-05-25 — RULE 50: Section 7 Theme bullets MUST consult auto-learnings folder before synthesizing.** Mandatory inputs before drafting cross-SEV pattern bullets: (a) `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/daily-ledger.md` — extract all L-NN entries within shift window; (b) `auto-learnings/digests/2026-W<NN>.md` for the active week; (c) `auto-learnings/patterns/INDEX.md` for CL-NNN cluster IDs touched this shift. Theme bullets cite CL-NNN + L-NN where applicable. Pre-push lint: if Theme bullets section exists AND grep `CL-[0-9]+\|L[0-9]+` in section returns 0 → ABORT with `did not consult auto-learnings`. Source: comment AAAB6TgHze8 on 5/26 tab.
+- **2026-05-25 — RULE 51: Section 6 Diffs Closed filter — only oncall-effort diffs.** Filter clauses (ALL must pass): (a) author = dennyzhang OR co-author on a SEV/shift workflow; AND (b) title/summary references a SEV in the shift window OR diff path touches shift-handled dirs (`fbcode/configerator/`, `fbcode/pe_mrs_ml/{sevmanager,model-state,training-runtime}/`, cron prompts for SEV-related crons). Exclude bot-internal infra: `D105981671` (sl auto-sync), `D106052922` (notes-to-fbcode-sync), `D106189268` (state JSON seed fix). Schema same as RULE 49. Headline `Diffs closed` count is the FILTERED count, not raw author-diff count. Source: comment AAAB6TgHzew on 5/26 tab.
+- **2026-05-25 — RULE 52: Section 4 Headline alert count must split UBN-class vs standard.** Format: `N triaged (X UBN-class, Y standard)` where UBN-class = union of (a) linked SEV with severity ∈ {SEV0, SEV1, SEV2}; (b) Workplace mrs.ot user-report attached within ±24h of alert; (c) detector flagged UBN tier; (d) alert PAGEd (auto_detected=true with page event). Pre-push lint: assert `X + Y == N`. Source: comment AAAB6TgHzek on 5/26 tab.
+- **2026-05-25 — RULE 53: SEV identification — 4-clause tightening for §3 SEV tables.**
+  (1) **OT-SEV filter** — REQUIRE either (a) tag `mvai-online-training` set on SEV OR (b) title regex `/online[ -_]training|delta[ -_](publish|pipeline)|example[ -_]age|publish[ -_]path|trainer[ -_]stuck|FULL_SNAPSHOT|SPARSE_DELTA|DENSE_DELTA/i`. Both fail → exclude. Historical misses: S659671, S657071, S635148 (no tag, title pattern miss).
+  (2) **No-carryover-if-no-engagement** — `In-progress carryovers` row REQUIRES one of (a) oncall posted gchat msg in linked SEV space THIS shift; (b) oncall landed diff cross-referencing SEV THIS shift; (c) oncall added SEV-page comment THIS shift. Bot-only triage does NOT count. Historical false-carryovers: S659877, S663485.
+  (3) **Trailing SEV sort** — SEVs opened BEFORE shift start get a `[trailing-from-W<NN>]` badge AND sort AFTER all this-week-opened SEVs in §3 tables. Never lead with trailing SEVs.
+  (4) **Mitigated-during-shift inclusion** — When pulling §3 candidate SEVs, union `--in-progress` AND `--status=mitigated --time-mitigated-after=<shift-start>`. The `--in-progress` only query misses SEVs mitigated mid-shift (e.g., S665454 Threads U2M trainer stuck 14h was missed this way — Denny's 5/22 WP broadcast targeted it).
+  Source: comment AAAB6TgHzeg on 5/26 tab.
+- **2026-05-25 — RULE 54: Section 4 alert-list cells use `<ul><li>` for multi-alert lists; alert URLs render as clickable `A<id>` text.** Bad (current): inline comma list with raw `https://...alert_inspect?alert_id=...` URLs. Good: `<ul><li><a href="https://www.internalfb.com/intern/monitor/alert_inspect?alert_id=NNNN">A<NNNN></a> — <summary></li>…</ul>`. AGG clusters render with nested sub-bullets for member alerts. Long inline strings >120 chars → MUST break to list. Source: comment AAAB6TgHzeY on 5/26 tab.
+- **2026-05-25 — RULE 55: All tables sort by oncall_involvement DESC, then importance DESC, then issue_status; cron MUST diff prev-week tab schema first.**
+  (a) **Sort key (3-tier):** primary `oncall_involvement` ∈ {high-touch=3, observe-only=2, none=1}; secondary `importance` ∈ {SEV0/1=4, SEV2=3, SEV3=2, non-SEV=1}; tertiary `issue_status` ∈ {OPEN=3, MITIGATED=2, CLOSED=1}. Applied to §3 Top-ongoing, §3 Handled, §4 alerts, §5 user-posts, §6 diffs. Pre-push lint: for each table, assert each adjacent row pair satisfies the 3-tier sort.
+  (b) **Prev-week schema diff before drafting:** cron does `gdocs get --tab-id <prev-week-tab>` BEFORE generating current draft. Extract section headings + table column headers; if current draft diverges (sections added/dropped/renamed, or table columns differ), write `_schema_drift.json` to space dir AND surface drift in cron output. Prevents 'I forgot what last week looked like' regressions. The 5/19 tab is the baseline for 5/26.
+  Source: comment AAAB6TgHzeE on 5/26 tab.
+- **2026-05-25 — RULE 56: Daily timeline promotes to Section 2 (UPDATES + supersedes RULE 34).** New section order: §1 Headline → **§2 Daily timeline** → §3 Hand-off → §4 Top ongoing SEVs → §5 SEVs handled this shift → §6 Tasks/Incidents/Alerts → §7 User Reports → §8 Diffs → §9 Oncall Improvements → footer. Rationale: timeline is the narrative spine the operator reads first. Cross-refs in template body all renumber. Source: comment AAAB6TgHzgI on 5/26 tab.
+- **2026-05-25 — RULE 57: Drop negative-existence filler from Daily timeline.** Bullets like `No new WP posts by Denny.`, `No new diffs by oncall this day.`, `No SEVs touched today.` add no value. Empty days render as `<date> — (quiet)` if literally nothing; otherwise list only what HAPPENED. Pre-push lint regex `^\s*-?\s*No new .* by .*\.\s*$` in §2 → ABORT and drop the line. Source: comment AAAB6TgHzgE on 5/26 tab.
+- **2026-05-25 — RULE 36-ext: ALL person-name renders across ALL sections use `render_person(name, unixname)` helper.** Sections covered: §2 timeline subject, §4 SEV owner cell, §5 SEV owner cell, §7 user-post author, §8 diff author + reviewers. Output: `<a href="https://www.internalfb.com/profile/<unixname>">DisplayName</a>`. Single shared helper, NOT per-section regex. Closes the gap where §5/§7 used different code paths and the timeline-day-event renderer left names plain (Li Lu unwrapped in 5/19 timeline despite RULE 36 fix). Source: comment AAAB6TgHzf4 on 5/26 tab. Li Lu unixname = `llu6`.
+- **2026-05-25 — RULE 58: NEVER render `L?` placeholder for SEV level.** Resolution: `meta sevmanager.sev describe --sev=S###### -o json | jq -r '.severity'` returns L0…L4. If null (rare — only freshly-opened pre-triage SEVs), retry once after 30s; if still null, render `<L-pending>` with footnote, NEVER `L?`. Pre-push lint regex `\bL\?\b` → ABORT. Source: comment AAAB6TgHzfQ on 5/26 tab.
+- **2026-05-25 — RULE 59: Section 9 (Oncall Improvements / Systemic Issues) sort by oncall actionability DESC.** Order: (1) operator-blocking surfacing items (e.g., `S665454 missing from §4`); (2) cross-shift learning items (CL-NNN updates, R-NNN root-cause findings); (3) bot-internal hygiene LAST with `[internal]` prefix badge (e.g., `[internal] P56 pattern proposal — needs review`, `[internal] triage_events table empty — investigate cron wiring`). Operator can fast-skip the `[internal]` badge tier. Source: comment AAAB6TgHzfM on 5/26 tab.
+- **2026-05-25 — RULE 60: Section 5 (SEVs handled this shift) row format — structured columns, no prose.** Schema: `# | SEV | Lvl | Title | Tagged? | Status | Action`. `Tagged?` cell = `✅ mvai-online-training` (auto-tag present) or `❌ untagged — review` (auto-tag missing). `Action` cell = concrete `<owner-unixname>: <verb>` (e.g., `incoming-oncall: tag if in-scope`, `lupaul: post mitigation`), never free-form English. AUTO-TAG behavior: cron should auto-apply `mvai-online-training` tag during draft for any §5 SEV missing it WHEN it passes RULE 53(1) OT-SEV filter — do not leave to incoming oncall. Source: comment AAAB6TgHzfI on 5/26 tab (re: items #9 S665454, #10 S665214).
+- **2026-05-25 — RULE 40: NEVER write `PAGEd → <user>` without verifying.** Required checks before claiming a SEV was paged: (1) `meta sevmanager.sev describe --sev=S######` → check `auto_detected` field (true = automated trigger) AND `detection_method_tags` (look for `alert/` or `oncall_page/` markers, NOT `dashboards/`); (2) `meta sevmanager.chat list --sev=S######` → check first chat message author; if it's the SEV owner posting context (e.g., "#dataops monitor"), they OPENED the SEV manually, not got paged. SEV's `opened_by` + `journalist` fields = the human who created it, NOT the page recipient. Source: comment AAAB6TgHzXk on 5/26 tab — I claimed `S667687 PAGEd → andrewxmao` when actual: andrewxmao opened it manually as L4 from dashboard. Memory: `gotcha_sev-page-vs-self-open`.
+
+
+## URL validity rule (cross-cron, 2026-05-17 thread `-x-xLvG_vPo`)
+
+See `~/.myclaw-ot-bot/RULES.md` § "URL validity — NO 404 LINKS". Summary:
+- gchat thread URL MUST have BOTH `/<space>/` AND `/<thread_id>` (bare `/room/<space>` 404s for finding context)
+- Workplace post URL: `https://fb.workplace.com/groups/<group>/permalink/<id>/` (NOT `internalfb.com/work/permalink/...` which 404s)
+- SEV: `https://www.internalfb.com/sevmanager/view/<numeric>` (no `S` prefix in URL)
+- Alert: `https://www.internalfb.com/onedetection/alert?alert_id=<numeric>`
+- If URL form unverifiable → render plain text WITHOUT a link (404 worse than no link)
+
+

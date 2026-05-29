@@ -1,146 +1,167 @@
 {
-  "last_run_epoch": 1779993065,
+  "last_run_epoch": 1780033245,
   "prompt_snapshots": {
     "daily-brief": {
       "prompt_sha256": "ec2b026c297c855871c5b0501b13ddf55a677c6df9ad009a0935b6f2dad3b101",
-      "last_validated_epoch": 1779992063,
+      "last_validated_epoch": 1780030471,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-28 11:10 PDT | hash changed e537605c\u2192ec2b026c (wp_post_ids ALL-posts + narrative split clarification added). Static: CLEAN. Subagent: PASS with low-risk ambiguity noted (STILL-populate phrasing)."
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean (false-positive WP/gdocs pattern matches are prohibition-rule text)"
     },
     "ot-alert-monitor": {
-      "prompt_sha256": "591182ff663c22eb82e0167dc50ebca654a77a8102c00ab199ffd6764512d851",
-      "last_validated_epoch": 1779951171,
+      "prompt_sha256": "58010dfb6ded8e197756c3151c16a0143af0740a5d70c945668c0a3f63c1b763",
+      "last_validated_epoch": 1780031609,
       "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT (31st+ consecutive, 2026-05-27 23:50 PDT \u2014 placeholder <paste_id> (4 hits) + work/permalink (1 hit). Deduped \u2014 alert already posted today."
+      "last_validation_summary": "R24 defects: (1) meta oncall.feed metadata\u2192describe (invalid subcommand); (2) double --title-contains\u2192--title-contains-all-of (wrong AND logic)"
+    },
+    "ot-bot-volume-watch": {
+      "prompt_sha256": "58852c9588be08b66f14343592bf634510dff164aaf129c6191bff5cb658f636",
+      "last_validated_epoch": 1780032364,
+      "last_validation_verdict": "inconclusive",
+      "last_validation_summary": "2026-05-28 22:20 PDT; first baseline \u2014 no past run >500 chars in last 7d to validate against"
     },
     "ot-cron-health-watch": {
-      "prompt_sha256": "941d6ceeab1a9c2c4df0021776d8b37930f8e902b6c4e335aaa4a3aa6f6ecce4",
-      "last_validated_epoch": 1779951171,
+      "prompt_sha256": "0b13d0288969431246240dfa71730797ff3b0ae6faa5eb9e2164e7a92b72474b",
+      "last_validated_epoch": 1780030471,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
     },
     "ot-daily-learning-debugging": {
       "prompt_sha256": "b89b0231f305154d3fd6d0b4ce0fb2d7bf9aebd1e8084cf9d74d0b5c48b0868a",
-      "last_validated_epoch": 1779951171,
+      "last_validated_epoch": 1780030471,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-daily-learning-mitigated-alerts": {
-      "prompt_sha256": "0b21fd1f080e223f1fe5fa493603642fae5d787e3165fe447b88088ade7859d6",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT (30th+ consecutive, 2026-05-27 23:50 PDT \u2014 work/permalink (1 hit) + list-messages cmd (1 hit) + oncall.feed item-detail (2 hits). Deduped \u2014 alert already posted today."
-    },
-    "ot-daily-learning-mitigated-posts": {
-      "prompt_sha256": "ccfc09f35103d3036f939d443c93a25fe93a52049377829b3416bd3f2826f010",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT (2nd+ consecutive, 2026-05-27 23:50 PDT \u2014 work/permalink (2 hits) + list-messages cmd (1 hit). Deduped \u2014 alert already posted today."
-    },
-    "ot-daily-learning-mitigated-sevs": {
-      "prompt_sha256": "e14d5db4a0c26e30015a6d7de4c5f79055613c371b904e20431345393c4b0e17",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT (2026-05-27 23:50 PDT \u2014 work/permalink (1 hit) + list-messages cmd (1 hit). Deduped \u2014 alert already posted today."
-    },
-    "ot-disk-watch": {
-      "prompt_sha256": "9c8a79f2c1de79d9c08a6296d5a020678fd7df45ec4625401389a86bdc198983",
-      "last_validated_epoch": 1779984037,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-28 09:00 PDT | whitespace-only change (1 trailing blank line added); static-analysis clean, all pattern checks pass. PASS"
-    },
-    "ot-fbpkg-cap-watch": {
-      "prompt_sha256": "33d64f74069ab4a64fcf784065cabd9464b08e761190c44c6df7623c949579dd",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-knowledge-curation": {
-      "prompt_sha256": "ee8ea22cb52002c212c49353cb9838aa239d0776c3854b3a862e04748874ea5d",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-knowledge-distillation": {
-      "prompt_sha256": "3802cabe7a6402756c846658892769918992b94cdf0d25ef1ff1af99c97d65d3",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-metrics-rollup": {
-      "prompt_sha256": "de9fd518c2974ed0bdf5ecd514baf7a725092c5a2d447edc68e0107e1407502a",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-myclaw-backup-nightly": {
-      "prompt_sha256": "f93fca537744e5a2594607f1fa03de14d24cd95007fa1c951b6909bdd5798372",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-myclaw-weekly-restart": {
-      "prompt_sha256": "ccc9df6362da699b2f2b99776cfb4582f62d9e21382a7ae1ba30b38904b2a379",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-notes-commit-push": {
-      "prompt_sha256": "af4931c17e2e004b5f617adfbfb1086382a32ea5ab6ef4949362108777b8e2cf",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-notes-fbcode-sync": {
-      "prompt_sha256": "c640795081da36a90a2a5ca1b53a7567af45df4075e4be2e85ca0c4701dfc788",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-notes-fbcode-sync-weekly": {
-      "prompt_sha256": "47f26ce43fd0b0877c50a3e614f3f9ddf5db5ecca26830e7e30c0e19a9143295",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
-    },
-    "ot-post-monitor": {
-      "prompt_sha256": "fac73a33077900f07022eea12544df08912c7c6de8ff0f3aace5ddc7545eb88d",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT (24th+ consecutive, 2026-05-27 23:50 PDT \u2014 placeholder <paste_id> (3 hits) + work/permalink (1 hit). Deduped \u2014 alert already posted today."
-    },
-    "ot-sev-monitor": {
-      "prompt_sha256": "9681e407d7a9063e0e514c91a27d08267be65c78a26699bb2b41ac376cb74517",
-      "last_validated_epoch": 1779981786,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT (39th+ consecutive, 2026-05-28 08:20 PDT \u2014 carryover: <paste_id> template (3 hits) + work/permalink negative-example (1 hit). New additions (SILVERTORCH detection, lockfile, send-discipline hardening, URL gate, L50+L52) are CLEAN. Deduped \u2014 alert already posted today."
-    },
-    "ot-sev-tag-review": {
-      "prompt_sha256": "a56a0599588aef2644e919e8774c162d0c0a7f061b0118f844812dbc3784cbb3",
-      "last_validated_epoch": 1779951171,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-27 23:50 PDT | hash-changed (bulk re-seed); static-analysis clean. PASS"
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
     },
     "ot-daily-learning-digest": {
       "prompt_sha256": "4e4c4d40aac98cacda5526c20881e17d26199c99a8c0f15c999a28e2157d0520",
-      "last_validated_epoch": 1779988968,
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-daily-learning-mitigated-alerts": {
+      "prompt_sha256": "0b21fd1f080e223f1fe5fa493603642fae5d787e3165fe447b88088ade7859d6",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "PERSISTENT FAIL (9th+ consecutive): meta oncall.feed item-detail not a valid action (L62+L210). Hash changed (bulk-sync #5) but defect unfixed. Alert deduped."
+    },
+    "ot-daily-learning-mitigated-posts": {
+      "prompt_sha256": "ccfc09f35103d3036f939d443c93a25fe93a52049377829b3416bd3f2826f010",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean (WP-404 match is prohibition-rule text only)"
+    },
+    "ot-daily-learning-mitigated-sevs": {
+      "prompt_sha256": "768905a62562f363e38c2ecb1610faea55b500bff550612bd384f52f6f28160b",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean (WP-404 match is prohibition-rule text only)"
+    },
+    "ot-disk-watch": {
+      "prompt_sha256": "9c8a79f2c1de79d9c08a6296d5a020678fd7df45ec4625401389a86bdc198983",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-fbpkg-cap-watch": {
+      "prompt_sha256": "33d64f74069ab4a64fcf784065cabd9464b08e761190c44c6df7623c949579dd",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-knowledge-curation": {
+      "prompt_sha256": "ee8ea22cb52002c212c49353cb9838aa239d0776c3854b3a862e04748874ea5d",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-knowledge-distillation": {
+      "prompt_sha256": "3802cabe7a6402756c846658892769918992b94cdf0d25ef1ff1af99c97d65d3",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-metrics-rollup": {
+      "prompt_sha256": "de9fd518c2974ed0bdf5ecd514baf7a725092c5a2d447edc68e0107e1407502a",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-myclaw-backup-nightly": {
+      "prompt_sha256": "f93fca537744e5a2594607f1fa03de14d24cd95007fa1c951b6909bdd5798372",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-myclaw-weekly-restart": {
+      "prompt_sha256": "ccc9df6362da699b2f2b99776cfb4582f62d9e21382a7ae1ba30b38904b2a379",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-notes-commit-push": {
+      "prompt_sha256": "af4931c17e2e004b5f617adfbfb1086382a32ea5ab6ef4949362108777b8e2cf",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-notes-fbcode-sync": {
+      "prompt_sha256": "0693012c15431ed37537bd7a702e815e5483fea1e88f8561681864b6526e9489",
+      "last_validated_epoch": 1780032364,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "Bash bug in trunk-drift gate: grep -cE '^< ' || echo 0 yields two-line string on clean run \u2192 [ $TRUNK_ONLY -gt 5 ] emits 'integer expression expected' every clean run. Fix: pipe through tail -1 or use || true."
+    },
+    "ot-notes-fbcode-sync-weekly": {
+      "prompt_sha256": "25799f8d0474c653ac819741c298a6e06d26dc1b82aa995f7143aab2fb651a28",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "PERSISTENT FAIL: --sort=date/--sort=-date invalid at L64+L66 (sl log doesn't support --sort flag). Hash changed (bulk-sync #5, DEDUPE GATE added at step 0) but defect unfixed. Alert deduped."
+    },
+    "ot-oauth-refresher": {
+      "prompt_sha256": "18b33a98f4ddb8249e33e3aa893440a23fd51dc10efbcb96e1ab0421731bb723",
+      "last_validated_epoch": 1780031137,
       "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-05-28 10:20 PDT | NEW cron (first seen). Static analysis: CLEAN (no google.docs.*, no <paste_id>, no work/permalink, no list-messages). No past runs in job_runs \u2014 cannot simulate. INCONCLUSIVE (consecutive_inconclusive=1, threshold=3)."
+      "last_validation_summary": "2026-05-28 22:00 PDT; first baseline \u2014 no past run >500 chars in last 7d to validate against"
+    },
+    "ot-post-monitor": {
+      "prompt_sha256": "edc6d4194cdc1df2908a9e73dfb3b206ee10e9659408a000ab9d5d7472256834",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean (WP-404 match is prohibition-rule text only)"
+    },
+    "ot-sev-monitor": {
+      "prompt_sha256": "2ab1cfa84da189c03a767b6cd893274c55c188a11168a67a644c302655c2e980",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean (WP-404 match is prohibition-rule text only)"
+    },
+    "ot-sev-tag-review": {
+      "prompt_sha256": "a56a0599588aef2644e919e8774c162d0c0a7f061b0118f844812dbc3784cbb3",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
     },
     "ot-shift-summary": {
-      "prompt_sha256": "dc528fe3c76b33e2a2e33030b4d6a7a9053a52fac5d84da1d9229e02f86b25c0",
-      "last_validated_epoch": 1779990146,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT (17th+ consecutive, 2026-05-28 10:40 PDT \u2014 hash changed 9e7376f8\u2192dc528fe3. 4 genuine meta google.docs.* instruction hits: export+structure+delete-content in section (e), PLUS new meta google.docs.format in section [n] (table bg post-process). work/permalink at L680 is NEGATIVE-context (safe). Deduped \u2014 alert already posted today."
+      "prompt_sha256": "22805fd4533c256b7d1878871bd65e875a3c15b5b3c911f1de89a8102e8cb61d",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean (WP-404 + google.docs.append matches are prohibition-rule text only)"
+    },
+    "ot-thread-summarizer": {
+      "prompt_sha256": "f06afe4346bb0fb7a0287f1cc7cd91e50f80c5549950cd69cee9187a4dfaa88a",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
+    },
+    "ot-triage-auditor": {
+      "prompt_sha256": "3809d054e61350330552d155dd6ad02321334625e1eeede3bdad2746086df816",
+      "last_validated_epoch": 1780030471,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "bulk-sync #5 2026-05-28 21:50 PDT; static-scan clean"
     }
   },
   "alerts_posted_24h": [
+    "ot-notes-fbcode-sync-weekly",
     "ot-daily-learning-mitigated-alerts",
-    "ot-sev-monitor",
     "ot-alert-monitor",
-    "ot-post-monitor",
-    "ot-shift-summary",
-    "ot-daily-learning-mitigated-sevs",
-    "ot-daily-learning-mitigated-posts"
+    "ot-notes-fbcode-sync"
   ]
 }

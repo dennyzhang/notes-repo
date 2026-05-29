@@ -193,3 +193,56 @@ RELATED
 - In-trainer publisher: minimal_viable_ai/core/publisher/delta_only_publisher.py
 - STUS publisher: silvertorch/experimental/st_update_service/st_update_service.py
 - Reranker loading: st_update_service/st_t2i_reranker_util.py
+
+================================================================
+OT JOB PATTERN TAXONOMY (4 patterns)
+================================================================
+
+Distilled 2026-05-28. Every OT model falls into one of these 4 patterns.
+Each pattern has different failure modes — triage must identify the
+pattern FIRST before investigating.
+
+Pattern 1: IN-TRAINER PUBLISHING (1 job)
+  Jobs: 1 MAST job (trainer + publisher in same process)
+  Publishing: WeightsDeltaPublisher runs alongside training.
+    Sparse/dense deltas published inline.
+    FULL_SNAPSHOT via SilverTorchTGIFPublisher subprocess on ckpt save.
+  Examples: cfr_main_mtml, ig_reels_tab_mtml, ig_organic_feed_mtml
+  Failure modes: CL-001 (publish subprocess stuck), CL-014 (NCCL in
+    publish path), TGIF hang (S651873), Gloo/DistStore errors (S667668)
+
+Pattern 2: SEPARATE STUS PUBLISHER (2 jobs)
+  Jobs: trainer MAST job + StUpdateService publisher MAST job
+  Publishing: Trainer produces checkpoints. STUS MAST job polls for
+    new checkpoints, runs full publish (heavy GPU post-processing).
+  Examples: some MTML models needing heavy publish compute
+  Failure modes: CL-008 (STUS mis-classified as trainer), STUS startup
+    fails (P56 — removed MTIA module), publisher job zombie (S665454
+    sub-class)
+
+Pattern 3: RETRIEVAL I2I (3 models, 2 trainers)
+  Jobs: 2 trainer MAST jobs (root + reranker) + 1 ST model (serving entity)
+  Publishing: Root trainer → item embeddings → ITEM_EMB_DELTA every ~2min.
+    Reranker trainer → weights. ST model rebuilds KNN index →
+    FULL_SNAPSHOT on reranker checkpoint change.
+  Examples: facebook_reels_ifu_i2i (root=2125081911, reranker=2125081901,
+    ST=2132070936)
+  Failure modes: Reranker zombie blocks FULL_SNAPSHOT on ST model
+    (S667567). Need to check RERANKER health, not the alerted model.
+
+Pattern 4: RETRIEVAL STREAMING-ONLY (1 job, no FULL_SNAPSHOT)
+  Jobs: 1 MAST job (trainer only, no TGIF publish)
+  Publishing: Deltas streamed via Hedwig (SPARSE_DELTA + ITEM_EMB_DELTA).
+    No FULL_SNAPSHOT — predictor rebuilds state from streaming delta chain.
+  Examples: ig_mixed_feed_smsl_esr, ig_reels_tab_cs_omni_retrieval,
+    ig_reels_tab_ss_omni_retrieval
+  Failure modes: Hedwig/TCPStore silent failure (S658165), multicast
+    over-subscription (S644248), streaming success rate drops (S667222).
+    "Missing FULL_SNAPSHOT" alerts are FALSE POSITIVES for this pattern.
+
+TRIAGE FIRST STEP: Identify which pattern before investigating.
+  meta ai.model-series metadata --model-id=<ID>
+  → model_type_name tells you:
+    *_i2i, *_retrieval → Pattern 3 (Retrieval I2I)
+    *_mtml, *_ranking  → Pattern 1 or 2 (check if STUS job exists)
+    *_smsl_esr, *_omni_retrieval → Pattern 4 (streaming-only)

@@ -22,6 +22,50 @@ Procedure:
    echo "$NOW" > "$LOCKFILE"
    ```
    Release lock as the LAST action in step 10 after writing state: `rm -f "$LOCKFILE"`
+
+0.5. **GChat-read recovery + tick instrumentation (2026-05-28, mirror of HEARTBEAT.md rule 6 sub-bullet; codified after thread AOQM8O19bHE).** Every `meta google.chat.message list/get` and `gchat read` call later in this prompt (notably step 9.b.i-c live-SEV read) MUST be wrapped with the recovery protocol below. Initialize per-tick counters BEFORE any GChat read; persist outcome to state in step 10.
+
+   **Per-tick counters (init at run start):**
+   ```bash
+   GCHAT_403_SEEN=0          # 1 if any GChat read returned 403 this tick
+   BUCK2_REFRESH_ATTEMPTED=0 # 1 if we ran `buck2 run` to refresh OAuth
+   BUCK2_REFRESH_OK=0        # 1 if the post-refresh retry succeeded
+   GCHAT_LAST_OK_EPOCH=$(jq -r '.gchat_health.last_ok_epoch // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+   ```
+
+   **Recovery wrapper (use for every gchat read in this prompt):**
+   ```bash
+   gchat_read_with_recovery() {
+     # $1 = full meta google.chat.message list command; echoes stdout on success, returns exit code
+     local cmd="$1" out err exit_code
+     err=$(mktemp); out=$(eval "$cmd" 2>"$err"); exit_code=$?
+     if [ $exit_code -eq 0 ]; then
+       GCHAT_LAST_OK_EPOCH=$(date +%s)
+       rm -f "$err"; echo "$out"; return 0
+     fi
+     # Detect 403 — fall through to refresh
+     if grep -qE '403|Unauthorized|forbidden|invalid_grant|token (has |)expired' "$err"; then
+       GCHAT_403_SEEN=1; BUCK2_REFRESH_ATTEMPTED=1
+       echo "[ot-sev-monitor] GChat 403 detected — refreshing OAuth via buck2 run" >&2
+       (cd /home/dennyzhang/fbsource && buck2 run fbcode//pe_mrs_ml/mrs_ot_agent:scope_check -- --help) >/dev/null 2>&1 || true
+       # Retry the original command once
+       out=$(eval "$cmd" 2>"$err"); exit_code=$?
+       if [ $exit_code -eq 0 ]; then
+         BUCK2_REFRESH_OK=1; GCHAT_LAST_OK_EPOCH=$(date +%s)
+         rm -f "$err"; echo "$out"; return 0
+       fi
+     fi
+     # Either non-403 failure OR refresh+retry still failed → escalate per HEARTBEAT.md rule 6
+     local err_head; err_head=$(head -c 200 "$err"); rm -f "$err"
+     echo "[ot-sev-monitor] GChat read FAILED post-refresh: $err_head" >&2
+     # Caller decides whether to: (a) continue triage without live-gchat ctx (acceptable degradation), or (b) abort cluster.
+     # Default: continue with `[VERIFIED via gchat read: UNAVAILABLE (403 post-refresh)]` cite.
+     return $exit_code
+   }
+   ```
+
+   **Consecutive-403 escalation gate:** if `BUCK2_REFRESH_ATTEMPTED=1 AND BUCK2_REFRESH_OK=0`, increment `gchat_health.consecutive_403_count` in state. **If counter ≥3 across runs:** at end of run (step 10), post ONE escalation line to spaces/AAQAVOjYc80 with `--as-meta-bot`: `🚫 GChat reads degraded ≥3 ticks — tried buck2 run; need help (consecutive=$N, last_ok=<HH:MM PT>)`. Reset counter on any successful read.
+
 1. Read state file. Extract `diagnosed_ids`. If file missing/corrupt, default to empty dict.
 
    **Migrations (idempotent, run all):**
@@ -48,12 +92,22 @@ Procedure:
    For each candidate:
    ```bash
    meta sevmanager.sev metadata --sev=S<id> -o json | \
-       buck2 run -q fbcode//pe_mrs_ml/mrs_ot_agent:scope_check -- --stdin
+       (cd /home/dennyzhang/fbsource && buck2 run fbcode//pe_mrs_ml/mrs_ot_agent:scope_check -- --stdin)
    ```
+
+   **cwd is MANDATORY (2026-05-28 L65).** `buck2 run` requires running from inside an fbsource checkout to resolve `fbcode//...` targets. The cron daemon spawns from `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/` where buck2 errors with `not in a Buck project, are you missing a .buckconfig file?` → exit 1 → silent fallback to manual-scope-assessment. This caused 10 consecutive `scope_check=DEGRADED` runs on 2026-05-28 before the 19:04 PT cron agent diagnosed it. Do NOT remove the `(cd /home/dennyzhang/fbsource && ...)` wrapper. If buck2 still errors after the cd, escalate via L65 protocol (do not just degrade silently).
 
    Output: `{"sev_id": "...", "in_scope": bool, "rationale": "...", "signal": "tag"|"title"|"ic"|"owner"|"sev_type"|null}`. If `in_scope == false`: drop IMMEDIATELY (no notification, no diagnosis, just add to diagnosed_ids). Allowlist-based: Production sev_type requires positive MRS marker. Future tightening goes in capability + `tests/test_team_lane_scope.py`. Run in parallel; ~3-5s per call.
 
 5. Filter candidates whose sev_number is NOT in diagnosed_ids → NEW SEVs.
+
+   **LEGACY_UNKNOWN re-eligibility (2026-05-28 L62, thread `Rk8bGR2CQK8`).** Additionally treat any candidate where `diagnosed_ids[<sev_id>].notification_outcome == "LEGACY_UNKNOWN"` as NEW (re-eligible for full triage). LEGACY_UNKNOWN is a v1→v3 migration sentinel meaning "we have no record that this SEV was ever notified" — it must NOT permanently block re-detection the way `POSTED:`/`OOS:`/`ERROR:` outcomes do.
+
+   **Re-detection cap**: process at most 5 LEGACY_UNKNOWN re-eligibles per run, sorted by SEV `created` time DESC (most recent first). Remaining LEGACY_UNKNOWNs in the candidate set stay re-eligible for the next tick. This bleeds the v1-migration backlog down without flooding.
+
+   After a LEGACY_UNKNOWN entry's full triage completes (step 9.f), its outcome MUST be overwritten with the new `$NOTIFICATION_OUTCOME` (POSTED/OOS/ERROR), eliminating it from the LEGACY_UNKNOWN bucket permanently.
+
+   **Why this matters**: S668272 (5/26 robocall) had `LEGACY_UNKNOWN` outcome in `diagnosed_ids`; the original step-5 set-difference treated it as "already diagnosed" and silently skipped it on every subsequent run. Tag-based queries returned the SEV but step 5 dropped it before triage could run. Audit 2026-05-28: 90/113 entries in `diagnosed_ids` carry LEGACY_UNKNOWN — that is the silent-skip surface this fix unblocks.
 
 6. Prune diagnosed_ids: drop IDs not in current candidate set (closed/out-of-scope SEVs forgotten so re-open re-triggers).
 
@@ -125,7 +179,7 @@ Procedure:
 
       i-0c. **MANDATORY trainer-liveness probe — BEFORE any D-class (publish) or E-class (DPP/QPS) hypothesis.** When the symptom set includes ANY of: "snapshot stuck CREATING", "FS publish stalled", "DPP reader QPS ≈ 0", "low input QPS", "checkpoint cadence broken" — run the trainer-Python liveness probe FIRST: `meta scuba.dataset query -d mvai_metrics --view=samples --columns=time -w '[{"column":"model_entity_id","op":"eq","values":["<MODEL_ID>"]}]' --hours=12 -l 1 --order-by=time`. Pulls last sample timestamp from trainer Python instrumentation. **If latest sample > 5 min stale AND MAST attempt status is RUNNING → the trainer Python interpreter is hung (P44/A1 — GIL hang, or A2/A3 — C++/storage stall depending on live process inspection)**; downstream stuck-CREATING snapshots and low DPP QPS are CONSEQUENCES, not roots. Do NOT propose D-class (TGIF, Hedwig, UMM publish) or E-class (DPP starvation) hypotheses until A is falsified by a fresh mvai_metrics sample. Cite verbatim: `[VERIFIED: mvai_metrics latest_sample=<timestamp>, gap_min=<N>, attempt_status=<S>]`. To pinpoint hang onset, bucket samples: `meta scuba.dataset query -d mvai_metrics -a count -w '[{"column":"model_entity_id","op":"eq","values":["<MODEL_ID>"]}]' --hours=12 --time-bucket="30 minutes"` — sharp drop to 0 = hang onset window. Source: 2026-05-13 model 2135033479 (gchat thread `tiooNt5H7zU`) — first triage misdiagnosed as TGIF/checkpoint_agent stuck; correct root was trainer GIL hang at 06:03:35 PDT, identified only via mvai_metrics zero-samples timeline. See `known-patterns.md` § Cause-vs-consequence map and P44.
 
-      i-c. **Read SEV live GChat — MANDATORY.** Metadata is a snapshot; GChat carries current state. Extract gchat_space_url, parse space ID (segment after /room/), `gchat read <space_id>` (~20 messages). Parse for active hypotheses, paste links, ETA, contradictions. Cite as `[VERIFIED via gchat read <space_id>]`. Source: 2026-05-02 S657811 — metadata said 'archiver restarted, awaiting catchup'; GChat showed ~150 versions need manual deletion, 'won't be solved till next week'.
+      i-c. **Read SEV live GChat — MANDATORY (with recovery wrapper, 2026-05-28 thread `4BK7HJHkzB0`).** Metadata is a snapshot; GChat carries current state. Extract gchat_space_url, parse space ID (segment after /room/). **MUST invoke via the `gchat_read_with_recovery` wrapper declared in step 0.5** — DO NOT run a raw `gchat read <space_id>` or `meta google.chat.message list --space-id=<space_id>`, because raw calls bypass the OAuth-403 self-heal + skip per-tick instrumentation (counters stay at 0, `gchat_health` block silently lies). Concrete invocation: `gchat_read_with_recovery "meta google.chat.message list --space-id=$SEV_SPACE --limit=20 -o json"` (or wrap whatever read flavor you need). Parse for active hypotheses, paste links, ETA, contradictions. Cite as `[VERIFIED via gchat read <space_id>]` on success OR `[UNAVAILABLE: gchat 403 post-refresh]` on hard-fail (continue triage without live-gchat context — that's an acceptable degradation; do NOT abort the cluster). Source: 2026-05-02 S657811 — metadata said 'archiver restarted, awaiting catchup'; GChat showed ~150 versions need manual deletion. Wrapper requirement codified after 20:05 PT run still emitted `gchat_reads=DEGRADED` despite the 19:53 PT step-0.5 self-heal fix — the wrapper existed but was dead code; this step is the call site.
 
       i-d. **R19 mandatory pre-step — LINEAGE RESOLUTION for STUS-symptom SEVs.** When R14 confirms `role=stus` AND the SEV symptom is "missing FULL_SNAPSHOT" / "FS gap" / "snapshot stale on served model" / "too few delta snapshots", DO NOT page the STUS owner before resolving the ROOT trainer. STUS publishes what its upstream trainer produces; an STUS-only symptom usually means the **root trainer stopped producing the affected snapshot type** (NOT a STUS-side bug). Resolution sequence (5 commands, ~30 sec):
          1. `meta ai.model list-upstream-models --model-id=<STUS_MODEL_ID>` — returns lineage.
@@ -372,7 +426,34 @@ Procedure:
 
    f. Add every SEV sev_number in cluster to `diagnosed_ids` using v3 schema: `diagnosed_ids[<sev_number>] = {"added_epoch": <now_epoch>, "notification_outcome": "$NOTIFICATION_OUTCOME"}` where `$NOTIFICATION_OUTCOME` was captured in step 9.a's send-discipline block. **HARD GATE (T273158617 Fix 7):** if `$NOTIFICATION_OUTCOME` is unset OR starts with `ERROR:`, keep the entry with the `ERROR:` outcome — DO NOT silently mark with a fabricated `POSTED:` value. `ot-cron-health-watch` step 6.7 will pick up the ERROR for triage. For backfill/preemptive/procurement silent-add paths (step 3 backfill, step 2.A' mitigated, [Preemptive], procurement-exclusion): set outcome to `OOS:<reason>` (e.g. `OOS:preemptive_launch`, `OOS:procurement_hardware`, `OOS:mitigated_backfill`).
 
-10. After loop: persist state, update last_run_epoch, respond with HEARTBEAT_OK + per-SEV summary line that **MUST include the bot's posted gchat thread URL AND the SEV URL** (for ot-human-attention-brief link extraction):
+10. After loop: persist state, update last_run_epoch, **persist `gchat_health` block from step 0.5 counters**, respond with HEARTBEAT_OK + per-SEV summary line that **MUST include the bot's posted gchat thread URL AND the SEV URL** (for ot-human-attention-brief link extraction):
+
+    **State write — gchat_health (extends ot-sev-state.json schema 2026-05-28):**
+    ```bash
+    # Derive new consecutive counter from prior + this tick
+    PRIOR_CONSEC=$(jq -r '.gchat_health.consecutive_403_count // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+    if [ "$BUCK2_REFRESH_ATTEMPTED" -eq 1 ] && [ "$BUCK2_REFRESH_OK" -eq 0 ]; then
+      NEW_CONSEC=$((PRIOR_CONSEC + 1))
+    elif [ "$GCHAT_LAST_OK_EPOCH" -gt 0 ]; then
+      NEW_CONSEC=0   # any successful read resets
+    else
+      NEW_CONSEC=$PRIOR_CONSEC   # no gchat reads this tick — preserve
+    fi
+    # Merge into state
+    jq --argjson seen "$GCHAT_403_SEEN" --argjson att "$BUCK2_REFRESH_ATTEMPTED" \
+       --argjson ok "$BUCK2_REFRESH_OK" --argjson last_ok "$GCHAT_LAST_OK_EPOCH" \
+       --argjson consec "$NEW_CONSEC" --argjson now "$(date +%s)" \
+       '.gchat_health = {
+          last_tick_epoch: $now,
+          last_403_seen: ($seen == 1),
+          last_refresh_attempted: ($att == 1),
+          last_refresh_ok: ($ok == 1),
+          last_ok_epoch: $last_ok,
+          consecutive_403_count: $consec
+        }' "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
+    ```
+
+    **Consecutive-403 escalation (from step 0.5 gate):** if `NEW_CONSEC ≥ 3`, post ONE line to spaces/AAQAVOjYc80 with `--as-meta-bot`: `🚫 GChat reads degraded ≥3 ticks — tried buck2 run; need help (consecutive=$NEW_CONSEC, last_ok=<HH:MM PT>)`. Only fires on the first tick that crosses the threshold (skip if `PRIOR_CONSEC ≥ 3`) to avoid spam.
 
     ```
     HEARTBEAT_OK
@@ -384,9 +465,11 @@ Procedure:
     **S<id>** — <verdict_line>
     - Bot reply: https://chat.google.com/room/AAQAVOjYc80/<thread_id>
     - SEV: https://www.internalfb.com/sevmanager/view/<id>
+
+    **GChat health (this tick):** 403_seen=$GCHAT_403_SEEN refresh_attempted=$BUCK2_REFRESH_ATTEMPTED refresh_ok=$BUCK2_REFRESH_OK consecutive=$NEW_CONSEC last_ok_age_min=$(((${$(date +%s)} - GCHAT_LAST_OK_EPOCH) / 60))
     ```
 
-    Mandatory; operator-flagged 2026-05-17 thread `Y3qbdh2hC20`.
+    Mandatory; operator-flagged 2026-05-17 thread `Y3qbdh2hC20`. GChat-health block added 2026-05-28 per thread AOQM8O19bHE — converts anecdotal "GChat degraded" into queryable timeseries.
 
     **URL-derivation rule (T273158617 Fix 4, 2026-05-27):** the `<thread_id>` MUST be `$THREAD_ID` from step 9.a's captured send response. NEVER synthesize, NEVER re-use a thread from a different cluster, NEVER reference a thread the current cron tick did not create. If `$THREAD_ID == "SEND_FAILED"`, render `- Bot reply: SEND_FAILED (outcome=<notification_outcome>)` and prefix the SEV header with `⚠️ NOTIFICATION DROPPED`. Anti-pattern: ot-post-monitor run #6517 fabricated `yF_aMB00xMk` thread URL while actual send had silently failed.
 
@@ -429,7 +512,7 @@ Safety:
 
 15. [2026-05-27 L50] **scope_check binary degradation → surface DEGRADED warning even when no SEVs triaged.** When `buck2 run fbcode//pe_mrs_ml/mrs_ot_agent:scope_check` returns exit 1 (binary degraded): (1) include `⚠️ scope_check=DEGRADED` in the GChat run summary even for zero-SEV runs (currently degradation is only in raw_response, invisible to operator unless they read raw data); (2) label each title-evidence-only classification with `[manual-scope-assessment]` so false positives are traceable; (3) if scope_check remains degraded for >3 consecutive runs, append to warning: "Manual verification recommended before next paging action.". Source: ot-sev-monitor 2026-05-27T07:52 (scope_check exit 1, HEARTBEAT_OK delivered, degradation invisible) + 2026-05-27T00:56 (scope_check degraded, SEV manually assessed).
 
-16. [2026-05-27 L52] **GChat reads 403 during SEV triage → degrade confidence one level.** When `meta google.chat.message list` returns 403 on SEV-space read during active triage: (1) include `gchat_reads=DEGRADED(403)` in run summary header; (2) cap triage confidence at one level below metadata alone supports (high→medium, medium→low) — thread evidence unavailable; (3) add note in SEV GChat reply: "⚠️ Bot GChat reads degraded (403) — SEV thread context unverified. Confidence capped." Source: ot-sev-monitor 2026-05-26T13:03 — S668017+S668033+S668029 triaged with `GChat reads DEGRADED (403)`, confidence `medium` (would have been `high` with thread access).
+16. [2026-05-27 L52, AMENDED 2026-05-28 L66] **GChat reads 403 DURING SEV triage that survive self-heal → degrade confidence one level.** When `gchat_read_with_recovery` (step 0.5) returns hard-fail (`BUCK2_REFRESH_OK=0` AND no successful retry) on SEV-space read during active triage: (1) include `gchat_reads=DEGRADED(403_post_refresh)` in run summary header; (2) cap triage confidence at one level below metadata alone supports (high→medium, medium→low) — thread evidence unavailable; (3) add note in SEV GChat reply: "⚠️ Bot GChat reads degraded (403 post-refresh) — SEV thread context unverified. Confidence capped." **If the wrapper RECOVERED (refresh+retry succeeded, `BUCK2_REFRESH_OK=1`): DO NOT emit any DEGRADED label** — the read succeeded, instrumentation already captured the 403 in the `gchat_health` block, no operator-facing degradation message needed. Source: ot-sev-monitor 2026-05-26T13:03 (original 403 cluster) + 2026-05-28T20:05 PT (DEGRADED still fired post-fix because wrapper was dead code; thread `4BK7HJHkzB0` flagged it).
 
 17. [2026-05-28 L54] **Security/infosec SEV fast-path exclusion after step-3 match.** If title matches `/\[memlab\]|RCE via|heapsnapshot.*eval/i` after step-3 regex match → classify `in_scope=false` immediately, silently add to `diagnosed_ids` without invoking scope_check. Extends L38 procurement fast-drop to cover infosec/vuln SEVs that match OT regex via "heapsnapshot" or "[memlab]" keywords. When scope_check is degraded these SEVs still get manual-assessed every run without this guard. Source: S668375 "[memlab] RCE via eval() ... .heapsnapshot" matched step-3 via "heapsnapshot" keyword.
 
@@ -444,3 +527,4 @@ See `~/.myclaw-ot-bot/RULES.md` § "URL validity — NO 404 LINKS". Summary:
 - SEV: `https://www.internalfb.com/sevmanager/view/<numeric>` (no `S` prefix in URL)
 - Alert: `https://www.internalfb.com/onedetection/alert?alert_id=<numeric>`
 - If URL form unverifiable → render plain text WITHOUT a link (404 worse than no link)
+

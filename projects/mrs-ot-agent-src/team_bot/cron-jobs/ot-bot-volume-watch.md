@@ -1,0 +1,85 @@
+[ot-bot-volume-watch cron] Hourly. Track BOT msg volume in spaces/AAQAVOjYc80; detect runaway bands + hourly bursts; auto-attribute to top offending source-crons; auto-draft verbosity-reduction prompt edits (operator-approved before apply). Silent on steady state — only posts on band transitions or hourly-burst breaches.
+
+Created 2026-05-28 per operator thread `AL3dqJevKm0`: *"do you have an autonomous workflow or cron job to monitor and tune this?"* Designed via parallel-agent workflow (18 audit findings → 1 cron spec). Three-tier tuning policy per `preference_act-dont-ask` + `feedback_suppress-noise`.
+
+State file: `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/state/ot-bot-volume-state.json` — `{"last_band":"<quiet|steady|busy|runaway>","last_band_transition_epoch":<int>,"last_burst_epoch":<int|null>,"consecutive_clean_hours":<int>,"yesterday_reported_date":"<YYYY-MM-DD|null>","schema_version":1}`. Telemetry table: `ot_bot_volume_telemetry(date,hour,bot_count,human_count,ratio,band,burst_fired,top_sources_json,ts_created)`. Time budget: ~30s typical.
+
+## Procedure
+
+1. **Lockfile** (per `project_lockfile_concurrent_run` pattern):
+   ```bash
+   LOCKFILE=~/.myclaw-ot-bot/spaces/AAQAVOjYc80/state/ot-bot-volume.lock
+   LOCK_MAX_AGE=3600
+   NOW=$(date +%s)
+   [ -f "$LOCKFILE" ] && [ $((NOW - $(cat "$LOCKFILE"))) -lt $LOCK_MAX_AGE ] && { echo "[ot-bot-volume-watch] locked, exiting"; exit 0; }
+   echo "$NOW" > "$LOCKFILE"; trap 'rm -f "$LOCKFILE"' EXIT
+   ```
+   Self-exclude: count own posts (`[ot-bot-volume-watch]` prefix) as 1 to prevent self-loop, but do NOT trigger band/burst on own activity.
+
+2. **Query bot msg counts** from `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db` `messages` table. Two bot identities:
+   - Strict bot: `sender_id = '886676667858092'` (--as-meta-bot sends)
+   - Bot-via-Denny-OAuth: `sender_id = '100051448831249' AND text REGEXP '^(🚨|🛟|✅|🦦|\\*[A-Z]|HEARTBEAT_OK|\\[OT cron|Run summary)'` OR `text LIKE '%[OT cron health]%'` OR `text LIKE '%Run summary%'` (cron daemon-spawned outputs render under Denny's identity but ARE bot output).
+   - Per `gotcha_auditor-step1-tz-query`: use `replace(datetime('now', '-Xh'), ' ', 'T')` for timestamp comparison; SQLite `localtime` modifier for PT conversion.
+
+3. **Three windows:**
+   - (a) Rolling 60-min BOT msg count (last hour, for burst detection)
+   - (b) Today-so-far BOT total (since today 00:00 PT)
+   - (c) Yesterday's final BOT + HUMAN totals + HUMAN/BOT ratio
+
+4. **Threshold evaluation** (data-anchored from 14d distribution, rebaseline every 30 days):
+   ```
+   daily_bot_msgs:    quiet <120  | steady 120-220 | busy 220-300 | runaway >320
+   daily_human_msgs:  quiet <40   | steady 40-110  | engaged >110
+   hourly_burst:      quiet-hours (23:00-08:00 PT) >50 | waking (08:00-23:00 PT) >120
+   noise_feedback:    human_to_bot_ratio <0.1 over full day = ALERT (Denny went quiet, bot kept talking)
+   ```
+
+5. **Hysteresis** (per `ot-cron-health-watch` transition-only posting pattern): read state file, only act if BAND CHANGED since last run OR burst threshold newly crossed OR yesterday's runaway not yet reported. Skip otherwise.
+
+6. **On hourly-burst breach:** group the offending hour's messages by source-cron-tag (extract from `[OT cron X]` prefix / emoji / known patterns). Identify top 1-3 offenders. Auto-draft a verbosity-reduction prompt edit citing exact line numbers in the source cron prompt notes-file. Save to `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/state/draft-cron-edits/<cron-id>-<epoch>.md`. Draft edit MUST be concrete (e.g., "add `only post if state changed` to step N at line LL of `<cron>.md`") — never vague.
+
+7. **Daily summary post (09:00 PT only):** if yesterday was RUNAWAY band OR ratio <0.1, post ONE consolidated msg:
+   ```
+   📊 [ot-bot-volume-watch] yesterday: <N> BOT msgs (<band> band) | HUMAN/BOT ratio: <r>. Top sources: <cron-X>=<n>, <cron-Y>=<n>, <cron-Z>=<n>. Draft edit: <path>. Approve to apply.
+   ```
+   Otherwise silent log to telemetry only.
+
+8. **On hourly-burst breach:** post ONE msg:
+   ```
+   🚨 [ot-bot-volume-watch] burst: <N> BOT msgs in <HH:MM>-<HH:MM> window (threshold <T>). Top sources: cron-X=<n>, cron-Y=<n>, cron-Z=<n>. Draft edit saved: <path>. Approve to apply.
+   ```
+   On subsequent burst-recovery transition: reply-in-thread `✓ recovered after N clean hours`.
+
+9. **Telemetry append:** `INSERT INTO ot_bot_volume_telemetry (date, hour, bot_count, human_count, ratio, band, burst_fired, top_sources_json, ts_created) VALUES (...)`. For trend visibility + future rebaselining.
+
+10. **State write + exit:** update state file (last_band, last_band_transition_epoch, last_burst_epoch, consecutive_clean_hours, yesterday_reported_date). Release lockfile. If silent log only, respond `HEARTBEAT_OK` and exit — NEVER post bare "all quiet" or "consider tuning" (violates `feedback_suppress-noise` + `act-dont-ask`).
+
+## Tuning Actions (three-tier policy)
+
+| Band | Action |
+|---|---|
+| quiet (<120) or steady (120-220) | SILENT — telemetry append only, no chat msg |
+| busy (220-300) | SILENT-LOG — telemetry + one-line note in HEARTBEAT.md for heartbeat awareness |
+| runaway (>320) OR hourly burst | ALERT — auto-attribute top 1-3 sources, auto-draft concrete verbosity-reduction edit (cite exact line numbers), post ONE chat msg, await operator approval |
+
+**Operator approval flow:** on a single-word reply like `apply` / `yes` / `ack` from operator in the alert thread, follow `gotcha_cron-prompt-three-layer-flow`: edit notes file, UPDATE sqlite via `readfile`, verify SHA256 parity, let weekly sync handle fbcode. **NEVER auto-apply prompt edits without explicit operator approval.**
+
+## Safety rules
+
+- **Self-exclusion:** own `[ot-bot-volume-watch]` posts excluded from all counts (anti-loop).
+- **No bare status msgs:** "all quiet" / "consider tuning" / FYI lines are PROHIBITED — either act with concrete draft edit OR stay silent.
+- **No auto-edit without approval:** draft edits saved to disk but NEVER applied to sqlite without explicit operator `apply`/`yes`/`ack`.
+- **Rebaseline cadence:** every 30 days, re-query 14d distribution from `ot_bot_volume_telemetry`; if p75 drifts >20% from current band boundaries, propose new thresholds (operator-approved).
+- **Cross-cron coordination:** this cron does NOT touch ot-cron-health-watch / ot-shift-summary / other cron prompts directly; only writes to its own state + draft-edit dir.
+
+## Why this cron exists (vs heartbeat)
+
+Heartbeat fires every ~30 min but is conversation-context-driven, has no measurement persistence (cannot accumulate rolling burst counters), and cannot detect quiet-hour bursts when operator is asleep (no heartbeat-triggering signal). Heartbeat also regressed on volume awareness twice in May 2026 (2026-05-25 fabrication gotcha, 2026-05-28 6-of-7 suppressible run-summaries that operator called out) — proving ad-hoc per-fire judgment is insufficient.
+
+`ot-cron-health-watch` covers cron-RUN failure classes (silent failure, missing run, gchat-wrapper bypass), not msg-VOLUME. `ot-metrics-rollup` covers triage precision/recall, not output volume. Individual crons enforce local caps but no aggregator exists across the 29+ manifest crons.
+
+This cron uniquely provides: (1) exact-hourly cadence (deterministic burst windowing), (2) persistent state file for hysteresis + cross-day trend, (3) source-attribution + concrete draft-edit generation, (4) separate accountability surface so heartbeat stays focused on conversation/actionability while volume governance runs as a quiet measurement loop.
+
+## Provenance
+
+Created 2026-05-28 21:55 PT via parallel-agent workflow (run `wf_89e487c4-f11`, 4 agents / 18 audit findings / 1 design synthesis). Source thread: `AL3dqJevKm0`. Closes the "msg-volume monitoring gap" identified in the today-msg-audit conversation. Companion to: `ot-cron-health-watch` (cron-RUN health) and HEARTBEAT.md rules (per-fire judgment).

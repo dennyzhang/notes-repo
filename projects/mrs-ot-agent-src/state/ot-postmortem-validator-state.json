@@ -159,5 +159,19 @@
       "fabricated_thread": "hYjLARUjdDU"
     }
   ],
-  "last_run_epoch": 1779783000
+    {
+      "digest_run_id": "7396",
+      "job_id": "ot-daily-learning-mitigated-sevs",
+      "validation_at": "2026-05-28T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 3,
+        "corrected": 1,
+        "proposed": 1
+      },
+      "notes": "S657606 (ig_textpost_feed_u2m_retrieval, Closed): title match ✓ ('threads feed u2m OT blocked bc no hardware data colocation'); RC verified via archive (DPP xregion enforcement + misreporting tetrisArgs → Hive colocation failure); no CL-NNN cited ✓ (correct — no existing cluster for xregion allowlist policy failures); D103756077 abandoned-not-pushed correction verified ✓. CORRECTION: thread xu83p4O_7pQ count=0 in both home (AAQAVOjYc80) and team (AAQA2bZMw24) space → fabricated thread claim (3rd incident after hecygJWPvCM/6211, hYjLARUjdDU/6217). No reply sent (no valid parent thread). P58 (Hive xregion enforcement) novel ✓ vs known-patterns.md (highest = P57); note P58 was prior-proposed in run 5242 (ZippyDB variant) and 6217 (elastic-agent, now P56) — neither landed, ID available. Recommend landing but explicit P-ID audit first.",
+      "thread_fabrication_flag": true,
+      "fabricated_thread": "xu83p4O_7pQ"
+    }
+  ],
+  "last_run_epoch": 1780032600
 }

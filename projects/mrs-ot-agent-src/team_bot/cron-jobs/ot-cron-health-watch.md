@@ -1,10 +1,11 @@
-[ot-cron-health-watch cron] Hourly. Audit the OT bot's own cron job runs to surface silent failures. Six failure classes detected:
+[ot-cron-health-watch cron] Hourly. Audit the OT bot's own cron job runs to surface silent failures. Seven failure classes detected:
 1. **Silent failure** — job ran but response contains `FAILED`, `ERROR`, `BOT_INCOMPLETE`, `DEGRADED`, `EXCEPTION`, or non-zero error code, AND the cron did not already self-escalate to gchat.
 2. **Missing run** — scheduled job did not fire within 2× its expected window (catches daemon hangs, queue jams, the same-bug-class as the 2026-05-12 manual-trigger hang on mitigated-sevs).
 3. **Persistent failure** — same job failing ≥3 consecutive runs (escalated severity vs single-instance failure).
 4. **Notification-retraction (a.k.a. ordering bug)** — a cron posted a main-space `🚨 …` alert, then within 15 min the SAME cron (or its triage subagent) posted an `[OUT-OF-SCOPE …]` retraction in the alert's thread. Indicates the cron is notifying BEFORE running its scope/stage gates — user-facing noise even though the gates themselves work. Detection added 2026-05-16 after S659877 + S664024 leaks; see step 6.5.
 5. **Missed completion (Evergreen-restart kill)** — daemon log shows `Scheduled job firing: <job_id>` but no matching completion AND no `job_runs` row appears within `expected_window`. Caused by Evergreen process restart killing in-flight pi-harness sessions (drain only covers thrift jobs, not pi sessions). Detection added 2026-05-19 after 3 heavy crons (alert-monitor, sev-monitor, thread-summarizer) silently died at 05:42:08 PT when Evergreen re-execed mid-run. See step 6.6.
 6. **Notification-outcome anomaly (silent drop / legacy)** — a monitor cron marked an item processed in its state file but the persisted `notification_outcome` ledger entry is `ERROR:<reason>` (any age) or `LEGACY_UNKNOWN` persisting >14d. Indicates the cron believed it dispatched a notification but the gchat send failed (or the schema-v3 migration found pre-existing entries whose dispatch can no longer be confirmed). Detection added 2026-05-27 after T273158617 — ot-post-monitor run #6517 silently dropped Hao Sha post 1336024098492333 AND fabricated a `Bot reply:` thread URL in its run summary. See step 6.7.
+7. **Dead-helper-wrapper bypass (gchat-health parity)** — a monitor cron's run summary emitted `gchat_reads=DEGRADED` (legacy L52 emission) but the new `gchat_health` block in its state file shows `last_refresh_attempted=false`. Means the L66/L67 self-heal wrapper exists on paper but was bypassed at the call site — exactly the dead-code class that caused the 20:05 PT thread `iiujQv9mdP0` regression. Generalizes to any future "declared-but-unwired helper" anti-pattern. Detection added 2026-05-28; see step 6.8.
 
 Post escalation to spaces/AAQAVOjYc80 ONLY on state transitions (no spam). Self-heals on recovery (post one CLEAR message when a previously-failing job has enough clean consecutive runs — threshold scales by schedule cadence; see step 5.d).
 
@@ -205,6 +206,37 @@ Procedure:
    **Hysteresis:** once a cron transitions to `notification_outcome_anomaly`, do NOT re-alert until either (a) the operator clears the offending entries from the state file (count drops to 0), OR (b) the offending entries' `notification_outcome` transitions to `POSTED:` / `OOS:` / `DEDUP:` via a subsequent cron run (auto-clear), OR (c) 7 days pass with no new ERROR entries (auto-clear to `healthy`). Avoids hourly nagging while a real silent-drop investigation is in flight.
 
    **NO AUTO-MITIGATION for this class.** A silent drop means the cron's notion of "I posted" diverged from reality — auto-retry could double-post if the original send actually landed late, or misroute if the item is stale. Operator must inspect.
+
+6.8. **Dead-helper-wrapper audit (class 7 — declared-but-unwired helper / gchat-health parity).** Detect runs where a monitor cron's run summary emitted `gchat_reads=DEGRADED` (legacy L52 emission) but the new `gchat_health` block in its state file shows `last_refresh_attempted=false`. That divergence means the L66/L67 self-heal wrapper exists on paper but was bypassed at the call site — exactly the dead-code class that caused the 20:05 PT thread `iiujQv9mdP0` regression after the L66/L67 fixes shipped. Catches a future agent skipping the wrapper invocation while still hitting the legacy DEGRADED emission path.
+
+   ```bash
+   declare -A STATE_PATHS=(
+     [ot-sev-monitor]=/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-sev-state.json
+     [ot-alert-monitor]=/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/alert-state.json
+     [ot-post-monitor]=/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-monitor-state.json
+   )
+   for CRON in "${!STATE_PATHS[@]}"; do
+     SP=${STATE_PATHS[$CRON]}
+     [ -f "$SP" ] || continue
+     # Pull this cron's most recent raw_response from job_runs
+     LAST_RESP=$(sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db \
+       "SELECT raw_response FROM job_runs WHERE job_id='$CRON' ORDER BY run_at DESC LIMIT 1")
+     # Did run emit DEGRADED label?
+     echo "$LAST_RESP" | grep -qE 'gchat_reads=DEGRADED' || continue
+     # State has gchat_health block?
+     LAST_ATT=$(jq -r '.gchat_health.last_refresh_attempted // "MISSING"' "$SP" 2>/dev/null)
+     LAST_403=$(jq -r '.gchat_health.last_403_seen // "MISSING"' "$SP" 2>/dev/null)
+     if [ "$LAST_ATT" = "MISSING" ] || [ "$LAST_403" = "MISSING" ]; then
+       echo "PARITY_MISSING|$CRON|gchat_health block absent — wrapper never ran"
+     elif [ "$LAST_ATT" = "false" ] && [ "$LAST_403" = "false" ]; then
+       echo "PARITY_VIOLATION|$CRON|DEGRADED emitted but wrapper recorded no 403 + no refresh — call site bypassed the wrapper (declared-but-unwired)"
+     fi
+   done
+   ```
+
+   For each cron with `PARITY_VIOLATION` or `PARITY_MISSING`: transition = `*→gchat_wrapper_bypass`, severity HIGH. Suggested triage (step 7): "Grep the cron prompt: `sqlite3 myclaw.db \"SELECT prompt FROM jobs WHERE id='<CRON>';\" | grep -nE 'meta google.chat.message list|gchat read '`. Any line NOT preceded by `gchat_read_with_recovery` is a bypass. Wire the wrapper at every call site per cheatsheets/diff/common.md § Declared-but-unwired helper anti-pattern. Source: 2026-05-28 L67 (L66 wrapper was dead code through one cron tick; declared but never invoked at step i-c)."
+
+   **Hysteresis:** clear once one full tick passes with matched parity (`gchat_reads=DEGRADED` either absent, OR present alongside `last_refresh_attempted=true`).
 
 7. **Suggested triage lookup** (per failure category):
 

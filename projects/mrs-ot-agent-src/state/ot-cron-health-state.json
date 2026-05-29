@@ -2,25 +2,25 @@
   "daily-brief": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 167,
+    "consecutive_clean": 168,
     "last_alert_epoch": null,
     "last_run_epoch": 1779981951,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "*📋 daily-brief* Active OT incidents S668293 + S668828 + OT Diffs Needs Review D106454858 D104339726...",
+    "last_response_excerpt": "*\ud83d\udccb daily-brief* Active OT incidents S668293 + S668828 + OT Diffs Needs Review D106454858 D104339726...",
     "_note": "Clean. Ran 08:25 PDT May 28. On schedule (weekdays 08:14). Next fire Fri May 29 08:14 PDT."
   },
   "ot-alert-monitor": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 417,
+    "consecutive_clean": 430,
     "last_alert_epoch": 1779918634,
-    "last_run_epoch": 1779987478,
+    "last_run_epoch": 1780027769,
     "last_auto_mitigation_epoch": null,
     "last_response_excerpt": "HEARTBEAT_OK",
     "notification_outcome_error_count": 0,
     "notification_outcome_legacy_count": 0,
-    "last_outcome_audit_epoch": 1779986362,
-    "_note": "Healthy. Latest 09:57 PDT May 28 (response sent per daemon log). On schedule (3600s). Next fire ~10:47 PDT."
+    "last_outcome_audit_epoch": 1780022317,
+    "_note": "Healthy. Latest 20:49 PDT May 28. On schedule (3600s). Next fire ~21:49 PDT."
   },
   "ot-daily-learning-debugging": {
     "status": "healthy",
@@ -39,7 +39,7 @@
     "last_alert_epoch": 1779702328,
     "last_run_epoch": 1779961138,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "HEARTBEAT_OK — Both phases succeeded.",
+    "last_response_excerpt": "HEARTBEAT_OK \u2014 Both phases succeeded.",
     "_note": "Clean. Ran 02:38 PDT May 28. Next fire 02:37 PDT May 29."
   },
   "ot-metrics-rollup": {
@@ -55,58 +55,58 @@
   "ot-post-monitor": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 984,
+    "consecutive_clean": 1010,
     "last_alert_epoch": null,
-    "last_run_epoch": 1779989677,
+    "last_run_epoch": 1780030227,
     "last_auto_mitigation_epoch": null,
     "last_response_excerpt": "HEARTBEAT_OK",
     "notification_outcome_error_count": 0,
     "notification_outcome_legacy_count": 0,
-    "last_outcome_audit_epoch": 1779986362,
-    "_note": "Clean. Latest 10:34 PDT May 28. On schedule (900s). Next fire ~10:49 PDT."
+    "last_outcome_audit_epoch": 1780030371,
+    "_note": "Healthy. Latest 21:50 PDT May 28. On schedule (900s). Next fire ~22:05 PDT."
   },
   "ot-sev-monitor": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 228,
-    "last_alert_epoch": 1779918634,
-    "last_run_epoch": 1779988096,
+    "consecutive_clean": 1,
+    "last_alert_epoch": 1780026739,
+    "last_run_epoch": 1780027593,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "HEARTBEAT_OK (SEVs processed: 3 | Deferred: 1; scope_check=DEGRADED(2 consec, manual-scope-assessment); gchat_reads=DEGRADED(403))",
+    "last_response_excerpt": "HEARTBEAT_OK ... SEVs processed: 7 (S657729, S658565, et al). No DEGRADED markers.",
     "notification_outcome_error_count": 0,
     "notification_outcome_legacy_count": 0,
-    "last_outcome_audit_epoch": 1779986362,
-    "_note": "Healthy. Latest 10:08 PDT May 28 (HEARTBEAT_OK head; DEGRADED flags are per-issue markers inside digest = clean per step-3 nuance). On schedule (3600s). Next fire ~10:47 PDT."
+    "last_outcome_audit_epoch": 1780026739,
+    "_note": "RECOVERED 21:37 PDT May 28. 21:03 PDT run clean \u2014 7 SEVs processed, no gchat_reads=DEGRADED. Class 7 gchat_wrapper_bypass cleared after 1 clean tick (per custom hysteresis). Recovery posted to spaces/AAQAVOjYc80."
   },
   "ot-daily-learning-mitigated-sevs": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 153,
+    "consecutive_clean": 154,
     "last_alert_epoch": null,
-    "last_run_epoch": 1779941817,
+    "last_run_epoch": 1780028149,
     "last_auto_mitigation_epoch": null,
     "last_response_excerpt": "HEARTBEAT_OK",
-    "_note": "Clean. Ran 21:16 PDT May 27 (nothing to report). Next fire 21:00 PDT May 28."
+    "_note": "Clean. Ran 21:11 PDT May 28 (digest posted thread xu83p4O_7pQ, 8 candidates). Next fire 21:00 PDT May 29."
   },
   "ot-daily-learning-mitigated-alerts": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 152,
+    "consecutive_clean": 153,
     "last_alert_epoch": null,
-    "last_run_epoch": 1779942703,
+    "last_run_epoch": 1780028964,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "HEARTBEAT_OK",
-    "_note": "Clean. Ran 21:31 PDT May 27 (nothing to report). Next fire 21:15 PDT May 28."
+    "last_response_excerpt": "HEARTBEAT_OK {alerts_processed: 5, patterns_proposed: 0, patterns_matched: 5 (all P57 \u2014 scribe_read_proxy cascade)}",
+    "_note": "Clean. Ran 21:29 PDT May 28. 5 alerts processed (P57 scribe cascade). Next fire 21:15 PDT May 29."
   },
   "ot-daily-learning-mitigated-posts": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 152,
+    "consecutive_clean": 153,
     "last_alert_epoch": null,
-    "last_run_epoch": 1779942825,
+    "last_run_epoch": 1780029264,
     "last_auto_mitigation_epoch": null,
     "last_response_excerpt": "HEARTBEAT_OK",
-    "_note": "Clean. Ran 21:33 PDT May 27 (nothing to report). Next fire 21:30 PDT May 28."
+    "_note": "Clean. Ran 21:34 PDT May 28. Next fire 21:30 PDT May 29."
   },
   "ot-sev-tag-review": {
     "status": "healthy",
@@ -121,22 +121,22 @@
   "ot-shift-summary": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 36,
+    "consecutive_clean": 37,
     "last_alert_epoch": 1779799964,
-    "last_run_epoch": 1779810161,
+    "last_run_epoch": 1780028058,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "*📋 ot-shift-summary* **19 May - 26 May | Outgoing: dennyzhang → Incoming: lupaul**",
-    "_note": "Stable. Ran 08:41 PDT May 26 (Tuesday handover). Next fire Tue Jun 2."
+    "last_response_excerpt": "*\ud83d\udccb ot-shift-summary* [Weekly OT Shift Summary | 21 May - 28 May] Outgoing: dennyzhang \u2192 Incoming: lupaul",
+    "_note": "Clean. Ran 21:14 PDT May 28 (Thu \u2014 unusual off-Tuesday timing; content valid: May 21-28 handover summary). Schedule is 30 8 * * 2 (Tue 08:30). May have been manually triggered or daemon delay. Next fire Tue Jun 2 08:30 PDT."
   },
   "ot-knowledge-distillation": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 5,
+    "consecutive_clean": 7,
     "last_alert_epoch": 1779835417,
-    "last_run_epoch": 1779914671,
+    "last_run_epoch": 1780001735,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "*📚 ot-knowledge-distillation* Summaries scanned (NEW): 7 (6 SEVs from 2026-05-26, 1 post from 2026-05-25).",
-    "_note": "Healthy. Ran 13:44 PDT May 27. Next fire Thu May 28 13:30 PDT (not yet fired as of 10:37 audit)."
+    "last_response_excerpt": "*\ud83d\udcda ot-knowledge-distillation* Run: 2026-05-28 13:30 PT \u2014 P57 added, patterns updated.",
+    "_note": "Healthy. Ran 13:55 PDT May 28 (13:30 fire). On schedule (weekdays 13:30). Next fire Fri May 29 13:30 PDT."
   },
   "ot-knowledge-curation": {
     "status": "healthy",
@@ -146,17 +146,27 @@
     "last_run_epoch": 1779948660,
     "last_auto_mitigation_epoch": null,
     "last_response_excerpt": "HEARTBEAT_OK",
-    "_note": "Healthy. Ran 23:11 PDT May 27. Next fire 23:00 PDT May 28."
+    "_note": "Healthy. Ran 23:11 PDT May 27. Next fire 23:00 PDT May 28 (not yet due at audit time 21:37 PDT)."
+  },
+  "ot-gdoc-context-sync": {
+    "status": "missing",
+    "consecutive_failures": 1,
+    "consecutive_clean": 0,
+    "last_alert_epoch": 1780011788,
+    "last_run_epoch": null,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "",
+    "_note": "MISSING (alerted 16:36 PDT May 28). Job in manifest (cron: 0 14 * * *, daily 07:00 PDT) but NOT registered in sqlite jobs table \u2014 daemon cannot schedule it. Zero runs ever. Triage: rerun setup-cron-jobs.sh to register job. Suppressed repeat."
   },
   "ot-cron-health-watch": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 206,
-    "last_alert_epoch": 1779975637,
-    "last_run_epoch": 1779990595,
+    "consecutive_clean": 226,
+    "last_alert_epoch": 1780026739,
+    "last_run_epoch": 1780033099,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "HEARTBEAT_OK {jobs_audited: 20, transitions: 0, alerts_posted: 0, recoveries: 0, auto_mitigated: 0, mitigation_failures: 0, ordering_bugs: 0, notification_anomalies: 0, suppressed_repeats: 1}",
-    "_note": "Ran 10:47 PDT May 28. 0 transitions. 1 suppressed: ot-notes-fbcode-sync still persistent_failure (alert posted 06:37 PDT; next run 12:15 PDT). Next fire ~11:47 PDT."
+    "last_response_excerpt": "HEARTBEAT_OK {jobs_audited: 32, transitions: 0, alerts_posted: 0, recoveries: 0, auto_mitigated: 0, mitigation_failures: 0, ordering_bugs: 0, suppressed_repeats: 2}",
+    "_note": "Ran 22:37 PDT May 28. 0 transitions. 2 suppressed (ot-gdoc-context-sync missing, ot-thread-summarizer recovering 2/3). 2 new jobs bootstrapped (ot-oauth-refresher, ot-bot-volume-watch)."
   },
   "ot-fbpkg-cap-watch": {
     "status": "healthy",
@@ -165,18 +175,18 @@
     "last_alert_epoch": null,
     "last_run_epoch": 1779743056,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "*📦 ot-fbpkg-cap-watch* light_cli — 852/850 versions (headroom: -2, OVER CAP). 0 orphan tags.",
+    "last_response_excerpt": "*\ud83d\udce6 ot-fbpkg-cap-watch* light_cli \u2014 852/850 versions (headroom: -2, OVER CAP). 0 orphan tags.",
     "_note": "Weekly Monday 14:00 UTC. Fired May 25 14:04 UTC (clean). Next fire Mon Jun 2."
   },
   "ot-notes-fbcode-sync": {
-    "status": "persistent_failure",
-    "consecutive_failures": 4,
-    "consecutive_clean": 0,
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 2,
     "last_alert_epoch": 1779975637,
-    "last_run_epoch": 1779974169,
+    "last_run_epoch": 1780017350,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "⚠️ ot-notes-fbcode-sync FAILED — exit=1. M fbcode/pe_mrs_ml/mrs_ot_agent/src/pipeline.py A fbcode/pe_mrs_ml/mrs_ot_agent/src/verification.py",
-    "_note": "PERSISTENT_FAILURE. Failures at 00:16, 06:15, 06:16 PDT May 28 (4 total). Root cause: Phase 4 pipeline.py + verification.py uncommitted in fbcode blocking sync. Alert escalated to HIGH at 06:37 PDT. No new run since 06:16 (next fire 12:15 PDT). Suppressed again: same state, already alerted."
+    "last_response_excerpt": "Diff submitted successfully. 72 files synced \u2192 D106735261. HEARTBEAT_OK",
+    "_note": "RECOVERED. 2 consecutive clean runs. D106735261 submitted. Next fire 00:15 PDT May 29."
   },
   "ot-notes-fbcode-sync-weekly": {
     "status": "healthy",
@@ -185,18 +195,18 @@
     "last_alert_epoch": null,
     "last_run_epoch": 1779750155,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "*📅 ot-notes-fbcode-sync-weekly* W22 submitted D106305010.",
+    "last_response_excerpt": "*\ud83d\udcc5 ot-notes-fbcode-sync-weekly* W22 submitted D106305010.",
     "_note": "Weekly Monday 09:00 PDT. Last run May 25 (clean). Next fire Mon Jun 2."
   },
   "ot-notes-commit-push": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 576,
+    "consecutive_clean": 588,
     "last_alert_epoch": null,
-    "last_run_epoch": 1779988366,
+    "last_run_epoch": 1780028173,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "HEARTBEAT_OK",
-    "_note": "Clean. Latest 10:12 PDT May 28. On schedule (3600s interval). Next fire ~11:12 PDT."
+    "last_response_excerpt": "HEARTBEAT_OK {files_committed: 26, commit: 3a51655a69eb, pushed: true}",
+    "_note": "Clean. Latest 21:12 PDT May 28. On schedule (3600s interval). Next fire ~22:12 PDT."
   },
   "ot-myclaw-weekly-restart": {
     "status": "healthy",
@@ -205,42 +215,163 @@
     "last_alert_epoch": null,
     "last_run_epoch": 1779519642,
     "last_auto_mitigation_epoch": null,
-    "last_response_excerpt": "*🔄 ot-myclaw-weekly-restart* Weekly restart scheduled in 15s.",
+    "last_response_excerpt": "*\ud83d\udd04 ot-myclaw-weekly-restart* Weekly restart scheduled in 15s.",
     "_note": "Weekly Saturday 00:00 PDT. Fired 2026-05-23. Next fire Sat 2026-05-31."
   },
   "ot-disk-watch": {
     "status": "healthy",
     "consecutive_failures": 0,
-    "consecutive_clean": 90,
+    "consecutive_clean": 27,
     "last_alert_epoch": 1779875548,
-    "last_run_epoch": 1779990480,
+    "last_run_epoch": 1780030043,
     "last_auto_mitigation_epoch": null,
-    "missed_completions_24h": 0,
-    "missed_completion_seen": [],
-    "_note": "HEALTHY. Latest run 10:45 PDT May 28. On schedule (every 15 min). Next fire ~11:00 PDT.",
-    "last_response_excerpt": "HEARTBEAT_OK {mounts_checked: 4, mounts_skipped: 0, transitions: 0, alerts_posted: 0, auto_mitigation_fired: false, reclaimed_gb: null}"
+    "missed_completions_24h": 1,
+    "missed_completion_seen": [
+      "2026-05-28T14:45"
+    ],
+    "_note": "HEALTHY. Clean runs through 21:47 PDT (27 consecutive). Next fire ~22:47 PDT.",
+    "last_response_excerpt": "HEARTBEAT_OK {mounts_checked: 4, mounts_skipped: 0, transitions: 0, alerts_posted: 0}"
   },
   "_meta": {
-    "last_audit_epoch": 1779990595,
+    "last_audit_epoch": 1780033099,
     "bootstrap_run": false,
-    "jobs_audited": 20,
+    "jobs_audited": 32,
     "transitions": 0,
     "alerts_posted": 0,
     "recoveries": 0,
     "auto_mitigated": 0,
     "mitigation_failures": 0,
     "ordering_bugs": 0,
-    "suppressed_repeats": 1,
     "notification_anomalies": 0,
+    "suppressed_repeats": 2,
     "_detail": {
-      "note": "10:47 PDT May 28 2026 (Thursday)",
-      "transitions": "0 — all jobs unchanged from prior audit",
-      "recoveries": "0",
-      "suppressed": "1 — ot-notes-fbcode-sync persistent_failure (alert posted 06:37 PDT; no new run until 12:15 PDT; consecutive_failures=4 unchanged)",
-      "ordering_bugs": "0 — no 🚨→[OUT-OF-SCOPE] pairs in last 24h (0 count confirmed)",
-      "notification_anomalies": "0 — all 3 monitor state files v3-instrumented; 0 ERROR/aged-LEGACY entries",
-      "missed_completions": "0 — all daemon-log firings have matching completions; no Evergreen kill signature",
-      "ot_sev_monitor_note": "10:08 run has HEARTBEAT_OK head with scope_check=DEGRADED(2 consec) + gchat_reads=DEGRADED(403) inside digest — classified CLEAN per step-3 nuance"
+      "note": "22:37 PDT May 28 2026 (Thursday) \u2014 clean run, no transitions",
+      "transitions": "0 \u2014 all previously-known jobs stable",
+      "suppressed": "2 \u2014 ot-gdoc-context-sync (missing, alert standing 16:36 PDT), ot-thread-summarizer (recovering 2/3, alert standing 20:40 PDT)",
+      "new_bootstrapped": "2 \u2014 ot-oauth-refresher (5 clean/interval 600s), ot-bot-volume-watch (1 clean/hourly)",
+      "stale_state_corrections": "ot-notes-deletion-watch last_run corrected 19:53\u219221:54 PDT (21:54 run was in sqlite but missed by prior health-watch due to concurrency); ot-postmortem-validator consecutive_clean 1\u21922 (22:36 PDT clean run)",
+      "ordering_bugs": "0 \u2014 no [OUT-OF-SCOPE] retraction messages in 24h window",
+      "watchlist": "ot-thread-summarizer: 2/3 clean runs, recovery pending next clean fire ~22:45-22:49 PDT; ot-knowledge-curation: due 23:00 PDT tonight"
     }
+  },
+  "ot-human-attention-brief": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 1,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779980810,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "\u2615 *Morning brief \u2014 2026-05-28* (last 24h) \u2014 State file updated. Final lint pass confirms all URLs...",
+    "_note": "First observed. Clean run 08:06 PDT May 28. Daily 08:00 PT. Next fire Fri May 29 08:00 PDT."
+  },
+  "ot-prompt-change-validator": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 129,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1780029669,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK {crons_checked: 24, changed: 0, validated: 0, pass: 0, fail: 0, inconclusive: 0, alerts_posted: 0}",
+    "_note": "129 clean runs (interval 600s). Latest 21:41 PDT May 28. Next fire ~21:51 PDT."
+  },
+  "ot-triage-auditor": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 3,
+    "last_alert_epoch": 1780026047,
+    "last_run_epoch": 1780030060,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "All 9 triages from the 3 runs in the window are already present in the audit log (audit_epochs 1780026579 + 1780028636 cover the 19:04, 20:05, and 21:...",
+    "_note": "RECOVERED 21:47 PDT May 28. 3 consecutive clean runs (20:50, 21:25, 21:47 PDT). Recovery posted to spaces/AAQAVOjYc80."
+  },
+  "ot-postmortem-validator": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 2,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1780032960,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*\ud83d\udd0d ot-postmortem-validator* Digests validated: 1 (run 7396 \u2014 ot-daily-learning-mitigated-sevs, 2026-05-28 21:11 PDT) \u2705 Confirmed: S657606...",
+    "_note": "2 clean runs. Latest 22:36 PDT May 28. Daily 22:30 PT. Next fire Fri May 29 22:30 PDT."
+  },
+  "ot-thread-summarizer": {
+    "status": "missing",
+    "consecutive_failures": 0,
+    "consecutive_clean": 2,
+    "last_alert_epoch": 1780026047,
+    "last_run_epoch": 1780030252,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*\ud83d\udcdd [ot-thread-summarizer]* Distilled 5 conversation threads into notes archive. Latest: v7 crash-loop NHA Gloo timeout (wrong zombie label).",
+    "_note": "RECOVERING (2/3 clean). 21:49 PDT run clean. Need 1 more consecutive clean run for recovery. Alert standing from 20:40 PDT \u2014 no re-alert. Next fire ~22:45 PDT."
+  },
+  "ot-triage-summary": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 1,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779986153,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "State updated. 4 files written, 5 IDs recorded. *\ud83d\udcd2 Daily triage summary \u2014 4 resolved | 2026-05-28*",
+    "_note": "First observed. Clean run 09:35 PDT May 28. Daily weekday 09:30 PT. Next fire Fri May 29 09:30 PDT."
+  },
+  "ot-debug-quality-weekly": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 1,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779984616,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*\ud83d\udcca ot-debug-quality-weekly \u2014 Week 2026-W21* (First run \u2014 no prior baseline for trend) Composite: 73.5%",
+    "_note": "First observed. Clean run 09:10 PDT May 28 (Thu = in Mon+Thu schedule). Next fire Mon Jun 1 09:00 PDT."
+  },
+  "ot-notes-deletion-watch": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 20,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1780030440,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK",
+    "_note": "20 clean runs. Latest 21:54 PDT May 28. On schedule (3600s). Next fire ~22:54 PDT."
+  },
+  "context-ingestor-gchat": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 1,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1779725292,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*\ud83d\udce5 context-ingestor-gchat* 3/4 spaces produced catchup content",
+    "_note": "First observed. Clean run 2026-05-25T09:08 PDT (Mon schedule). Weekly Mon 09:00 PT. Next fire Mon Jun 2 09:00 PDT."
+  },
+  "context-ingestor-posts": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 1,
+    "last_alert_epoch": null,
+    "last_run_epoch": null,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "",
+    "_note": "First observed. No run data available in 7d window \u2014 weekly Mon 09:15 PT. Baseline only. Next fire Mon Jun 2 09:15 PDT."
+  },
+  "ot-oauth-refresher": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 5,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1780032840,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "HEARTBEAT_OK refresh-ok",
+    "_note": "First observed. 5 clean runs (21:54-22:34 PDT May 28). Interval 600s. Next fire ~22:44 PDT."
+  },
+  "ot-bot-volume-watch": {
+    "status": "healthy",
+    "consecutive_failures": 0,
+    "consecutive_clean": 1,
+    "last_alert_epoch": null,
+    "last_run_epoch": 1780032120,
+    "last_auto_mitigation_epoch": null,
+    "last_response_excerpt": "*\ud83d\udcca ot-bot-volume-watch* \u26a0\ufe0f band transition: quiet \u2192 runaway. Today 22:17 PDT: 408 BOT | 104 HUMAN | ratio 0.26",
+    "_note": "First observed. Clean run 22:22 PDT May 28. Cron: 0 * * * * (hourly). Next fire 23:00 PDT."
   }
 }

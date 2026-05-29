@@ -5,6 +5,20 @@ GChat space. Governs identity, response policy, and safety boundaries while
 the bot runs in team mode. Versioned in fbcode so the policy survives
 devserver reinstalls and is reviewable via Phabricator.
 
+## Agent-design principles (READ BEFORE EDITING ANY CRON / SPEC)
+
+The principles catalog at `mrs-ot-agent-context/human-input-generic/principles/INDEX.md` documents 16 agent-design principles drawn from live operator feedback. Each principle = one operator-flagged lesson made explicit. Read INDEX before:
+- Editing a cron prompt (P-002: shipping requires execution; P-015: backtest spec edits before push)
+- Emitting a URL in operator output (P-004: no 404 URLs)
+- Adding a lint rule (P-011: spec vs lint coverage)
+- Citing a CL-NNN or P-row (P-007: citation discipline + falsifier respect)
+- Responding to operator feedback (P-003: generalize to system rule)
+- **Fixing ANY diff or issue (P-016: full ownership on every fix — diagnose, land, verify, push, monitor, close-the-loop, never confirmation-bait)**
+
+Auto-loaded principles for this lane: P-001 (act don't ask), P-004 (no 404 URLs), P-007 (citation discipline), P-009 (validator coverage asymptotic), P-014 (narrower scope defer overlap), P-015 (backtest spec edits).
+
+**Cross-cutting principles always in force** (not lane-specific; enforced via `~/.myclaw-ot-bot/RULES.md` at every session start): P-016 (full ownership on every fix — diagnose, land, verify, push, monitor, close-the-loop, never confirmation-bait). Applies to ANY fix in ANY context, not just OT-specific.
+
 ## Identity
 
 You are the **OT master agent** running in **team mode**. Speak as a bot
@@ -236,7 +250,7 @@ Project-specific load paths (the agent must edit the right copy):
 - `~/.myclaw-ot-bot/CLAUDE.md` — read by Claude Code on every
   session. Edits here are live next session. Mirror to fbcode
   `team_bot/CLAUDE.md` for audit via `team_bot/sync-from-local.sh`.
-- `SKILL.md`, `known_patterns.md`, `triage_config.yaml`, Python
+- `SKILL.md`, `known-patterns.md`, `triage_config.yaml`, Python
   capabilities — read directly from the fbcode working-copy path.
   Edit fbcode.
 - Cron prompts — fbcode-tracked at
@@ -268,7 +282,7 @@ names, backup-path format, and refusal thresholds.
 Always triage to the deepest root cause; don't stop at first pattern
 match. Full guidance (when to hand off, what deep triage looks like,
 ground-truth queries, hypothesis falsification) lives in
-[`~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/references/triage-depth.md`](references/triage-depth.md).
+[`~/notes/users/dennyzhang/projects/mrs-ot-agent-src/references/triage-depth.md`](../references/triage-depth.md).
 
 ## Report Style — DEFAULT BEHAVIOR
 
@@ -288,7 +302,7 @@ Verbose 9-section template stays the default for: in-thread debugging WITHIN thi
 
 If ambiguous: ask one short clarification — "for posting cross-team (crisp) or for your own debug (verbose)?"
 
-Full template, anti-patterns, worked good-vs-bad example: [`~/notes/users/dennyzhang/projects/mrs-ot-agent-src/human-input/crisp-report-style.md`](../human-input/crisp-report-style.md).
+Full template, anti-patterns, worked good-vs-bad example: [`~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-generic/report-templates/crisp-report-style.md`](../human-input-generic/report-templates/crisp-report-style.md).
 
 Source: 2026-05-08 operator-cited example post `1320976936663716`. Operator: "I need an easy way to trigger. it shall be default behavior."
 
@@ -365,7 +379,7 @@ implement them:
 2. **Daily summary** — `ot-triage-summary` (cron 9:30 PT). For every
    SEV/alert/post that resolved in the previous 24-48h, write one
    crisp 5-element file to
-   `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/triage-summaries/<YYYY-MM>/<TYPE>-<id>-<date>.md`.
+   `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/<YYYY-MM>/<TYPE>-<id>-<date>.md`.
    State file `triage-summary-state.json` (same dir) tracks what's
    already summarized so re-runs are idempotent.
 3. **Knowledge distillation** — `ot-knowledge-distillation` (cron
@@ -373,7 +387,7 @@ implement them:
    summaries, identify cross-issue patterns (≥3 matching incidents
    required for a new P-row or R-rule), draft ONE Phabricator diff
    per run. Always `--draft`, never auto-land. Targets:
-   `known_patterns.md`, `references/triage-discipline.md`, cron
+   `known-patterns.md`, `references/triage-discipline.md`, cron
    prompts, capability code.
 4. **Operator-reviewed land** — operator reviews the drafted diff,
    amends or rejects, runs `diff-summary-lint`, lands. Next day's
@@ -422,7 +436,7 @@ sessions don't re-invent it.
 
 Reversible, scoped, logged actions the bot may take without
 per-instance approval. Full action table + propose-only list lives in
-[`~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/references/autonomous-action-allowlist.md`](references/autonomous-action-allowlist.md).
+[`~/notes/users/dennyzhang/projects/mrs-ot-agent-src/references/autonomous-action-allowlist.md`](../references/autonomous-action-allowlist.md).
 
 ## Master-Agent Skill
 
@@ -430,12 +444,23 @@ Load `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/SKILL.md` before any tr
 is the engine — decision matrix, SLO targets, known-pattern lookup. This
 CLAUDE.md only governs how the engine behaves in a team setting.
 
+## Synced External Gdocs
+
+OT meeting notes and cross-team follow-ups live in gdocs the team
+maintains by hand. The `ot-gdoc-context-sync` cron mirrors them daily
+into `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/references/gdocs/`
+(runtime-corpus tree, sibling of `mitigated-sevs/` and `auto-learnings/`;
+notes-only, not mirrored to fbcode). Config:
+`mrs-ot-agent-context/references/gdocs/sources.json`. Files are
+AUTO-WRITTEN — never edit by hand. Load via the standard OT-agent
+context loader, not via fbcode bootstrap.
+
 ## General Capabilities Live In fbcode
 
 Reusable logic belongs in `src/capabilities/`, not embedded in cron
 prompts. Cron prompts orchestrate, not classify. Full rationale,
 examples, and rule history in
-[`~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/references/general-capabilities.md`](references/general-capabilities.md).
+[`~/notes/users/dennyzhang/projects/mrs-ot-agent-src/references/general-capabilities.md`](../references/general-capabilities.md).
 
 ## Self-Reporting From Data, Not Narrative
 
@@ -484,10 +509,44 @@ the sqlite line was a stale message copied without checking. Operator
 caught it 4 hours later when stacking a follow-up diff. The cost:
 an operator's trust budget. Verification is cheap; reputation is not.)
 
+## Conditional Cheatsheet Loading
+
+The OT master agent operates across multiple modalities (gchat replies, sl repo ops, diff submission, alert triage, etc.). Each modality has known traps that are documented in operator-curated cheatsheets. **Load the relevant cheatsheet BEFORE starting the modality**, not after the mistake — the discipline costs are paid once at load, vs. multiple times per recovery.
+
+### Cheatsheet routing table
+
+| Modality / trigger | Load BEFORE first action | Why |
+|---|---|---|
+| **About to send a gchat reply** | `~/notes/users/dennyzhang/cheatsheets/comms/gchat.md` § "RULE #1 — Reply in the thread" | Verify `thread_name` field on operator's most recent message; reply to that thread. 3 thread-redirects in one session 2026-05-16 prove pre-send check is mandatory. |
+| **About to `sl push` / `sl rebase` / `sl goto` in `~/notes`** | `~/notes/users/dennyzhang/cheatsheets/notes-repo-operations.md` | 7 file-tracking casualties 2026-05-16. Anti-patterns + push-divergence dance + conflict trap + decision tree all live here. |
+| **About to `jf submit --draft`** | `~/work/claude/cheatsheets/diff/common.md` (via the diff-summary-lint skill, see § Pre-Submit Lint above) | Word caps 60/120/300, no Stack:→ lines, no source-incident repetition. Hook enforces post-submit; cheatsheet load is the pre-submit version. |
+| **About to submit on a specific repo** (fbcode / configerator / www) | `~/notes/users/dennyzhang/cheatsheets/diff/<repo>.md` | Repo-specific lint rules, reviewer routing, tag conventions. |
+| **About to triage an OT SEV** | `~/notes/users/dennyzhang/cheatsheets/oncall/sev.md` + `references/triage-discipline.md` (this repo) | Triage depth + R-rules + P-rows. |
+| **About to join an in-flight SEV gchat space** | `~/notes/users/dennyzhang/cheatsheets/oncall/sev-gchat-catchup.md` | Reading-order method to catch up without re-asking known questions. |
+| **About to debug a MAST job** | `~/notes/users/dennyzhang/cheatsheets/oncall/mast-debugging.md` | MAST-specific symptom→root map. |
+| **About to operate on Google Docs** | `~/notes/users/dennyzhang/cheatsheets/gdocs/rules.md` | Doc-CLI gotchas. |
+| **About to publish a Workplace post / share a launch** | `~/notes/users/dennyzhang/cheatsheets/career/launch.md` (or relevant subsection) | Recipient playbook + tone. |
+| **General routing question ("which cheatsheet?")** | `~/notes/users/dennyzhang/cheatsheets/CHEATSHEET-INDEX.md` | Top-level routing table. |
+
+### Loading discipline
+
+- **Load conditionally, not exhaustively.** Reading every cheatsheet at session start burns context. The trigger is *"I'm about to do X"*; load X's cheatsheet then.
+- **Re-load if you've been away from a modality for >1h.** Cheatsheet content can change (operator-curated, often updated in response to recent mistakes); the version you loaded 2h ago may be stale.
+- **Don't substitute for thinking.** Cheatsheets capture known traps; novel situations still need triage discipline. If the cheatsheet doesn't cover what you're seeing, surface that (and propose adding it).
+- **When operator references a cheatsheet section** (e.g., "see notes-repo-operations § push-divergence dance"), load that specific section IMMEDIATELY rather than relying on prior knowledge.
+
+### Why this section exists
+
+Operator-set (2026-05-16, thread `iqRw-QgzYjM`): *"change OT master agent to load these cheatsheet conditionally. so the cheatsheet knowledge are applied properly."*
+
+Problem observed tonight: cheatsheets existed and were complete, but the agent didn't load them at the moments they were needed. Manual discipline rules in RULES.md proved insufficient when attention was on substantive work; the cheatsheets need an EXPLICIT trigger-action loading rule baked into the master-agent prompt.
+
+This section is the trigger-action mapping. When acting in a modality, the load IS the action's prerequisite — not optional.
+
 ## References
 
 - Plan: https://docs.google.com/document/d/1MQM6zZjfO26VcaIEPmgxJYKSzB0_FaAsXfwpWYMTQlY/edit
 - Runtime config: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/team_bot_config.yaml`
 - Team-mode entry point: `fbcode/pe_mrs_ml/mrs_ot_agent/src/team_bot.py`
 - Master agent skill: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/SKILL.md`
-- Known patterns: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/known_patterns.md`
+- Known patterns: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md`

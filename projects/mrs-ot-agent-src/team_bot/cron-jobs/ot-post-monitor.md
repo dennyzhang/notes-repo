@@ -22,6 +22,45 @@ Procedure:
    echo "$NOW" > "$LOCKFILE"
    ```
    If the lock is fresh (age < 900s), exit immediately with HEARTBEAT_OK — do NOT process posts. Release the lock (delete lockfile) as the LAST action after writing state in step 6.
+
+0.5. **GChat-read recovery + tick instrumentation (2026-05-28 L66+L67+L68; inlined 2026-05-28 L69 after Risk B audit in thread `4BK7HJHkzB0`).** Every `meta google.chat.message list/get` and `gchat read` call later in this prompt MUST be wrapped with the recovery protocol below. The wrapper is duplicated verbatim in `ot-sev-monitor.md` + `ot-alert-monitor.md` because cron agents load only their own prompt file and cannot cross-reference each other's wrapper definitions. Keep all 3 in sync when amending.
+
+   **Per-tick counters (init at run start):**
+   ```bash
+   GCHAT_403_SEEN=0          # 1 if any GChat read returned 403 this tick
+   BUCK2_REFRESH_ATTEMPTED=0 # 1 if we ran `buck2 run` to refresh OAuth
+   BUCK2_REFRESH_OK=0        # 1 if the post-refresh retry succeeded
+   GCHAT_LAST_OK_EPOCH=$(jq -r '.gchat_health.last_ok_epoch // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+   ```
+
+   **Recovery wrapper (use for every gchat read in this prompt):**
+   ```bash
+   gchat_read_with_recovery() {
+     # $1 = full meta google.chat.message list command; echoes stdout on success, returns exit code
+     local cmd="$1" out err exit_code
+     err=$(mktemp); out=$(eval "$cmd" 2>"$err"); exit_code=$?
+     if [ $exit_code -eq 0 ]; then
+       GCHAT_LAST_OK_EPOCH=$(date +%s)
+       rm -f "$err"; echo "$out"; return 0
+     fi
+     if grep -qE '403|Unauthorized|forbidden|invalid_grant|token (has |)expired' "$err"; then
+       GCHAT_403_SEEN=1; BUCK2_REFRESH_ATTEMPTED=1
+       echo "[ot-post-monitor] GChat 403 detected — refreshing OAuth via buck2 run" >&2
+       (cd /home/dennyzhang/fbsource && buck2 run fbcode//pe_mrs_ml/mrs_ot_agent:scope_check -- --help) >/dev/null 2>&1 || true
+       out=$(eval "$cmd" 2>"$err"); exit_code=$?
+       if [ $exit_code -eq 0 ]; then
+         BUCK2_REFRESH_OK=1; GCHAT_LAST_OK_EPOCH=$(date +%s)
+         rm -f "$err"; echo "$out"; return 0
+       fi
+     fi
+     local err_head; err_head=$(head -c 200 "$err"); rm -f "$err"
+     echo "[ot-post-monitor] GChat read FAILED post-refresh: $err_head" >&2
+     return $exit_code
+   }
+   ```
+
+   **Consecutive-403 escalation gate:** if `BUCK2_REFRESH_ATTEMPTED=1 AND BUCK2_REFRESH_OK=0`, increment `gchat_health.consecutive_403_count` in state. If counter ≥3 across runs, at end of run post ONE escalation line to spaces/AAQAVOjYc80 with `--as-meta-bot`: `🚫 GChat reads degraded ≥3 ticks — tried buck2 run; need help (consecutive=$N, last_ok=<HH:MM PT>)`. Reset on any successful read.
+
 1. Read state file. Extract `last_post_epoch` (coarse cutoff) and `processed_post_ids` (dict of post_id → {added_epoch, notification_outcome}). If file missing/corrupt: default cutoff = (now - 600s), processed_post_ids = empty dict, create file fresh. **Migrations (idempotent, run both):**
    - v1→v2: if `processed_post_ids` is a bare list (pre-2026-05-12), upgrade by mapping each id → `now()` (original timestamp lost). Log once.
    - v2→v3: if any entry's value is a bare `<int>` (post-2026-05-12, pre-2026-05-27), upgrade in-place to `{"added_epoch": <int>, "notification_outcome": "LEGACY_UNKNOWN"}`. Log once. `LEGACY_UNKNOWN` is grandfathered for the prune window but counts toward Fix 3 anomaly detection if it persists past 14d.
@@ -76,7 +115,7 @@ Procedure:
 
       i. **Ground-truth verification.** Pull data that confirms or falsifies leading hypothesis. For `mast_job_id`/`mlhub_url`: `meta ai.mast-job metadata --name=<id>` + `meta ai.mast-job error --name=<id>` + `meta ai.mast-job attempts --name=<id>`. For `model_series`: `meta ai.model.instance list --model-id=<id> --limit=30 --sort-by=creation_time --sort-order=desc --columns=instance_id,creation_time,snapshot_type,state -o table`. For `sev_id`: `meta sevmanager.sev metadata --sev=<id>`. Lane match is OPENING of triage — falsify or confirm before publishing.
 
-      i-c. **Read SEV live GChat — MANDATORY.** Metadata is a snapshot; GChat carries current state. Extract gchat_space_url, parse space ID (after /room/), `gchat read <space_id>` (~20 messages). Parse for active hypotheses, paste links, ETA, contradictions. Cite as `[VERIFIED via gchat read <space_id>]`. Source: 2026-05-02 S657811 — metadata said 'archiver restarted, awaiting catchup'; GChat showed ~150 versions need manual deletion, 'won't be solved till next week'.
+      i-c. **Read SEV live GChat — MANDATORY (with recovery wrapper, 2026-05-28 thread `4BK7HJHkzB0`).** Metadata is a snapshot; GChat carries current state. Extract gchat_space_url, parse space ID (after /room/). **MUST invoke via `gchat_read_with_recovery` from step 0.5** — DO NOT run raw `gchat read` / `meta google.chat.message list` (bypasses OAuth-403 self-heal + skips per-tick instrumentation). Concrete: `gchat_read_with_recovery "meta google.chat.message list --space-id=$SEV_SPACE --limit=20 -o json"`. Parse for active hypotheses, paste links, ETA, contradictions. Cite as `[VERIFIED via gchat read <space_id>]` on success OR `[UNAVAILABLE: gchat 403 post-refresh]` on hard-fail (continue triage; do NOT abort). Source: S657811 + same-wiring-fix as ot-sev-monitor (wrapper was dead code before this amendment).
 
       i-d. **MANDATORY trainer-liveness probe — BEFORE any D-class (publish) or E-class (DPP/QPS) hypothesis.** When the post symptom set includes ANY of: "snapshot stuck CREATING", "FS publish stalled", "missing SPARSE_DELTA/DENSE_DELTA", "DPP reader QPS ≈ 0", "low input QPS", "checkpoint cadence broken" — run the trainer-Python liveness probe FIRST: `meta scuba.dataset query -d mvai_metrics --view=samples --columns=time -w '[{"column":"model_entity_id","op":"eq","values":["<MODEL_ID>"]}]' --hours=12 -l 1 --order-by=time`. **If latest sample > 5 min stale AND MAST attempt status is RUNNING → the trainer Python interpreter is hung (P44/A1 GIL hang, or A2/A3 C++/storage stall depending on live process inspection)**; downstream stuck-CREATING snapshots and low DPP QPS are CONSEQUENCES, not roots. Do NOT propose D-class (TGIF, Hedwig, UMM publish) or E-class (DPP starvation) hypotheses until A is falsified by a fresh mvai_metrics sample. Cite verbatim: `[VERIFIED: mvai_metrics latest_sample=<timestamp>, gap_min=<N>, attempt_status=<S>]`. Source: 2026-05-13 model 2135033479 + 883552231 — first triages misdiagnosed both as TGIF/checkpoint_agent stuck. See `known-patterns.md` § Cause-vs-consequence map and P44.
 
@@ -278,7 +317,7 @@ Procedure:
    h. Update state file IMMEDIATELY after validator pass completes:
       - Append `post_id` to `processed_post_ids` with the v3 schema: `{"<post_id>": {"added_epoch": <now_epoch>, "notification_outcome": "$NOTIFICATION_OUTCOME"}}`. **HARD GATE (T273158617, 2026-05-27):** if `$NOTIFICATION_OUTCOME` is unset OR starts with `ERROR:`, DO NOT silently mark processed — instead set outcome to `ERROR:<reason>` and emit a warning line to raw_response that `ot-cron-health-watch` will pick up. State advance with no real send is the silent-OOS-drop bug; keep the entry so we know we tried, but flag it.
       - Set `last_post_epoch = max(last_post_epoch, effective_freshness_time)` (NEVER regress; use the freshness time, not raw publish_time_epoch — moved-in posts must advance the cutoff past the move time, not the original publish time, otherwise the next run re-evaluates them as fresh).
-6. After loop: update last_run_epoch to now. **Release the run lock from step 0:** `rm -f "/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-post-monitor.lock"`. Respond with HEARTBEAT_OK + per-post summary line that **MUST include the bot's posted gchat thread URL AND the workplace post URL** (for ot-human-attention-brief link extraction):
+6. After loop: update last_run_epoch to now, **persist `gchat_health` block per step 0.5 protocol** (see `ot-sev-monitor.md` step 10 for the jq merge recipe + consecutive-403 escalation gate; identical here with `ot-post-monitor` in log/escalation prefixes). **Release the run lock from step 0:** `rm -f "/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-post-monitor.lock"`. Respond with HEARTBEAT_OK + per-post summary line that **MUST include the bot's posted gchat thread URL AND the workplace post URL** (for ot-human-attention-brief link extraction). Append `**GChat health (this tick):** 403_seen=$GCHAT_403_SEEN refresh_attempted=$BUCK2_REFRESH_ATTEMPTED refresh_ok=$BUCK2_REFRESH_OK consecutive=$NEW_CONSEC` as final line of run summary.
 
    ```
    HEARTBEAT_OK

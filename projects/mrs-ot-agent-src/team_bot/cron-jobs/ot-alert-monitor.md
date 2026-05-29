@@ -26,18 +26,71 @@ Procedure:
    echo "$NOW" > "$LOCKFILE"
    ```
    Release lock as the LAST action after writing state: `rm -f "$LOCKFILE"`
+
+0.5. **GChat-read recovery + tick instrumentation (2026-05-28 L66+L67+L68; inlined 2026-05-28 L69 after Risk B audit in thread `4BK7HJHkzB0`).** Every `meta google.chat.message list/get` and `gchat read` call later in this prompt MUST be wrapped with the recovery protocol below. The wrapper is duplicated verbatim in `ot-sev-monitor.md` + `ot-post-monitor.md` because cron agents load only their own prompt file and cannot cross-reference each other's wrapper definitions. Keep all 3 in sync when amending.
+
+   **Per-tick counters (init at run start):**
+   ```bash
+   GCHAT_403_SEEN=0          # 1 if any GChat read returned 403 this tick
+   BUCK2_REFRESH_ATTEMPTED=0 # 1 if we ran `buck2 run` to refresh OAuth
+   BUCK2_REFRESH_OK=0        # 1 if the post-refresh retry succeeded
+   GCHAT_LAST_OK_EPOCH=$(jq -r '.gchat_health.last_ok_epoch // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+   ```
+
+   **Recovery wrapper (use for every gchat read in this prompt):**
+   ```bash
+   gchat_read_with_recovery() {
+     # $1 = full meta google.chat.message list command; echoes stdout on success, returns exit code
+     local cmd="$1" out err exit_code
+     err=$(mktemp); out=$(eval "$cmd" 2>"$err"); exit_code=$?
+     if [ $exit_code -eq 0 ]; then
+       GCHAT_LAST_OK_EPOCH=$(date +%s)
+       rm -f "$err"; echo "$out"; return 0
+     fi
+     # Detect 403 — fall through to refresh
+     if grep -qE '403|Unauthorized|forbidden|invalid_grant|token (has |)expired' "$err"; then
+       GCHAT_403_SEEN=1; BUCK2_REFRESH_ATTEMPTED=1
+       echo "[ot-alert-monitor] GChat 403 detected — refreshing OAuth via buck2 run" >&2
+       (cd /home/dennyzhang/fbsource && buck2 run fbcode//pe_mrs_ml/mrs_ot_agent:scope_check -- --help) >/dev/null 2>&1 || true
+       out=$(eval "$cmd" 2>"$err"); exit_code=$?
+       if [ $exit_code -eq 0 ]; then
+         BUCK2_REFRESH_OK=1; GCHAT_LAST_OK_EPOCH=$(date +%s)
+         rm -f "$err"; echo "$out"; return 0
+       fi
+     fi
+     local err_head; err_head=$(head -c 200 "$err"); rm -f "$err"
+     echo "[ot-alert-monitor] GChat read FAILED post-refresh: $err_head" >&2
+     return $exit_code
+   }
+   ```
+
+   **Consecutive-403 escalation gate:** if `BUCK2_REFRESH_ATTEMPTED=1 AND BUCK2_REFRESH_OK=0`, increment `gchat_health.consecutive_403_count` in state. If counter ≥3 across runs, at end of run post ONE escalation line to spaces/AAQAVOjYc80 with `--as-meta-bot`: `🚫 GChat reads degraded ≥3 ticks — tried buck2 run; need help (consecutive=$N, last_ok=<HH:MM PT>)`. Reset on any successful read.
+
 1. Read state file. Extract `diagnosed_ids`. If file missing/corrupt, default to empty dict.
 
    **Migrations (idempotent, run all):**
    - v1→v2: if `diagnosed_ids` is a bare list, upgrade by mapping each id → `now_epoch` (best-effort fresh hold-down).
    - v2→v3: if `diagnosed_ids` is a dict whose values are bare `<int>`, upgrade in-place to `{<id>: {"added_epoch": <int>, "notification_outcome": "LEGACY_UNKNOWN"}}`. Preserves the original added_epoch so `ot-cron-health-watch` step 6.7 can flag entries past the 14d threshold.
    - Field access (post-migration): `diagnosed_ids[<id>].added_epoch` and `.notification_outcome`. Pre-migration code paths that read `diagnosed_ids[<id>]` as `<int>` MUST be updated to read `.added_epoch`.
-2. **Alert poll — `mrs_online_training` only.**
+2. **Alert poll — TWO query paths, union by id (2026-05-28 thread re: missed TGIF-publisher alert 848827930836030).**
+
+   **Query A (oncall.feed — routed-to-oncall view):**
    ```bash
    meta oncall.feed list --oncall=mrs_online_training --item-type-is=Alert --status-is=Open \
        --columns=id,short_id,title,priority,assigned_user,url,created_time --output=json
    ```
-   Keep every result — every alert assigned to this rotation is OT by definition (no title regex). Note: `--status-is` uses `Open` not `OPEN`. The `url` column is required (used by the URL-sourcing step in 7a).
+   `--status-is` uses `Open` not `OPEN`. Returns only alerts that became OncallFeed items.
+
+   **Query B (monitoring.alert — raw OneDetection layer, catches SUPPRESSED-but-ACTIVE alerts that skip the feed):**
+   ```bash
+   meta monitoring.alert list --oncall=mrs_online_training --state-is=ACTIVE \
+       --urgency-is=CRITICAL,MAJOR --limit=50 -o json
+   ```
+   Returns raw alerts whose `oncall_team=mrs_online_training`, INCLUDING those with `suppression_state=SUPPRESSED` (which won't appear in Query A because suppressed alerts don't generate oncall.feed items).
+
+   **Why both:** Query A is the standard routed view but misses SUPPRESSED + CCMonitor + SUM/aggregated alerts that don't auto-create feed items. Query B catches the raw alerts but doesn't have rich oncall-feed metadata. Union by `alert_id` (Query B field) ⇄ extract numeric prefix from `id`/`short_id` (Query A field). For each Query-B-only alert (not in Query A), add to candidate set with `feed_routed=false` flag (used in step 9.a notification: prefix `🚨 [unrouted alert]` so operator knows the alert is OUT of the normal feed view).
+
+   **Anti-regression source:** 2026-05-28 alert `848827930836030@#$sum@#$68426//91181@#$mrs online training - tgif publisher non-retryable error` was ACTIVE/MAJOR/MRS-online-training-routed at 19:06 PT but never appeared in Query A (suppression_state=SUPPRESSED until 2032 → no feed item). Cron ran 4 times between 19:06 and 22:37 PT and missed it every time. Query B would have caught it on the first tick post-19:06.
 3. Filter to alerts whose id is NOT in diagnosed_ids → NEW alerts.
 4. Prune diagnosed_ids: drop IDs not in current OPEN set.
 
@@ -197,7 +250,7 @@ Procedure:
 
       i-b.1. **MANDATORY trainer-liveness probe — BEFORE any D-class (publish) or E-class (DPP/QPS) hypothesis.** When the alert symptom set includes ANY of: "snapshot stuck CREATING", "FS publish stalled", "missing SPARSE_DELTA/DENSE_DELTA", "DPP reader QPS ≈ 0", "low input QPS", "checkpoint cadence broken" — run the trainer-Python liveness probe FIRST: `meta scuba.dataset query -d mvai_metrics --view=samples --columns=time -w '[{"column":"model_entity_id","op":"eq","values":["<MODEL_ID>"]}]' --hours=12 -l 1 --order-by=time`. Pulls last sample timestamp from trainer Python instrumentation. **If latest sample > 5 min stale AND MAST attempt status is RUNNING → the trainer Python interpreter is hung (P44/A1 GIL hang, or A2/A3 C++/storage stall depending on live process inspection)**; downstream stuck-CREATING snapshots and low DPP QPS are CONSEQUENCES, not roots. Do NOT propose D-class (TGIF, Hedwig, UMM publish) or E-class (DPP starvation) hypotheses until A is falsified by a fresh mvai_metrics sample. Cite verbatim: `[VERIFIED: mvai_metrics latest_sample=<timestamp>, gap_min=<N>, attempt_status=<S>]`. To pinpoint hang onset, bucket samples: `meta scuba.dataset query -d mvai_metrics -a count -w '[{"column":"model_entity_id","op":"eq","values":["<MODEL_ID>"]}]' --hours=12 --time-bucket="30 minutes"` — sharp drop to 0 = hang onset window. Source: 2026-05-13 model 2135033479 (gchat thread `tiooNt5H7zU`) and model 883552231 same day — first triages misdiagnosed both as TGIF/checkpoint_agent stuck; correct root was trainer GIL hang identified only via mvai_metrics zero-samples timeline. See `known-patterns.md` § Cause-vs-consequence map and P44.
 
-      i-c. **Read SEV live GChat — MANDATORY.** Metadata is a snapshot; GChat carries current state. Extract gchat_space_url, parse space ID (after /room/), `gchat read <space_id>` (~20 messages). Parse for active hypotheses, paste links, ETA, contradictions. Cite as `[VERIFIED via gchat read <space_id>]`. Source: 2026-05-02 S657811 — metadata said 'archiver restarted, awaiting catchup'; GChat showed ~150 versions need manual deletion, 'won't be solved till next week'.
+      i-c. **Read SEV live GChat — MANDATORY (with recovery wrapper, 2026-05-28 thread `4BK7HJHkzB0`).** Metadata is a snapshot; GChat carries current state. Extract gchat_space_url, parse space ID (after /room/). **MUST invoke via `gchat_read_with_recovery` from step 0.5** — DO NOT run raw `gchat read` / `meta google.chat.message list` (bypasses OAuth-403 self-heal + skips per-tick instrumentation). Concrete: `gchat_read_with_recovery "meta google.chat.message list --space-id=$SEV_SPACE --limit=20 -o json"`. Parse for active hypotheses, paste links, ETA, contradictions. Cite as `[VERIFIED via gchat read <space_id>]` on success OR `[UNAVAILABLE: gchat 403 post-refresh]` on hard-fail (continue triage; do NOT abort). Source: S657811 + same-wiring-fix as ot-sev-monitor (wrapper was dead code before this amendment).
 
       i-c.2. **R22 mandatory pre-step — AGG ALERT EXPANSION (CL-018 mitigation).** When the alert title matches `\[AGG\]` OR `multiple alerts aggregation`, the alert aggregates N sub-alerts. The bot CAN expand them — sub-alert APIs ARE accessible (operator-discovered 2026-05-17 thread `suPsRC2fGdc` while alert A2130305043 was live):
          1. **Get AGG metadata first** (entity field reveals signal class): `meta monitoring.alert metadata --alert-id '<full_alert_id>'`. The `entity` field (e.g., `scribe_read_proxy`, `mvai_metrics`, `sum`) names the aggregation signal type.
@@ -240,6 +293,29 @@ Procedure:
          - **FULL_SNAPSHOT gap >24h AND model is a trainer (R14 entrypoint check):** trainer-side serialization issue. REAL_OT_FAILURE.
 
          **Cite verbatim:** `[VERIFIED: subtype=FULL_SNAPSHOT, last_VALID=<iso>, gap_h=<N>; other_subtypes_fresh={SPARSE_DELTA:<gap_min>, ITEM_EMB_DELTA:<gap_min>, DENSE_DELTA:<gap_min>}; role=<trainer|stus>; classification=<REAL_OT_FAILURE|THRESHOLD_MISFIT>]`.
+
+         **R24 — PRIOR-ALERT-HISTORY CHECK (2026-05-28 thread `iCit8F3gmTA` 22:04 PT: operator caught a SECOND miss — bot didn't look at the alert detector's history + operator's prior comments).** Before classifying ANY alert as REAL_OT_FAILURE or THRESHOLD_MISFIT, search for prior alerts/tasks on the same detector class + read operator commentary:
+
+         ```bash
+         # Pull all open+closed alerts/tasks matching the alert's keywords
+         meta oncall.feed list --oncall=mrs_online_training --title-contains="<model_id>" --title-contains="<alert_keyword>" \
+           --status-is-any-of=open,closed --limit=20 -o json
+         # For each match, fetch metadata:
+         meta oncall.feed metadata --id=<task_id> -o json | jq '.title, .description, .created_by, .status'
+         ```
+
+         **What to look for:** (a) operator-filed tasks named "[Publishing Stability] Fix false-positive ... alert" → KNOWN FALSE-POSITIVE class. (b) operator-filed Workplace posts about recurring patterns → systemic issue + workaround documented. (c) tasks tagged with the model ID + same alert keywords → prior triage context.
+
+         **Verdict implication:** if operator has filed a "fix false-positive" task on this alert class, classify as `THRESHOLD_MISFIT-known-FP` and cite the task ID in the verdict — DO NOT page or escalate. If no FP task but prior alerts show the model HAS HISTORICALLY produced the snapshot type, classify as `REGRESSION` (not by-design) and report `last_<TYPE>_was=<iso>, gap_h=<N>` evidence.
+
+         **Anti-pattern source (2026-05-28 22:04 PT thread `iCit8F3gmTA`):** bot triaged Publishing Stability alert on model 2132070936 (STUS i2i, missing FULL_SNAPSHOT 47h) and (a) violated R23 by using `--limit 50` (codified in R23-HARDENING below), (b) ALSO violated this rule by NOT searching for prior tasks. Denny's T2702384980132191 (created 5/20, status=open) explicitly documents: *"The publishing stability alert observer fires false positive `full_snapshot` alerts for retrieval models that use STUS with ModelUpdateInfra.INPLACE_SNAPSHOT"* — KNOWN false-positive class for this exact model family. Bot's diagnosis missed both the historical FULL_SNAPSHOT data AND the operator's prior false-positive analysis.
+
+         **R23-HARDENING (2026-05-28 thread `iCit8F3gmTA` after model 2132070936 misdiagnosis):** *Never* claim "this model never produces snapshot type X" based on a small window. MANDATORY: `--limit=1000` minimum AND aggregate by `snapshot_type` AND if the target subtype count > 0 in the window, the "never produces" claim is FALSE — convert verdict from THRESHOLD_MISFIT-by-design to REGRESSION-from-prior-cadence and report `last_<TYPE>_was=<iso>, gap_h=<N>` in evidence. Anti-pattern: the 2026-05-28 21:59 PT ot-alert-monitor run on model 2132070936 used `--limit 50+`, saw only ITEM_EMB_DELTA in that window, claimed "zero FULL_SNAPSHOT in 50+ instances" + "this model never produces FULL_SNAPSHOT", concluded PERSISTENT_MISCONFIGURATION. Truth: 20 FULL_SNAPSHOTs hourly on 2026-05-26 (04:19→22:59 PT), then STOPPED — a real ~47h regression, not a misconfig. Pre-classification grep recipe:
+         ```bash
+         meta ai.model.instance list --model-id=<MODEL_ID> --instance-type=SNAPSHOT --limit=1000 --sort-by=creation_time --sort-order=desc -o json \
+           | python3 -c "import json,sys; from collections import Counter; d=json.load(sys.stdin); c=Counter(i.get('snapshot_type','') for i in d); print(dict(c))"
+         # If target_subtype count > 0 → model HAS produced it historically; classify as REGRESSION not by-design.
+         ```
 
          **Falsifier:** If MLHub UMM URL shows "latest snapshot" recent but our subtype-stratified query shows FULL_SNAPSHOT specifically stale, MLHub is displaying all-subtypes-aggregated. The operator MAY see "recent snapshot" and reasonably conclude the model is healthy — the bot's PAGE then looks wrong. THIS RULE prevents that confusion by making the subtype scope explicit in BOTH the diagnosis AND the operator-facing message.
 
@@ -517,7 +593,7 @@ Procedure:
       - Resolution failure (no oncall, DM missing, empty uid) → silent skip + log `skip_reason`. Do NOT block the loop or emit an error to the operator surface.
       - This step is bounded by the autonomous-action-allowlist: tag-add, threaded-reply, @-mention. Anything beyond requires explicit operator approval.
 
-8. After loop: persist state, update last_run_epoch. Respond with HEARTBEAT_OK + per-cluster summary line that **MUST include the bot's posted gchat thread URL AND the original alert URL** for each cluster processed (so ot-human-attention-brief can extract these for daily skim links). 
+8. After loop: persist state, update last_run_epoch, **persist `gchat_health` block per step 0.5 protocol** (see `ot-sev-monitor.md` step 10 for the jq merge recipe + consecutive-403 escalation gate; identical here with `ot-alert-monitor` in log/escalation prefixes). Respond with HEARTBEAT_OK + per-cluster summary line that **MUST include the bot's posted gchat thread URL AND the original alert URL** for each cluster processed (so ot-human-attention-brief can extract these for daily skim links). Append `**GChat health (this tick):** 403_seen=$GCHAT_403_SEEN refresh_attempted=$BUCK2_REFRESH_ATTEMPTED refresh_ok=$BUCK2_REFRESH_OK consecutive=$NEW_CONSEC` as final line of run summary. 
 
    **URL-derivation rule (T273158617 Fix 4, 2026-05-27):** the `<thread_id>` in the `Bot reply:` line MUST be the `$THREAD_ID` captured in step 7a's send. NEVER synthesize, NEVER re-use a thread from a prior cluster, NEVER use a thread the current cron tick did not create. If `$THREAD_ID == "SEND_FAILED"`, render `- Bot reply: SEND_FAILED (outcome=<notification_outcome>)` and prefix the cluster header with `⚠️ NOTIFICATION DROPPED`. Anti-pattern: ot-post-monitor run #6517 (2026-05-27 11:29 PT) fabricated `yF_aMB00xMk` thread URL while actual send had silently failed — operator only discovered the gap 78 min later.
 
