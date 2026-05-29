@@ -16,6 +16,18 @@ Procedure:
 
 4. Read each (filtered) raw_response. Distill candidate learnings — concrete things that change cron behavior or improve future diagnosis. Examples: "Skip posts authored by MyClaw / ot-bot to avoid feedback loop." (operational); "Posts with only Workplace permalink need triage — fetch linked post body." (operational); "MAST job exit code 137 = OOM kill; recommend doubling memory." (domain pattern). Skip vague observations and known-already items.
 
+4a. **URL discipline for learning citations.** Every cited reference in a learning entry MUST be a verifiable URL, not bare shorthand. Resolve before writing:
+
+   | Token in raw_response | Canonical form REQUIRED in learning | How to resolve |
+   |---|---|---|
+   | `S<digits>` | `https://www.internalfb.com/sevmanager/view/<digits>` | well-known pattern, OK to template |
+   | `W<digits>` or `POST-<digits>` | full `https://fb.workplace.com/groups/<slug>/permalink/<digits>/` | `meta workplace.post describe --post-id=<digits> -o json` → use `url` field |
+   | `A<digits>` (alert) | full `https://www.internalfb.com/onedetection/alert?alert_id=<digits>` | well-known pattern, OK to template |
+   | model id `m<digits>` or bare `<digits>` | OK to leave as ID (universally resolved via `meta ai.model-series describe --model-id=<digits>`) | no resolve needed |
+   | FBLearner workflow run `f<digits>` | full `https://www.internalfb.com/intern/fblearner/details/<digits>` | well-known pattern, OK to template |
+
+   **Forbidden in learning entries:** `W<digits>` as a bare token (not a URL, not clickable, not verifiable). Source: 2026-05-26 L39 `W1332867342141342` flagged as invalid URL. If resolve fails (post deleted, no access), write `<unresolvable post id 1332867342141342>` — never the bare `W<id>` form.
+
 5. Classify each learning:
    - **operational**: behavioral rule that changes how a cron runs. → append to ledger AND amend relevant cron's prompt.
    - **domain (pattern)**: NEW cause→symptom→fix triple suitable for `known-patterns.md`. → append to ledger AND propose appending to `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md` (see step 5b).
@@ -49,20 +61,62 @@ Procedure:
 
 Include in daily digest under `🔧 IMPLEMENTATION DELTAS` section. **A learning without a corresponding implementation-delta proposal is incomplete output.** Source: 2026-05-01 operator request after a day of triage where memory entries were saved but SKILL.md / cron prompts weren't always updated.
 
-6. For each operational learning targeting cron X (X ∈ {ot-post-monitor, ot-alert-monitor}):
-   a. Backup current prompt:
-      sqlite3 myclaw.db "SELECT prompt FROM jobs WHERE id='<X>';" > /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups/<X>__$(date -u +%Y%m%dT%H%M%SZ).txt
-   b. Modify prompt: append/update "## Learned Rules (auto-appended)" section at END. Insert each new rule as numbered item with date. Never touch human-authored body above this section.
-   c. UPDATE jobs SET prompt=... WHERE id='<X>'; (sqlite3 with proper quoting — single quotes doubled).
-   d. Verify: re-SELECT prompt and confirm section is present.
+6. For each operational learning targeting cron X (X ∈ {ot-post-monitor, ot-alert-monitor, ot-sev-monitor}):
+
+   **CANONICAL FLOW: notes → sqlite. Never sqlite-direct. (Per L49 fix 2026-05-26.)**
+
+   Notes path: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/<X>.md`
+   DB path:    `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db`
+
+   a. **Pre-flight parity check.** Confirm notes and sqlite are byte-identical BEFORE amending. If divergent, ABORT this learning (skip cron X this run) and surface in digest as `⚠️ DRIFT — <X> notes/sqlite divergent, learning held for next run`. Never amend on top of unresolved drift.
+      ```bash
+      NOTES_PATH=~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/<X>.md
+      DB=~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db
+      sqlite3 "$DB" "SELECT prompt FROM jobs WHERE id='<X>';" | head -c -1 > /tmp/preflight.<X>.sqlite
+      diff -q /tmp/preflight.<X>.sqlite "$NOTES_PATH" || { echo "DRIFT-ABORT <X>"; continue; }
+      ```
+
+   b. **Backup BOTH layers** (recoverable rollback targets — since notes is now SoT, both sides must be restorable):
+      ```bash
+      TS=$(date -u +%Y%m%dT%H%M%SZ)
+      BAK=~/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups
+      sqlite3 "$DB" "SELECT prompt FROM jobs WHERE id='<X>';" > $BAK/<X>__${TS}.sqlite.txt
+      cp "$NOTES_PATH" $BAK/<X>__${TS}.notes.md
+      ```
+
+   c. **Append new rule to NOTES FILE** (`$NOTES_PATH`) under the `## Learned Rules (auto-appended)` section. Insert each new rule as numbered item with date `[YYYY-MM-DD LN]`. Compute next rule number by reading existing numbered items in that section. Never touch human-authored body above the section. If section doesn't exist, create it at end-of-file (preserve exactly one trailing newline).
+
+   d. **Push notes → sqlite** via `readfile()`:
+      ```bash
+      sqlite3 "$DB" "UPDATE jobs SET prompt = readfile('$NOTES_PATH') WHERE id='<X>';"
+      ```
+
+   e. **Verify byte-level parity post-write**. If verification fails, restore from backup and abort:
+      ```bash
+      sqlite3 "$DB" "SELECT prompt FROM jobs WHERE id='<X>';" | head -c -1 > /tmp/verify.<X>.sqlite
+      diff -q /tmp/verify.<X>.sqlite "$NOTES_PATH" || {
+        echo "VERIFY-FAIL <X> — restoring from backup"
+        sqlite3 "$DB" "UPDATE jobs SET prompt = readfile('<backup_path>') WHERE id='<X>';"
+        # ALSO restore notes from backup if notes was modified
+        exit 1
+      }
+      ```
+
+   f. **Notes commit** is handled automatically by `ot-notes-commit-push` (4×/day). No manual `sl` action needed. The fbcode mirror follows via `ot-notes-fbcode-sync-weekly` (Mon).
+
+   **Forbidden in this step:** direct `UPDATE jobs SET prompt='...literal...'` without going through `readfile($NOTES_PATH)`. Any such write evaporates on the next notes-sync (recurrence root cause — L49, 2026-05-22 through 05-26).
 
 7. Append to learnings.md a section with today's ISO date. Format per learning:
    ## YYYY-MM-DD HH:MM PT
    - **Type:** operational | domain
    - **Trigger:** <brief observation from raw_response>
    - **Learning:** <the rule or pattern>
-   - **Action:** appended to ledger / appended + amended cron <X> prompt
-   - **Rollback (if operational):** `sqlite3 myclaw.db "UPDATE jobs SET prompt=$(cat backups/<X>__<ts>.txt | sql-escape) WHERE id='<X>';"`
+   - **Action:** appended to ledger / appended + amended cron <X> prompt (notes + sqlite both)
+   - **Rollback (if operational):** restore notes from backup, then re-push to sqlite:
+     ```bash
+     cp $BAK/<X>__<ts>.notes.md ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/<X>.md
+     sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db "UPDATE jobs SET prompt = readfile('<absolute_notes_path>') WHERE id='<X>';"
+     ```
 
 8. If NEW learnings count > 0, send single GChat message to spaces/AAQAVOjYc80 via gchat skill. Format:
    "📚 [Daily learnings — N new]

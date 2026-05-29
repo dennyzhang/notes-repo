@@ -1,9 +1,10 @@
-[ot-cron-health-watch cron] Hourly. Audit the OT bot's own cron job runs to surface silent failures. Five failure classes detected:
+[ot-cron-health-watch cron] Hourly. Audit the OT bot's own cron job runs to surface silent failures. Six failure classes detected:
 1. **Silent failure** — job ran but response contains `FAILED`, `ERROR`, `BOT_INCOMPLETE`, `DEGRADED`, `EXCEPTION`, or non-zero error code, AND the cron did not already self-escalate to gchat.
 2. **Missing run** — scheduled job did not fire within 2× its expected window (catches daemon hangs, queue jams, the same-bug-class as the 2026-05-12 manual-trigger hang on mitigated-sevs).
 3. **Persistent failure** — same job failing ≥3 consecutive runs (escalated severity vs single-instance failure).
 4. **Notification-retraction (a.k.a. ordering bug)** — a cron posted a main-space `🚨 …` alert, then within 15 min the SAME cron (or its triage subagent) posted an `[OUT-OF-SCOPE …]` retraction in the alert's thread. Indicates the cron is notifying BEFORE running its scope/stage gates — user-facing noise even though the gates themselves work. Detection added 2026-05-16 after S659877 + S664024 leaks; see step 6.5.
 5. **Missed completion (Evergreen-restart kill)** — daemon log shows `Scheduled job firing: <job_id>` but no matching completion AND no `job_runs` row appears within `expected_window`. Caused by Evergreen process restart killing in-flight pi-harness sessions (drain only covers thrift jobs, not pi sessions). Detection added 2026-05-19 after 3 heavy crons (alert-monitor, sev-monitor, thread-summarizer) silently died at 05:42:08 PT when Evergreen re-execed mid-run. See step 6.6.
+6. **Notification-outcome anomaly (silent drop / legacy)** — a monitor cron marked an item processed in its state file but the persisted `notification_outcome` ledger entry is `ERROR:<reason>` (any age) or `LEGACY_UNKNOWN` persisting >14d. Indicates the cron believed it dispatched a notification but the gchat send failed (or the schema-v3 migration found pre-existing entries whose dispatch can no longer be confirmed). Detection added 2026-05-27 after T273158617 — ot-post-monitor run #6517 silently dropped Hao Sha post 1336024098492333 AND fabricated a `Bot reply:` thread URL in its run summary. See step 6.7.
 
 Post escalation to spaces/AAQAVOjYc80 ONLY on state transitions (no spam). Self-heals on recovery (post one CLEAR message when a previously-failing job has enough clean consecutive runs — threshold scales by schedule cadence; see step 5.d).
 
@@ -131,6 +132,80 @@ Procedure:
 
    **Hysteresis:** once a cron transitions to `ordering_bug`, do NOT re-alert on subsequent retractions until either (a) a prompt edit lands in `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/<cron_id>.md` AFTER the alert epoch (detected via `sl log -l 1 --template '{date|isodate}'`), OR (b) 7 days pass with no retractions (auto-clear to `healthy`). Avoids hourly nagging while the fix is in flight.
 
+6.7. **Notification-outcome anomaly audit (class 6 — silent drop / legacy).** Detect items marked "processed" in a monitor cron's state file whose persisted `notification_outcome` ledger entry shows that the user-facing dispatch FAILED or is unverifiable. Catches the silent-drop class that bypasses class-1 (silent_failure) because the cron's overall HEARTBEAT_OK looked fine — the failure was per-item, not per-run.
+
+   Three state files in scope (paths confirmed 2026-05-27 — pre-Fix 1 only ot-post-monitor was v3; ot-alert/ot-sev still pre-v3 and require schema migration):
+   - `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-monitor-state.json` (ot-post-monitor; v3 dict-of-dict)
+   - `/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/alert-state.json` (ot-alert-monitor; currently v1 bare-list OR v2 dict-of-int — both pre-v3)
+   - `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-sev-state.json` (ot-sev-monitor; currently v1 bare-list — pre-v3)
+
+   **Pre-step — instrumentation audit.** Before walking outcomes, check whether each state file actually has v3 schema (any dict entry with a `notification_outcome` key). If a state file exists but has ZERO v3 entries (all values are bare int or all top-level is a list), flag as `missing_instrumentation` for the owning cron — severity MEDIUM, transition `*→missing_outcome_instrumentation`. This is the visibility-gap class: we literally cannot see silent drops for that cron. Hysteresis: clear when ≥1 v3 entry appears in the file (proves migration has run).
+
+   For each v3-instrumented state file, walk the `processed_*_ids` (or equivalent) dict entries — each value is `{"added_epoch": <int>, "notification_outcome": <str>, ...}`. Per T273158617 Fix 1, valid `notification_outcome` values are:
+   - `POSTED:<msg_resource_name>` — healthy, skip.
+   - `OOS:<reason>` — out-of-scope (intentional non-post), skip.
+   - `DEDUP:<source>` — deduped against an earlier post, skip.
+   - `ERROR:<one-line>` — gchat send failed. **Flag (any age).**
+   - `LEGACY_UNKNOWN` — pre-v3 entry; dispatch can't be confirmed. **Flag if `(now - added_epoch) > 14d`.**
+
+   ```bash
+   declare -A STATE_PATHS=(
+     [ot-post-monitor]=/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-monitor-state.json
+     [ot-alert-monitor]=/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/alert-state.json
+     [ot-sev-monitor]=/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-sev-state.json
+   )
+   for CRON in "${!STATE_PATHS[@]}"; do
+     SP=${STATE_PATHS[$CRON]}
+     if [ ! -f "$SP" ]; then echo "MISSING_FILE|$CRON|$SP"; continue; fi
+     python3 -c "
+   import json, time
+   NOW = int(time.time()); FOURTEEN_D = 14*86400
+   try:
+     d = json.load(open('$SP'))
+   except Exception as e:
+     print(f'PARSE_ERROR|$CRON|||$SP: {e}'); raise SystemExit(0)
+   # First pass: count v3-shaped entries
+   v3_count = 0; outcomes = []
+   def walk(obj):
+     global v3_count
+     if isinstance(obj, dict):
+       for k,v in obj.items():
+         if isinstance(v, dict) and 'notification_outcome' in v:
+           v3_count += 1
+           outcome = v.get('notification_outcome','')
+           age = NOW - int(v.get('added_epoch', NOW))
+           outcomes.append((k, age, outcome))
+         else:
+           walk(v)
+     elif isinstance(obj, list):
+       for item in obj: walk(item)
+   walk(d)
+   if v3_count == 0:
+     print(f'NO_INSTRUMENTATION|$CRON|||schema pre-v3 (no notification_outcome keys found)')
+   else:
+     for k, age, outcome in outcomes:
+       if outcome.startswith('ERROR:'):
+         print(f'ERROR|$CRON|{k}|{age}|{outcome[:120]}')
+       elif outcome == 'LEGACY_UNKNOWN' and age > FOURTEEN_D:
+         print(f'LEGACY|$CRON|{k}|{age}|LEGACY_UNKNOWN')
+   "
+   done
+   ```
+
+   Classification per state file:
+   - `NO_INSTRUMENTATION` (pre-v3 schema) → severity MEDIUM, transition `*→missing_outcome_instrumentation` (against the owning cron). This is the visibility gap — until the cron's state schema is upgraded, silent drops there are undetectable.
+   - `MISSING_FILE` (state file path doesn't exist) → severity LOW, transition `*→state_file_absent`. Likely a path drift bug or the cron has never run. Surface once; don't re-alert until file appears.
+   - `PARSE_ERROR` (file present but JSON broken) → severity HIGH, transition `*→state_file_corrupt`. Cron may be writing concurrently or has bugged out — operator needs to inspect.
+   - `ERROR:*` count >= 3 OR `LEGACY_UNKNOWN` (>14d) count >= 10 → severity HIGH
+   - `ERROR:*` count 1-2 OR `LEGACY_UNKNOWN` count 1-9 → severity MEDIUM
+   - 0 anomalies (and v3-instrumented) → no transition
+
+   For each state file with ≥1 anomaly AND prior cron-health state was not already `notification_outcome_anomaly`: transition = `*→notification_outcome_anomaly` against the OWNING cron (`ot-post-monitor`, `ot-alert-monitor`, `ot-sev-monitor`). Track per-cron counters in cron-health state file: `notification_outcome_error_count`, `notification_outcome_legacy_count`, `last_outcome_audit_epoch`.
+
+   **Hysteresis:** once a cron transitions to `notification_outcome_anomaly`, do NOT re-alert until either (a) the operator clears the offending entries from the state file (count drops to 0), OR (b) the offending entries' `notification_outcome` transitions to `POSTED:` / `OOS:` / `DEDUP:` via a subsequent cron run (auto-clear), OR (c) 7 days pass with no new ERROR entries (auto-clear to `healthy`). Avoids hourly nagging while a real silent-drop investigation is in flight.
+
+   **NO AUTO-MITIGATION for this class.** A silent drop means the cron's notion of "I posted" diverged from reality — auto-retry could double-post if the original send actually landed late, or misroute if the item is stale. Operator must inspect.
+
 7. **Suggested triage lookup** (per failure category):
 
    | Category | First-line triage suggestion |
@@ -142,6 +217,7 @@ Procedure:
    | `ordering_bug` (alert → retraction within 15 min) | "Cron is notifying BEFORE running scope/stage gates. Re-order the cron's procedure so deep-triage + R18/scope checks run BEFORE the main-space `🚨` notification. Reference fix: `ot-sev-monitor.md` ORDERING NOTE (2026-05-16). Inspect retraction excerpts: `sqlite3 ... 'SELECT content FROM messages WHERE content LIKE \"[OUT-OF-SCOPE%\" AND create_time > datetime(\"now\",\"-24 hours\") ORDER BY create_time DESC LIMIT 5'`." |
    | `recovered` | "Auto-recovered after N runs. No action needed. State cleared." |
    | `missed_completion` / `evergreen_kill` | "Cron fired but was killed mid-flight (no completion, no DB row). Most common: Evergreen restart drain doesn't cover pi-harness sessions. Cross-check daemon log around firing timestamp for `Evergreen: re-execing process` marker. Auto-mitigation: nudge next_run_epoch=now for allowlisted interval crons. If 3+ in same batch, file task to myclaw oncall referencing T12345 (Evergreen drain bug pattern)." |
+   | `notification_outcome_anomaly` (silent drop / legacy in state file) | "Per-item gchat send failure inside an otherwise-healthy cron run. Inspect offending entries: `python3 -c \"import json; d=json.load(open('/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/<state>.json')); [print(k,v) for k,v in d.get('processed_*_ids',{}).items() if isinstance(v,dict) and (v.get('notification_outcome','').startswith('ERROR:') or v.get('notification_outcome')=='LEGACY_UNKNOWN')]\"`. Cross-reference the cron run that processed each item via sqlite job_runs (filter `raw_response LIKE '%<id>%'`). Confirm whether the gchat send actually landed via `meta google.chat.message search --keywords='<id>' --days=7`. Reference: T273158617 + `gotcha_cron-silent-drop-debug-recipe`. NO AUTO-MITIGATION — operator must classify drop vs late-land before any replay." |
 
 7.5. **Auto-mitigation pass** — for transitions where a SAFE, SCOPED mitigation exists, attempt it BEFORE escalating. If mitigation succeeds, downgrade the transition to `auto_mitigated` and post a brief mitigation report instead of the original alert.
 
@@ -264,7 +340,7 @@ Procedure:
 
 9. **Persist state file.** For every job in the manifest, update its entry. Set `last_run_epoch` and `last_response_excerpt`. Reset `consecutive_failures` to 0 on `recovered`. `last_alert_epoch` stamped on any post (used for future rate-limit logic if needed).
 
-10. **Always respond `HEARTBEAT_OK {jobs_audited: N, transitions: T, alerts_posted: A, recoveries: R, auto_mitigated: M, mitigation_failures: MF, ordering_bugs: O, suppressed_repeats: S}`** at end of run. Suppressed-repeats counts jobs in same failing state as before (no re-alert) — the metric proves the de-spam logic is working. `auto_mitigated` counts successful retriggers; `mitigation_failures` counts attempts that fell through to alert. `ordering_bugs` counts crons with ≥1 notification-retraction pair detected this run.
+10. **Always respond `HEARTBEAT_OK {jobs_audited: N, transitions: T, alerts_posted: A, recoveries: R, auto_mitigated: M, mitigation_failures: MF, ordering_bugs: O, notification_anomalies: NA, suppressed_repeats: S}`** at end of run. Suppressed-repeats counts jobs in same failing state as before (no re-alert) — the metric proves the de-spam logic is working. `auto_mitigated` counts successful retriggers; `mitigation_failures` counts attempts that fell through to alert. `ordering_bugs` counts crons with ≥1 notification-retraction pair detected this run. `notification_anomalies` counts crons with ≥1 `ERROR:*` or aged-`LEGACY_UNKNOWN` outcome detected in their state file this run (per class 6 / step 6.7).
 
    **CRITICAL — NO POST WHEN `transitions == 0 AND alerts_posted == 0 AND recoveries == 0` (per RULES.md § Signal-only operator messaging, 2026-05-17 thread `JFxkiKmeibI`):** the JSON summary above is the ONLY response on a clean run. Do NOT append "audit notes", "summary observations", "per-cron status notes", or any commentary that would render as a gchat post. Audit-detail observations belong in the `job_runs.raw_response` row (for future debugging) — NOT in the gchat surface. Operator already has the JSON summary; "no transitions, no posts" runs are pure cron-self-reporting.
 

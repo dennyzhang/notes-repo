@@ -10,6 +10,12 @@ _Written by `ot-daily-learning-mitigated-alerts` cron._
 
 | Run Timestamp PT | Rank | Model (type) | Alert Count (7d) | Signal Breakdown | Notes |
 |---|---|---|---|---|---|
+| 2026-05-27 22:05 PDT | 1 | 2130305043 (ig_reels_tab_cs_omni_retrieval baseline) | 4 | AGG+SPARSE_DELTA×4 | recurring CL-003/AGG; tied for top |
+| 2026-05-27 22:05 PDT | 2 | 2144816217 (ig_reels_tab_ss_omni_retrieval holdout/STUS) | 4 | client_lag_in_seconds×4 | CL-003 ZippyDB/Scribe cascade; DETECTOR_BROKEN classified by bot |
+| 2026-05-27 22:05 PDT | 3 | 2130324780 (ig_textpost_feed_m2m_retrieval/STUS) | 3 | FULL_SNAPSHOT×3 | DPP stuck recurrent; v48 RUNNING ~18.6h 0 FULL_SNAPSHOT as of 21:15 PDT; S665454 status unconfirmed; owner: ronghuang; 886797001 tied at 3 |
+| 2026-05-26 22:05 PDT | 1 | 2130324780 (ig_textpost_feed_m2m_retrieval/STUS) | 4 | FULL_SNAPSHOT×3, kmeans-collapse×1 | S665454 In Progress; persistent STUS corpus noise; owner: ronghuang; unchanged from yesterday |
+| 2026-05-26 22:05 PDT | 2 | 2130305043 (ig_reels_tab_cs_omni_retrieval baseline) | 4 | AGG+SPARSE_DELTA×4 | recurring CL-003/AGG; tied for top |
+| 2026-05-26 22:05 PDT | 3 | 2144816217 (ig_reels_tab_ss_omni_retrieval holdout/STUS) | 4 | client_lag_in_seconds×4 | CL-003 ZippyDB/Scribe cascade; unchanged from yesterday |
 | 2026-05-25 22:05 PDT | 1 | 2130324780 (ig_textpost_feed_m2m_retrieval/STUS) | 5 | FULL_SNAPSHOT×3, kmeans-collapse×2 | S665454 In Progress; persistent STUS corpus noise; owner: ronghuang |
 | 2026-05-25 22:05 PDT | 2 | 2130305043 (ig_reels_tab_cs_omni_retrieval baseline) | 5 | AGG+SPARSE_DELTA×5 | recurring CL-003/AGG; tied for top |
 | 2026-05-25 22:05 PDT | 3 | 2144816217 (ig_reels_tab_ss_omni_retrieval holdout/STUS) | 5 | client_lag_in_seconds×5 | CL-003 ZippyDB/Scribe cascade; 5th fire in 9d; last: A1021144657237695 today |
@@ -33,6 +39,8 @@ _Written by `ot-daily-learning-mitigated-sevs` cron._
 
 | Run date | Rank | Model | SEV count (7d) | Top class(es) | Notes |
 |---|---|---|---|---|---|
+| 2026-05-27 21:00 PDT | — | (no chronic-SEV models) | 0 | — | No model_id appeared in ≥2 distinct resolved-SEV archives in last 7d |
+| 2026-05-26 21:00 PDT | — | (no chronic-SEV models) | 0 | — | — |
 | 2026-05-19 21:00 PT | — | (no chronic-SEV models) | 0 | — | No model_id appeared in ≥2 resolved-SEV archives in last 7d |
 
 ---
@@ -43,6 +51,7 @@ _Written by `ot-daily-learning-mitigated-posts` cron._
 
 | Run (PT) | Rank | Grouping | Key | Post count | Breakdown | Notes |
 |---|---|---|---|---|---|---|
+| 2026-05-26 21:30 PT | (only 1 category ≥3 posts — no Top-3 this week) | lane | mast_job_id | 6 | W1326387856122624 W1218910203488316 W1321547686606641 W1324864999608243 W1324845696276840 W1332867342141342 | All MAST job reference posts; no single model_id ≥3; elastic-agent SIGSEGV added today (P58 class) |
 | 2026-05-23 14:30 PT | 1 | lane | mast_job_id | 5 | W1326387856122624 W1218910203488316 W1321547686606641 W1324864999608243 W1324729222955154 | Top clusters: CL-001 (snapshot-stuck), CL-013 (example-age), CL-009 (auto-start) |
 | 2026-05-23 14:30 PT | (no model_id chronic sources — max 1 post per model in 7d) | | | | | |
 | 2026-05-22 21:30 PT | 1 | lane | mast_job | 4 | W1326387856122624 W1218910203488316 W1321547686606641 W1324864999608243 | First run; 4/5 posts are mast_job lane; no prior baseline for Pareto comparison |

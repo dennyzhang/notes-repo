@@ -14,6 +14,26 @@
       "sev_id": "S664414",
       "tag": "mvai-online-training",
       "asked_at": 1779722173
+    },
+    {
+      "sev_id": "S668247",
+      "tag": "mvai-online-training",
+      "asked_at": 1779895057
+    },
+    {
+      "sev_id": "S668285",
+      "tag": "mvai-online-training",
+      "asked_at": 1779895057
+    },
+    {
+      "sev_id": "S668293",
+      "tag": "mvai-online-training",
+      "asked_at": 1779895057
+    },
+    {
+      "sev_id": "S666451",
+      "tag": "mvai-online-training-review",
+      "asked_at": 1779895057
     }
   ]
 }

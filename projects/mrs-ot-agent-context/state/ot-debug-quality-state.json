@@ -1,0 +1,34 @@
+{
+  "last_run_epoch": 1779984572,
+  "weekly_scores": [
+    {
+      "week": "2026-W21",
+      "issues_scored": 10,
+      "match_pct": 50.0,
+      "cluster_accuracy": 50.0,
+      "owner_accuracy": 75.0,
+      "mitigation_pct": 79.0,
+      "avg_composite": 73.5,
+      "miss_classes": {
+        "cluster_wrong": 1,
+        "owner_wrong": 0,
+        "missed_real_issue": 1,
+        "false_page": 0,
+        "no_initial_triage": 5
+      }
+    }
+  ],
+  "scored_issue_ids": [
+    "SEV-S665323",
+    "SEV-S665707",
+    "SEV-S665607",
+    "SEV-S666007",
+    "SEV-S667544",
+    "SEV-S667567",
+    "SEV-S667620",
+    "SEV-S651873",
+    "ALERT-A1480195820275950",
+    "ALERT-A1427819186056622",
+    "POST-W1321547686606641"
+  ]
+}

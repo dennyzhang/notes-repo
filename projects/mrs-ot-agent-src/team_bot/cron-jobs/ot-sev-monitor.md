@@ -1,9 +1,32 @@
 [ot-sev-monitor cron] Hourly. Identify NEW SEVs the mrs_online_training oncall is "looped into" (tagged OR title-class-matched), cluster by shared root cause, post one notification + deep-triage diagnosis per cluster, then independent validator pass. The OMH-style `oncall.feed` query is too narrow — misses cross-team SEVs like S654315 (mvai_ifr_main publish failure).
 
-State file: /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-sev-state.json — `{"diagnosed_ids": ["S<number>", ...], "last_run_epoch": <int>}`. Time budget: ~5 min per cluster.
+State file: /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-sev-state.json — `{"diagnosed_ids": {"S<number>": {"added_epoch": <int>, "notification_outcome": <string>}, ...}, "last_run_epoch": <int>}` (v3 schema, 2026-05-27 T273158617 Fix 7 — see migration in step 1). Pre-v3 legacy: bare list `["S<number>", ...]` (v1). Time budget: ~5 min per cluster.
+
+**`notification_outcome` schema (v3, same as ot-post-monitor / ot-alert-monitor).** One of: `POSTED:<msg_resource_name>` (notification sent + threaded reply created), `OOS:<reason>` (out-of-scope; e.g. `OOS:serving_stage_T4`, `OOS:preemptive_launch`), `DEDUP:<source>` (handled by another path), `ERROR:<one-line>` (send failed). State advance with `notification_outcome` absent OR starting with `ERROR:` keeps the entry but flags it for `ot-cron-health-watch` class 6 audit (silent-drop detection).
 
 Procedure:
-1. Read state file. Extract diagnosed_ids. If file missing/corrupt, treat as empty set.
+0. **Concurrent-run guard (2026-05-27).** Before reading state, acquire run lock:
+   ```bash
+   LOCKFILE="/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-sev-monitor.lock"
+   LOCK_MAX_AGE=3600
+   NOW=$(date +%s)
+   if [ -f "$LOCKFILE" ]; then
+     LOCK_TIME=$(cat "$LOCKFILE" 2>/dev/null || echo 0)
+     LOCK_AGE=$((NOW - LOCK_TIME))
+     if [ $LOCK_AGE -lt $LOCK_MAX_AGE ]; then
+       echo "[ot-sev-monitor] Another instance running (lock age=${LOCK_AGE}s). Exiting."
+       exit 0
+     fi
+     echo "[ot-sev-monitor] Stale lock (age=${LOCK_AGE}s). Proceeding."
+   fi
+   echo "$NOW" > "$LOCKFILE"
+   ```
+   Release lock as the LAST action in step 10 after writing state: `rm -f "$LOCKFILE"`
+1. Read state file. Extract `diagnosed_ids`. If file missing/corrupt, default to empty dict.
+
+   **Migrations (idempotent, run all):**
+   - v1→v3: if `diagnosed_ids` is a bare list, upgrade to dict-of-dict by mapping each id → `{"added_epoch": now_epoch, "notification_outcome": "LEGACY_UNKNOWN"}` (original timestamp lost; LEGACY_UNKNOWN marks the visibility gap until next real send).
+   - Field access (post-migration): `diagnosed_ids[<sev_id>].added_epoch` and `.notification_outcome`. Anywhere this prompt previously did `if sev_id in diagnosed_ids` (set semantics) still works (dict key check). Anywhere it iterated `diagnosed_ids` as a list MUST switch to `diagnosed_ids.keys()`.
 
 2. Run TWO queries in parallel:
    (A) meta sevmanager.sev list --tags=mvai-online-training --in-progress --columns=sev_number,level,title,owner_unixname,status,created,url -o json --limit 50
@@ -34,7 +57,7 @@ Procedure:
 
 6. Prune diagnosed_ids: drop IDs not in current candidate set (closed/out-of-scope SEVs forgotten so re-open re-triggers).
 
-6.5. **Re-evaluation pass for diagnosed SEVs (2026-05-01 Problem 2 fix).** For each id in diagnosed_ids ∩ current candidate_set: fetch `meta sevmanager.sev metadata --sev=S<id> -o json`. If `mvai-online-training` NOT in tags AND scope_check returns `in_scope=true`: apply auto-tag (per step 9.e). Silent re-tag, log only — DO NOT send any chat output.
+6.5. **Re-evaluation pass for diagnosed SEVs (2026-05-01 Problem 2 fix; expanded 2026-05-27 for stack-tag).** For each id in diagnosed_ids ∩ current candidate_set: fetch `meta sevmanager.sev metadata --sev=S<id> -o json`. (a) If `mvai-online-training` NOT in tags AND scope_check returns `in_scope=true`: apply primary auto-tag (per step 9.e). (b) **STACK-SPECIFIC RE-TAG (T273158617 Fix 8 follow-up):** if the SEV is in `diagnosed_ids` with a recorded `training_stack=SILVERTORCH` (look up from the prior diagnosis JSON in `raw_response`) AND `mrs-online-training-silvertorch` NOT in tags: apply the secondary tag. Silent re-tag, log only — DO NOT send any chat output.
 
 7. If no NEW SEVs: persist pruned state, update last_run_epoch, respond HEARTBEAT_OK and stop.
 
@@ -47,7 +70,29 @@ Procedure:
    a. Send notification to spaces/AAQAVOjYc80:
       Singleton: "🚨 [OT SEV | <signal_class>] L<level> S<num>: <title> — <owner_unixname> — <url>"
       Multi: "🚨 [OT SEV cluster | <signal_class> | N SEVs] L<highest level>: <shared signal class> — owners: <distinct unixnames>. First: S<num> <url>"
-      Capture thread id.
+
+      **Send-discipline — capture msg name from API response (T273158617 Fix 4 + 2026-05-27 hardening).** Use the separated-stderr + exit-code-gated pattern (DO NOT use `2>&1` — stderr deprecation warnings break jq parse and produce false-ERROR; DO NOT use `2>/dev/null` on jq — silent parse fail hides bugs):
+      ```bash
+      ERR_TMP=$(mktemp)
+      NOTIF_STDOUT=$(meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --as-meta-bot --text="$NOTIF_TEXT" -o json 2>"$ERR_TMP")
+      NOTIF_EXIT=$?
+      NOTIF_STDERR=$(cat "$ERR_TMP"); rm -f "$ERR_TMP"
+      if [ "$NOTIF_EXIT" -ne 0 ]; then
+        NOTIFICATION_OUTCOME="ERROR:notif_send_exit_${NOTIF_EXIT}:$(echo "$NOTIF_STDERR" | head -c 160)"
+        NOTIF_NAME=""; THREAD_ID="SEND_FAILED"
+      else
+        NOTIF_NAME=$(echo "$NOTIF_STDOUT" | jq -er '.name' 2>&1) || {
+          NOTIFICATION_OUTCOME="ERROR:notif_parse_failed:$(echo "$NOTIF_NAME" | head -c 100)|stdout=$(echo "$NOTIF_STDOUT" | head -c 60)"
+          NOTIF_NAME=""; THREAD_ID="SEND_FAILED"
+        }
+        if [ -n "$NOTIF_NAME" ]; then
+          THREAD_ID=$(echo "$NOTIF_STDOUT" | jq -er '.thread' 2>/dev/null | awk -F/ '{print $NF}')
+          NOTIFICATION_OUTCOME="POSTED:$NOTIF_NAME"
+        fi
+      fi
+      echo "[ot-sev-monitor] cluster=$CLUSTER_ID outcome=$NOTIFICATION_OUTCOME thread=$THREAD_ID"
+      ```
+      **Structural URL gate (T273158617 Fix 5, 2026-05-27).** Bot reply URL in the run summary is **rendered conditionally**: emit `- Bot reply: https://chat.google.com/room/AAQAVOjYc80/$THREAD_ID` **only if `$THREAD_ID` is non-empty AND not `SEND_FAILED`**. Otherwise emit literal `- Bot reply: SEND_FAILED (outcome=$NOTIFICATION_OUTCOME)`. Never synthesize a thread ID. Persist `$NOTIFICATION_OUTCOME` per SEV in step 9.f state update so silent-drop class can't recur. Anti-pattern: ot-post-monitor run #6517 fabricated `yF_aMB00xMk` thread URL while send had silently failed (T273158617).
 
       **Signal-class label sourcing — MANDATORY.** Pull `<signal_class>` from `signal_class` field of scope_check JSON (step 4.5). Multi-SEV clusters share by construction. Valid values:
         - `mvai_publish_pipeline` — cogwheel/TGIF/conveyor/lowering/publish
@@ -176,7 +221,7 @@ Procedure:
 
       Optional suffix: ` · auto-resolved` (incident self-healed before diagnosis ran). Mandatory if true.
 
-      `model_name` / `model_lane` / `model_role` — three orthogonal JSON fields, not merged. `model_name` = literal series name from `meta ai.identify` (e.g., `facebook_reels_ifu_mtml_v0`). `model_lane` = ranking vs retrieval, derived by regex on the name. `model_role` = trainer vs stus, derived from R14 entrypoint check.
+      `model_name` / `model_lane` / `model_role` / `training_stack` — four orthogonal JSON fields, not merged. `model_name` = literal series name from `meta ai.identify` (e.g., `facebook_reels_ifu_mtml_v0`). `model_lane` = ranking vs retrieval, derived by regex on the name. `model_role` = trainer vs stus, derived from R14 entrypoint check. `training_stack` = MVAI vs SilverTorch, derived from `application_metadata.distributed_ai_stack` (see R14b below).
 
       **CRITICAL anti-pattern (2026-05-16):**
       - `model_name` is the SERIES NAME — NEVER substitute owner unixname, oncall name, model_id, or any other identifier. Source: 2026-05-16 thread `-7JtEC9JAGw` where cron emitted `"model_name":"shuyaoli"` (the owner) for model 2144816217.
@@ -188,6 +233,8 @@ Procedure:
       Derivation rules:
       - `model_lane`: `/retrieval|t2i|u2i|i2i|embedding/i` → `retrieval`. `/ranking|mtml|cfr|ifu|esr|ifr|holdout|hstu|vdd|video/i` → `ranking`. Else `unknown`.
       - `model_role`: entrypoint contains `train` → `trainer`. Entrypoint contains `st_update_service` → `stus`. No MAST job or unrecognized → `unknown`.
+      - **`training_stack` (T273158617 Fix 8)**: derive from `application_metadata.distributed_ai_stack` on the MAST job describe output. One-shot extraction, NO regex: `meta ai.mast-job describe --name=<JOB> -o json | jq -r '.application_metadata | fromjson | .distributed_ai_stack'`. Maps to one of: `MVAI` (default for `mvai-training-online-*` trainers + STUS), `SILVERTORCH` (for jobs with `SilverTorch*` name prefix — typically `OFFLINE_TRAINING` or `RECURRING_TRAINING` job_type), or other vendor strings as they appear. If no MAST job is resolvable (e.g., SEV title plural, model decommissioned) → `unknown`. **Verified 2026-05-27 across 11 sample jobs: signal is canonical and 100% reliable; do NOT try to regex the entrypoint as a substitute.** Note: `entrypoint=silvertorch/experimental/st_update_service/*` indicates STUS *role* (not stack) — those jobs are still MVAI-stack; this is a known cross-cut between R14 and R14b.
+        - **TITLE-PREFIX FALLBACK (2026-05-27 backtest finding):** if MAST resolution returns `unknown` BUT the SEV title matches regex `^\s*\[silvertorch/` (case-insensitive), set `training_stack = "SILVERTORCH"` and record `training_stack_source = "title_prefix"` in the JSON for auditability. Same for `^\s*\[mvai/` → `MVAI` with `training_stack_source = "title_prefix"`. MAST-resolved values always take precedence over title-prefix; record `training_stack_source = "mast_describe"` for those. Title-prefix is operator-curated convention (verified backtest 7d: 11/11 `[mvai/*]` and 1/1 `[silvertorch/*]` were correct), but ambiguous prefixes like `[model_e2e/ifr_prospector]` MUST fall through to `unknown` — that pattern exists as BOTH SilverTorch (`SilverTorch-prospector-*`) AND MVAI (`fire-*-ifr_prospector_axsweep_*`) jobs in production, so the prefix alone is not authoritative. Sources: 2026-05-27 thread `BvPAmLCNmyk` operator approval; S666632 backtest confirms `[silvertorch/fbr_hstu]` mapping.
       - **`pg` (Product Group): COMBINED attribution from `sev_type` (via `meta sevmanager.sev describe`) AND title-regex matching.** sev_type alone gives org-tree categories (Instagram = IG+Threads+Reels combined; Production = mvai-infra-mostly); title regex separates the PGs the operator cares about. SEV UI labels sev_type as "Stack".
 
         **Decision order (first match wins):**
@@ -215,7 +262,7 @@ Procedure:
       ```
       <VERDICT HEADER LINE>
 
-      *PG*: <PG>  ·  *Owner*: <unixname> / <oncall>  ·  *Model*: <id> (<model_name>) | <model_role>
+      *PG*: <PG>  ·  *Owner*: <unixname> / <oncall>  ·  *Model*: <id> (<model_name>) | <model_role> | stack=<training_stack>
 
       *What happened*: <one paragraph. names exact metric / snapshot-type / SEV signal class that triggered; for delta SEVs name SPARSE_DELTA vs DENSE_DELTA vs FULL_SNAPSHOT EXPLICITLY — do NOT lump together; user-visible breakage; concrete metric values; timestamps>
 
@@ -252,6 +299,8 @@ Procedure:
         "model_name": "<full name from meta ai.identify, e.g. facebook_reels_ifu_mtml_v0, or null>",
         "model_lane": "<ranking|retrieval|unknown>",
         "model_role": "<trainer|stus|unknown>",
+        "training_stack": "<MVAI|SILVERTORCH|unknown>",
+        "training_stack_source": "<mast_describe|title_prefix|none>",
         "owner": "<unixname>",
         "oncall": "<oncall name>",
         "signal_class": "<from team_lane_scope>",
@@ -319,7 +368,9 @@ Procedure:
       Run: `meta sevmanager.sev update --sev=S<id> --add-tag=mvai-online-training`
       Log LITERALLY: "Auto-tagged ✓" or "Auto-tag failed: <stderr verbatim>". Skip ONLY if validator flagged scope discrepancy, OR scope_check returned in_scope=false at any step. **Mechanistic hypothesis uncertain is NOT a skip reason.**
 
-   f. Add every SEV sev_number in cluster to diagnosed_ids.
+      **STACK-SPECIFIC SECOND TAG (T273158617 Fix 8 follow-up, 2026-05-27):** if the diagnosis JSON's `training_stack == "SILVERTORCH"` AND `mrs-online-training-silvertorch` NOT already in tags (re-verify via fresh `meta sevmanager.sev metadata` — do NOT cache), run an ADDITIONAL update: `meta sevmanager.sev update --sev=S<id> --add-tag=mrs-online-training-silvertorch`. Log LITERALLY: "Stack-tagged ✓ (silvertorch)" or "Stack-tag failed: <stderr verbatim>". Independent of the primary tag — both can fail independently and BOTH should be retried on the next pass via step 6.5 re-evaluation. For clusters with mixed-stack models (some MVAI, some SILVERTORCH), the silvertorch tag fires per-SEV whose attributed model has `training_stack=SILVERTORCH` — not at cluster level. Skip conditions identical to primary tag (in_scope=false / validator-flagged discrepancy).
+
+   f. Add every SEV sev_number in cluster to `diagnosed_ids` using v3 schema: `diagnosed_ids[<sev_number>] = {"added_epoch": <now_epoch>, "notification_outcome": "$NOTIFICATION_OUTCOME"}` where `$NOTIFICATION_OUTCOME` was captured in step 9.a's send-discipline block. **HARD GATE (T273158617 Fix 7):** if `$NOTIFICATION_OUTCOME` is unset OR starts with `ERROR:`, keep the entry with the `ERROR:` outcome — DO NOT silently mark with a fabricated `POSTED:` value. `ot-cron-health-watch` step 6.7 will pick up the ERROR for triage. For backfill/preemptive/procurement silent-add paths (step 3 backfill, step 2.A' mitigated, [Preemptive], procurement-exclusion): set outcome to `OOS:<reason>` (e.g. `OOS:preemptive_launch`, `OOS:procurement_hardware`, `OOS:mitigated_backfill`).
 
 10. After loop: persist state, update last_run_epoch, respond with HEARTBEAT_OK + per-SEV summary line that **MUST include the bot's posted gchat thread URL AND the SEV URL** (for ot-human-attention-brief link extraction):
 
@@ -337,12 +388,14 @@ Procedure:
 
     Mandatory; operator-flagged 2026-05-17 thread `Y3qbdh2hC20`.
 
+    **URL-derivation rule (T273158617 Fix 4, 2026-05-27):** the `<thread_id>` MUST be `$THREAD_ID` from step 9.a's captured send response. NEVER synthesize, NEVER re-use a thread from a different cluster, NEVER reference a thread the current cron tick did not create. If `$THREAD_ID == "SEND_FAILED"`, render `- Bot reply: SEND_FAILED (outcome=<notification_outcome>)` and prefix the SEV header with `⚠️ NOTIFICATION DROPPED`. Anti-pattern: ot-post-monitor run #6517 fabricated `yF_aMB00xMk` thread URL while actual send had silently failed.
+
 Safety:
 - If both (A) and (B) fail, do NOT advance state. Brief error string (no HEARTBEAT_OK).
 - If only one succeeds, proceed and note "DEGRADED: query <X> failed" in diagnosis.
 - If cluster deep triage fails partway, post partial diagnosis with "DEGRADED: <step>", continue, do NOT auto-tag.
 - Cap 3 clusters per run.
-- Do NOT modify SEV state beyond `--add-tag=mvai-online-training` (no resolve, no level change, no narrative edits).
+- Do NOT modify SEV state beyond `--add-tag=mvai-online-training` and (conditionally) `--add-tag=mrs-online-training-silvertorch` (no resolve, no level change, no narrative edits).
 
 ## Learned Rules (auto-appended)
 
@@ -370,7 +423,17 @@ Safety:
 
 12. [2026-05-26 L47] When pruning `diagnosed_ids`, ONLY remove IDs for SEVs that are confirmed closed/resolved or >30 days stale. NEVER prune open/in-progress SEVs just because they temporarily drop from the 3-day candidate query window. Open-but-out-of-scope SEVs (R18/T4/preemptive) that get pruned will resurface on future runs and waste re-processing cycles. Source: S659877 (19-day stale T4) + S660706 re-processed 2026-05-25 21:56 run after prior prune.
 
+13. [2026-05-26 manual] **MULTI-ATTEMPT PEER-IP VERIFICATION before claiming "same bad host" or "retry-on-same-allocation".** When a Gloo / NCCL / network-peer failure recurs across multiple MAST attempts and the diagnosis proposes a host-eviction fix (e.g., P2352139502-class), EXTRACT the failing peer's IPv6 host portion from EACH attempt's stderr (`meta ai.mast-job logs --attempt=<N>` then grep for `\[fe80::|2401:db00:.*:[0-9a-f]+\]`). Tabulate `attempt → peer_host_portion → status`. The "same bad host" claim is valid ONLY if the peer host portion matches across ≥2 consecutive failed attempts. If host portions DIFFER across attempts (e.g., attempt 0 = `...7371:1c09:1532`, attempt 1 = `...2e18:330b:153f`), the underlying signal is **region / capacity-level fault** (multiple NHA hosts going silent within hours — typically correlated with `under_supply: Yes` on the entitlement or a regional SMC blip), NOT a single-host eviction problem. Fix-scope recommendation MUST track this distinction: host-eviction works for matched-IP repeats only; differing IPs across attempts require region-migration or capacity-rebalance trigger. Cite verbatim: `[VERIFIED: attempts=[(0,<ip>,FAILED),(1,<ip>,FAILED),...], same_host=<true|false>]`. Source: 2026-05-26 S668272 (mvai-training-online-2124455858) — bot's threaded diagnosis claimed "SAME bad host (2e18:330b:153f:a00 both)" while attempt 0 actually failed on a different host (`7371:1c09:1532:a00`); operator caught the omission. Pattern-reuse across attempts without verifying peer-IP equality is fabrication.
 
+14. [2026-05-26 manual] **GLOO FAILURE MODES are distinguished by `pair.cc:<line>` + error class, NOT by substring `gloo/transport/tcp`.** When cross-referencing a current SEV against historical SEVs as "same Gloo pattern", matching on the substring `gloo/transport/tcp/pair.cc` is INSUFFICIENT — it produces false-cluster citations across mechanistically distinct failure modes. Required match: BOTH the `.cc:<line>` AND the error class string must be identical. Known modes (extend as new ones surface): (a) `pair.cc:545` `Read error` → TCP read timeout, peer hung silently with no FIN — typically host/NIC fault, non-deterministic, requires manual kill + region migration. (b) `pair.cc:559` `Connection closed by peer` → peer process exited cleanly with FIN — typically deterministic code regression around publish path, revision-bisectable, often self-resolves after fix lands. (c) `pair.cc:<other>` → label as `adjacent but distinct` until characterized. When citing a cross-SEV in the *Hypothesis & implication* or *Ruled out* sections, the citation MUST include `[pair.cc:<line> + <error_class>]` verbatim; if either differs from the current SEV, prefix the citation with `adjacent but distinct —`. Source: 2026-05-26 S668272 (current: `pair.cc:545` Read error, host hang on live OT training) vs S667687 (cited: `pair.cc:559` Connection closed, cogwheel test on `online_train_publish`) — bot's threaded diagnosis labeled them "same Gloo TCP pattern, different model," which is shallow pattern-reuse that would misdirect MAST infra investigation. Per MEMORY R43: pattern-reuse across alerts where underlying mechanisms differ is fabrication.
+
+15. [2026-05-27 L50] **scope_check binary degradation → surface DEGRADED warning even when no SEVs triaged.** When `buck2 run fbcode//pe_mrs_ml/mrs_ot_agent:scope_check` returns exit 1 (binary degraded): (1) include `⚠️ scope_check=DEGRADED` in the GChat run summary even for zero-SEV runs (currently degradation is only in raw_response, invisible to operator unless they read raw data); (2) label each title-evidence-only classification with `[manual-scope-assessment]` so false positives are traceable; (3) if scope_check remains degraded for >3 consecutive runs, append to warning: "Manual verification recommended before next paging action.". Source: ot-sev-monitor 2026-05-27T07:52 (scope_check exit 1, HEARTBEAT_OK delivered, degradation invisible) + 2026-05-27T00:56 (scope_check degraded, SEV manually assessed).
+
+16. [2026-05-27 L52] **GChat reads 403 during SEV triage → degrade confidence one level.** When `meta google.chat.message list` returns 403 on SEV-space read during active triage: (1) include `gchat_reads=DEGRADED(403)` in run summary header; (2) cap triage confidence at one level below metadata alone supports (high→medium, medium→low) — thread evidence unavailable; (3) add note in SEV GChat reply: "⚠️ Bot GChat reads degraded (403) — SEV thread context unverified. Confidence capped." Source: ot-sev-monitor 2026-05-26T13:03 — S668017+S668033+S668029 triaged with `GChat reads DEGRADED (403)`, confidence `medium` (would have been `high` with thread access).
+
+17. [2026-05-28 L54] **Security/infosec SEV fast-path exclusion after step-3 match.** If title matches `/\[memlab\]|RCE via|heapsnapshot.*eval/i` after step-3 regex match → classify `in_scope=false` immediately, silently add to `diagnosed_ids` without invoking scope_check. Extends L38 procurement fast-drop to cover infosec/vuln SEVs that match OT regex via "heapsnapshot" or "[memlab]" keywords. When scope_check is degraded these SEVs still get manual-assessed every run without this guard. Source: S668375 "[memlab] RCE via eval() ... .heapsnapshot" matched step-3 via "heapsnapshot" keyword.
+
+18. [2026-05-28 L55] **CASD-hedwig fast-path exclusion after step-3 "hedwig" match.** After step-3 regex matches on "hedwig" keyword, if title contains `casd` (case-insensitive) → classify `in_scope=false` immediately, silently add to `diagnosed_ids` without invoking scope_check. CASD-hedwig SEVs are web-service/fetch SEVs unrelated to OT Hedwig publish path (OT Hedwig patterns P07/P15 are about model-weight streaming to serving, not CASD fetch). Source: S668703 "hedwig = casd fetch/web SEV, not OT pipeline" — required manual-scope-assessment when scope_check was degraded.
 
 
 ## URL validity rule (cross-cron, 2026-05-17 thread `-x-xLvG_vPo`)

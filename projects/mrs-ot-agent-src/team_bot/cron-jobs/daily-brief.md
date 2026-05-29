@@ -16,7 +16,11 @@ Each section is its own paragraph with a blank line between. Omit empty sections
 
 2) **OT Diffs** — ❌ DROP THIS SECTION ENTIRELY. The operator's own diffs are visible in Phabricator's reviewer queue and inbox; surfacing them in a brief is noise. Teammate diffs only show up here if the operator is the reviewer, which is again better surfaced in Phabricator native. **Do not emit a diffs section.** (Rule established 2026-05-18 thread `BzwgIQr_f48` after operator: _"Not helpful. Too much info."_)
 
-3) **OT Workplace** — Posts in `mrs.ot` group (id 1084744250286987) the cron didn't auto-handle. Skip sibling-team groups (Ads, WhatsApp, Wearables, etc.). **Only include posts with high-confidence relevance to an active SEV or open question** — not speculative "possibly related to S…" links. If unsure, drop. Confirmed-link format: `• <author> (<date>): "<title excerpt>" → confirmed-related to <S…> (<basis>)`. Speculative links ("may be related") are forbidden — they create false followups.
+3) **OT Workplace** — Posts in `mrs.ot` group (id 1084744250286987) the cron didn't auto-handle. Skip sibling-team groups (Ads, WhatsApp, Wearables, etc.) and prior shift-summary posts (title regex `^Oncall Summary`).
+
+   **Frontmatter `wp_post_ids`**: capture ALL post IDs from the 24h window (after filtering shift-summaries). This is the full inventory consumed by `ot-shift-summary`. Do NOT filter by SEV linkage here — the shift summary needs every post.
+
+   **Brief narrative (section 3 body)**: surface only posts with high-confidence relevance to an active SEV or open question — not speculative links. Confirmed-link format: `• <author> (<date>): "<title excerpt>" → confirmed-related to <S…> (<basis>)`. If no posts meet this bar, omit the narrative but STILL populate `wp_post_ids` in frontmatter. (Lesson: 2026-05-28 shift showed 0 WP reports because daily-brief's strict filter stripped Hao Sha + Sanket Karnik's May 27 posts — both valid user reports missing from the shift summary.)
 
 4) **Active OT incidents** — In-progress SEVs with `mvai-online-training` tag OR active alerts on `mrs_online_training` oncall feed. Apply MRS-org filter — drop sev_type ∈ {Ads, WhatsApp, Wearables, Oculus} and any title-hard-exclude hit (`[Ads]`, `Ads ML`, `DPA`, `WA4A`, `AF OC`, `ads_mtml`, `adfinder`, `adindexer`).
 
@@ -47,7 +51,7 @@ Each section is its own paragraph with a blank line between. Omit empty sections
    entries: <int>                   # total signal count across sections 1-5; 0 = quiet day
    sev_ids: [S<num>, S<num>, ...]   # extracted from sections 1, 3, 4
    diff_ids: [D<num>, D<num>, ...]  # from section 2
-   wp_post_ids: [<num>, <num>, ...] # from section 3 / 4
+   wp_post_ids: [<num>, <num>, ...] # ALL mrs.ot posts in the 24h window (not just SEV-linked ones) — shift-summary needs the full list; section 3 narrative may still filter for brevity
    ---
    <verbatim brief content>
    ```

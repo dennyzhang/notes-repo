@@ -4,7 +4,13 @@
   "title": "[Bot] OT Oncall Shift",
   "default_tab_id": "t.sdbn13ll2glq",
   "default_tab_title": "5/5",
-  "purpose": "Canonical Workplace-equivalent gdoc surface for the weekly OT oncall shift summary. Bot UPDATES the active tab IN-PLACE (one summary per shift window) instead of appending duplicates. Operator may add per-quarter tabs.",
+  "tab_convention": {
+    "_purpose": "One tab per shift week (changed 2026-05-18). Each Tuesday cron run creates a NEW tab for the freshly-closed shift.",
+    "naming": "Tab title = shift end date in M/D format (e.g., '5/26'). Tab title MUST match the date-range string in the section heading.",
+    "creation_rule": "On every Tuesday run: meta google.docs.tab list; if a tab matching this shift's end-date title already exists -> UPDATE in place; else meta google.docs.tab add --title=<M/D> --id=<doc_id> and write draft into new tab.",
+    "tab_position_limitation": "KNOWN LIMITATION (2026-05-28, thread Rk8bGR2CQK8): Neither `meta google.docs.tab add` nor `gdocs add-tab` supports specifying the tab position/index. New tabs are appended at the END (bottom of the tabs sidebar). Programmatic reorder is NOT possible (Google Docs API v1 has no createTab/moveTab field). Operator must MANUALLY drag the new tab to the top via UI after each creation. Bot should note this in its post-creation GChat message so operator knows to do the drag."
+  },
+  "purpose": "Canonical Workplace-equivalent gdoc surface for the weekly OT oncall shift summary. ONE TAB PER SHIFT WEEK (changed 2026-05-18). Bot creates a fresh tab titled M/D (shift end Tuesday) per run. NOTE: new tabs are appended at the bottom; operator drags to top manually.",
   "owner": "dennyzhang (per gdoc metadata)",
   "shared": true,
   "created_time": "2026-05-07T13:56:31-07:00",

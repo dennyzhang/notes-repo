@@ -1,25 +1,66 @@
 [ot-post-monitor cron] Poll the MRS Online Training Users Workplace group (id 1084744250286987, vanity mrs.ot) for new posts since last successful run, classify by lane, post notification + DEEP-TRIAGE diagnosis for each substantive post.
 
-State file: /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-monitor-state.json — `{"last_post_epoch": <int>, "processed_post_ids": {"<post_id>": <added_epoch_int>, ...}, "last_run_epoch": <int>}`. The `processed_post_ids` is a dict (post_id → epoch when first added to the set), NOT a bare list — required by the bounded-prune rule in step 3.d (the bare-list schema couldn't be pruned without a per-id timestamp). Time budget: ~5 min per substantive post. Out-of-scope and oncall_summary posts stay fast.
+State file: /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-monitor-state.json — `{"last_post_epoch": <int>, "processed_post_ids": {"<post_id>": {"added_epoch": <int>, "notification_outcome": <string>}, ...}, "last_run_epoch": <int>}`. The `processed_post_ids` is a dict (post_id → {added_epoch, notification_outcome}); the bare-`<int>` value form is the legacy v2 schema and must be migrated in step 1. **`notification_outcome` schema (v3, 2026-05-27 T273158617)** — one of: `POSTED:<msg_resource_name>` (gchat notification sent + threaded reply created; resource name from `meta google.chat.message send -o json | jq -r .name`), `OOS:<reason>` (out-of-scope; e.g. `OOS:author_self`, `OOS:oncall_summary`), `DEDUP:<source>` (handled by another path), `ERROR:<one-line>` (send failed; details in raw_response). State advance with `notification_outcome` absent OR starting with `ERROR:` is a HARD FAIL — emit alert; do NOT silently mark processed. Time budget: ~5 min per substantive post. Out-of-scope and oncall_summary posts stay fast.
 
 **Dedup model** — per-id set (`processed_post_ids`) is authoritative; `last_post_epoch` is a coarse pre-filter only. Same pattern as ot-sev-monitor (`diagnosed_ids`) and ot-alert-monitor (`diagnosed_ids`). Pre-2026-05-12 the cron used epoch-cutoff alone, which re-fired any post whose `effective_freshness_time` regressed under it (move-in/late-comment race) — caused 11 duplicate notifications for a single post (Jianhui Sun, 1218910203488316, 2026-05-12 00:01-06:29 UTC). Per-id dedup eliminates that class of bug.
 
 Procedure:
-1. Read state file. Extract `last_post_epoch` (coarse cutoff) and `processed_post_ids` (dict of post_id → added_epoch). If file missing/corrupt: default cutoff = (now - 600s), processed_post_ids = empty dict, create file fresh. **Migration:** if existing state file has `processed_post_ids` as a bare list (pre-2026-05-12 schema), upgrade in-place by mapping each id → `now()` (best available proxy for added_epoch since original timestamp is lost). Log the migration once.
+0. **Concurrent-run guard (2026-05-27, concurrent-execution race confirmed).** Before reading the state file, acquire an exclusive run lock to prevent duplicate processing when a long run overlaps the next scheduled tick (confirmed: 15:13 run [568s] and 15:20 run [101s] overlapped on 2026-05-27):
+   ```bash
+   LOCKFILE="/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-post-monitor.lock"
+   LOCK_MAX_AGE=900  # matches cron interval — older lock is stale/crashed
+   NOW=$(date +%s)
+   if [ -f "$LOCKFILE" ]; then
+     LOCK_TIME=$(cat "$LOCKFILE" 2>/dev/null || echo 0)
+     LOCK_AGE=$((NOW - LOCK_TIME))
+     if [ $LOCK_AGE -lt $LOCK_MAX_AGE ]; then
+       echo "[ot-post-monitor] Another instance running (lock age=${LOCK_AGE}s). Exiting."
+       exit 0
+     fi
+     echo "[ot-post-monitor] Stale lock (age=${LOCK_AGE}s). Proceeding."
+   fi
+   echo "$NOW" > "$LOCKFILE"
+   ```
+   If the lock is fresh (age < 900s), exit immediately with HEARTBEAT_OK — do NOT process posts. Release the lock (delete lockfile) as the LAST action after writing state in step 6.
+1. Read state file. Extract `last_post_epoch` (coarse cutoff) and `processed_post_ids` (dict of post_id → {added_epoch, notification_outcome}). If file missing/corrupt: default cutoff = (now - 600s), processed_post_ids = empty dict, create file fresh. **Migrations (idempotent, run both):**
+   - v1→v2: if `processed_post_ids` is a bare list (pre-2026-05-12), upgrade by mapping each id → `now()` (original timestamp lost). Log once.
+   - v2→v3: if any entry's value is a bare `<int>` (post-2026-05-12, pre-2026-05-27), upgrade in-place to `{"added_epoch": <int>, "notification_outcome": "LEGACY_UNKNOWN"}`. Log once. `LEGACY_UNKNOWN` is grandfathered for the prune window but counts toward Fix 3 anomaly detection if it persists past 14d.
 2. Run: meta workplace.group activity-feed --group-id=1084744250286987 --columns=post_id,author,message,publish_time_epoch,url --sort-order=desc --limit=20 -o json
 3. Determine each post's effective freshness time BEFORE filtering, so posts moved into the group with stale `publish_time_epoch` aren't dropped:
    a. Default `effective_freshness_time = publish_time_epoch`.
    b. For posts where `publish_time_epoch <= cutoff` (would be filtered out as stale), fetch comments via `meta workplace.comment list --post-id=<post_id> --output=json --no-truncate` and scan for the literal `#movebot` directive OR a `Move Bot` author. If present and the move comment's `time` > cutoff, set `effective_freshness_time = move_comment_time` — moved-in posts have stale `publish_time_epoch` but are fresh-to-this-group as of the move. Cache the fetched comment list keyed by post_id so step 5.a.1 can reuse it.
    c. Filter to posts with `effective_freshness_time > cutoff` AND `post_id NOT IN processed_post_ids`. Drop posts authored by "MyClaw" / "ot-bot" / yourself (avoid feedback loops). The per-id check is the strong dedup; the cutoff is just a pre-filter so we don't fetch comments for ancient posts on every poll.
    Gap context: post 1215710353808301 was moved via `#movebot` from MVAI Users at 14:27 PT, original `publish_time_epoch` was 11:14 PT — the prior step-3 filter (publish_time_epoch only) missed it. Per-id dedup (added 2026-05-12) handles re-fires from late comments and re-moves correctly: once a post_id is in `processed_post_ids`, it stays skipped regardless of comment churn.
-   d. **Prune `processed_post_ids`**: drop entries where `now() - added_epoch > 14 days`. Fixed TTL based on insertion time — evaluable from stored data alone (no dependency on `effective_freshness_time` which is only computed transiently in 3.a/3.b). 14d > worst-case mrs.ot post lifecycle (typical = hours, longest observed = ~3d for stickied threads); aged-out post returning via re-move after 14d is a non-issue (extremely rare; will safely re-trigger as a fresh post). Pruning is bounded — set size = posts seen in last 14d × ~2 posts/day = ~30 entries steady-state.
-   d.1. **For each post processed in step 5 below**: add to `processed_post_ids` as `{post_id: now_epoch}`. The added_epoch is the cron-tick time when the id was first written, NOT the post's `effective_freshness_time` — because freshness time isn't persistable (only the cron tick is observable from stored state).
+   d. **Prune `processed_post_ids`**: drop entries where `now() - entry.added_epoch > 14 days` (note: access `.added_epoch` since v3 schema is a dict, not bare int). Fixed TTL based on insertion time — evaluable from stored data alone. 14d > worst-case mrs.ot post lifecycle (typical = hours, longest observed = ~3d for stickied threads); aged-out post returning via re-move after 14d is a non-issue. Pruning is bounded — set size = posts seen in last 14d × ~2 posts/day = ~30 entries steady-state.
+   d.1. **For each post processed in step 5 below**: add to `processed_post_ids` as `{post_id: {"added_epoch": now_epoch, "notification_outcome": <captured_in_step_5.h>}}`. The added_epoch is the cron-tick time when the id was first written. The notification_outcome MUST be set from the actual API response captured during step 5.c / 5.f / 5.b — NEVER write a "POSTED:..." outcome without a real message resource name from `meta google.chat.message send -o json | jq -r .name`. Synthesizing outcomes is the root cause of T273158617 (2026-05-27).
 4. If no new posts: update last_run_epoch to now, respond HEARTBEAT_OK and stop.
 5. Otherwise, for each new post (oldest first, cap 5 per run):
    a. Fetch FULL post body via: meta workplace.post content --post-id=<post_id> --columns=author,time,body -o json. Activity-feed message is truncated at 80 chars; classification on truncated text misses real OT issues.
    a.1. **Fetch comments — MANDATORY** (was missing pre-2026-05-07; gap source: post 1215710353808301): if the comment list was already fetched and cached in step 3.b, reuse it; otherwise call `meta workplace.comment list --post-id=<post_id> --output=json --no-truncate`. Comments often contain root-cause diagnoses from peer agents (MoDA, Confucius), human follow-ups, and `#movebot` move records. Classification + diagnosis must consider BOTH body AND comments. If a peer agent (`MoDA`, `Confucius`, `🤖`) has already posted a root-cause comment, surface it in the diagnosis output (do NOT re-derive from scratch — cite the peer-agent finding and verify it).
-   b. **Pre-skip:** If title (first line of body, stripped of leading # / *) starts with "Oncall Summary" (case-insensitive), classify as `oncall_summary` — send brief notification only, NO threaded triage reply (status posts, not asks). Advance state and continue.
-   c. Send notification to spaces/AAQAVOjYc80 via gchat skill: "🛟 [OT post] <author>: <first 100 chars of body, no newlines> — <url>". Capture thread id.
+   b. **Pre-skip:** If title (first line of body, stripped of leading # / *) starts with "Oncall Summary" (case-insensitive), classify as `oncall_summary`. Send brief notification; capture returned name per step 5.c.send-discipline. Set `NOTIFICATION_OUTCOME="POSTED:$NOTIF_NAME"` (or `OOS:oncall_summary` if send fails — log and continue, do not block). NO threaded triage reply (status posts, not asks). Advance state with the captured outcome and continue.
+   c. **Send notification to spaces/AAQAVOjYc80 — capture msg name (T273158617 Fix 2 + 2026-05-27 hardening).** Text format: `🛟 [OT post] <author>: <first 100 chars of body, no newlines> — <url>`. Use the **separated-stderr + exit-code-gated** pattern (DO NOT use `2>&1` — stderr deprecation warnings break jq parse and produce false-ERROR; DO NOT use `2>/dev/null` on jq — silent parse fail hides bugs):
+      ```bash
+      ERR_TMP=$(mktemp)
+      NOTIF_STDOUT=$(meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --as-meta-bot --text="$NOTIF_TEXT" -o json 2>"$ERR_TMP")
+      NOTIF_EXIT=$?
+      NOTIF_STDERR=$(cat "$ERR_TMP"); rm -f "$ERR_TMP"
+      if [ "$NOTIF_EXIT" -ne 0 ]; then
+        NOTIFICATION_OUTCOME="ERROR:notif_send_exit_${NOTIF_EXIT}:$(echo "$NOTIF_STDERR" | head -c 160)"
+        NOTIF_NAME=""; THREAD_ID="SEND_FAILED"
+      else
+        # jq -e: nonzero exit on null/missing; capture stderr so we see parse errors
+        NOTIF_NAME=$(echo "$NOTIF_STDOUT" | jq -er '.name' 2>&1) || {
+          NOTIFICATION_OUTCOME="ERROR:notif_parse_failed:$(echo "$NOTIF_NAME" | head -c 100)|stdout=$(echo "$NOTIF_STDOUT" | head -c 60)"
+          NOTIF_NAME=""; THREAD_ID="SEND_FAILED"
+        }
+        if [ -n "$NOTIF_NAME" ]; then
+          THREAD_ID=$(echo "$NOTIF_STDOUT" | jq -er '.thread' 2>/dev/null | awk -F/ '{print $NF}')
+          NOTIFICATION_OUTCOME="POSTED:$NOTIF_NAME"
+        fi
+      fi
+      echo "[ot-post-monitor] post=$POST_ID outcome=$NOTIFICATION_OUTCOME thread=$THREAD_ID"
+      ```
+      **Structural URL gate (T273158617 Fix 5, 2026-05-27).** The `Bot reply:` URL in step 6's run summary is **rendered conditionally**: emit `- Bot reply: https://chat.google.com/room/AAQAVOjYc80/$THREAD_ID` **only if `$THREAD_ID` is non-empty AND not `SEND_FAILED`**. Otherwise emit literal `- Bot reply: SEND_FAILED (outcome=$NOTIFICATION_OUTCOME)`. Never write a Bot reply URL using a thread ID that didn't come out of the `.thread` field of this exact send's response. Fabricating thread URLs is the T273158617 anti-pattern (run #6517 synthesized `yF_aMB00xMk` from operator's unrelated thread).
    d. Classify lane against FULL body using these patterns, in order — first match wins:
       - `sev_id`         (95%): /\bS\d{6,}\b/
       - `mast_job_id`    (90%): /\bmvai-training-online-\d{8,}\b/
@@ -200,6 +241,28 @@ Procedure:
       **ASK**: <one sentence — who needs to do what; page-tag if specific>
       ```
 
+      **Step f.2.send — capture the threaded-reply msg name (T273158617 Fix 2 + 2026-05-27 hardening).** Same separated-stderr + jq -e pattern as step 5.c:
+      ```bash
+      if [ -n "$THREAD_ID" ] && [ "$THREAD_ID" != "SEND_FAILED" ]; then
+        ERR_TMP=$(mktemp)
+        REPLY_STDOUT=$(meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --as-meta-bot \
+          --reply-in-thread=spaces/AAQAVOjYc80/threads/$THREAD_ID \
+          --text="$CRISP_REPLY_TEXT" -o json 2>"$ERR_TMP")
+        REPLY_EXIT=$?
+        REPLY_STDERR=$(cat "$ERR_TMP"); rm -f "$ERR_TMP"
+        if [ "$REPLY_EXIT" -ne 0 ]; then
+          NOTIFICATION_OUTCOME="ERROR:reply_send_exit_${REPLY_EXIT}:$(echo "$REPLY_STDERR" | head -c 160)"
+        else
+          REPLY_NAME=$(echo "$REPLY_STDOUT" | jq -er '.name' 2>&1) || {
+            NOTIFICATION_OUTCOME="ERROR:reply_parse_failed:$(echo "$REPLY_NAME" | head -c 100)"
+            REPLY_NAME=""
+          }
+        fi
+        # On reply success, $NOTIFICATION_OUTCOME remains POSTED:<notif_name> from step 5.c — the threaded reply is the diagnosis body but the notif msg is the durable thread anchor; downstream consumers track by notif_name.
+      fi
+      ```
+      Notice: if step-5.c notification send failed, the diagnosis reply is NOT sent (no thread to reply to). The diagnosis paste still exists; the operator can find it via T273158617 followup audit.
+
       **Step f.3 — Drop the prefix.** Do NOT prefix the reply with `[ot-bot diagnosis | confidence: X%]` or `[ot-bot | confidence: ... | suggested owner: ...]`. These are internal-debug noise on external-facing surfaces.
 
       **Cap**: ~600 chars body, 1000 chars hard cap. If the diagnosis genuinely needs more, expand the paste, not the post. For low-confidence lanes (paste / diff / ot_general): the LIKELY CAUSE line gets `[INFERRED]` prefix + add a sixth line: `Note: lane match weak — diagnosis is research starting point, not verdict.`
@@ -213,9 +276,9 @@ Procedure:
       If subagent / Agent tool is unavailable (cron context limitation — see L6 in `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/learnings.md`), DO NOT spawn the subagent. Update the paste's validator field to: `*Validator*: 🚫 unavailable (no Agent tool in cron context)`. JSON: `"validator_status": "unavailable"`.
 
    h. Update state file IMMEDIATELY after validator pass completes:
-      - Append `post_id` to `processed_post_ids` (the strong dedup — survives comment/move-in churn).
+      - Append `post_id` to `processed_post_ids` with the v3 schema: `{"<post_id>": {"added_epoch": <now_epoch>, "notification_outcome": "$NOTIFICATION_OUTCOME"}}`. **HARD GATE (T273158617, 2026-05-27):** if `$NOTIFICATION_OUTCOME` is unset OR starts with `ERROR:`, DO NOT silently mark processed — instead set outcome to `ERROR:<reason>` and emit a warning line to raw_response that `ot-cron-health-watch` will pick up. State advance with no real send is the silent-OOS-drop bug; keep the entry so we know we tried, but flag it.
       - Set `last_post_epoch = max(last_post_epoch, effective_freshness_time)` (NEVER regress; use the freshness time, not raw publish_time_epoch — moved-in posts must advance the cutoff past the move time, not the original publish time, otherwise the next run re-evaluates them as fresh).
-6. After loop: update last_run_epoch to now. Respond with HEARTBEAT_OK + per-post summary line that **MUST include the bot's posted gchat thread URL AND the workplace post URL** (for ot-human-attention-brief link extraction):
+6. After loop: update last_run_epoch to now. **Release the run lock from step 0:** `rm -f "/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-post-monitor.lock"`. Respond with HEARTBEAT_OK + per-post summary line that **MUST include the bot's posted gchat thread URL AND the workplace post URL** (for ot-human-attention-brief link extraction):
 
    ```
    HEARTBEAT_OK
@@ -231,6 +294,8 @@ Procedure:
 
    Mandatory; operator-flagged 2026-05-17 thread `Y3qbdh2hC20`.
 
+   **URL-derivation rule (T273158617 Fix 2, 2026-05-27):** the `<thread_id>` in the `Bot reply:` line MUST be the `$THREAD_ID` captured from step 5.c's `meta google.chat.message send -o json | jq -r .thread` (or extracted from `.name` field). NEVER synthesize from a local variable, NEVER re-use a thread id from a different post, NEVER reference a thread the current cron run did not create. If `$THREAD_ID == "SEND_FAILED"`, render the line as `- Bot reply: SEND_FAILED (outcome=<notification_outcome>)` and add `⚠️ NOTIFICATION DROPPED` to the summary header. Anti-pattern: 2026-05-27 run #6517 reported `Bot reply: https://chat.google.com/room/AAQAVOjYc80/yF_aMB00xMk` for post 1336024098492333, but that thread was started by the operator 30s later on an unrelated topic — pure fabrication, plus the actual gchat send had silently failed.
+
 Safety:
 - If meta workplace.group activity-feed fails (non-zero exit AND no valid JSON), do NOT advance state. Brief error string (no HEARTBEAT_OK).
 - If single post's deep triage fails partway, send partial diagnosis with "DEGRADED: <step> failed" marker. Continue.
@@ -242,6 +307,7 @@ Safety:
 1. [2026-04-29] Exit code 143 (SIGTERM) from `meta workplace.group activity-feed` with valid JSON returned should be treated as success — advance state normally. The meta CLI sometimes terminates with SIGTERM on completion. Only abort if no valid JSON was produced.
 2. [2026-04-29 manual] Lane patterns expanded: added `mlhub_url`, `model_series`, `paste`, `diff`, `ot_general`, `oncall_summary`. Backtest on Apr 26-29 posts showed strict `mvai-training-online-\d+` missed 3 real OT issues. Activity-feed message field is truncated at 80 chars — classification must run on full body via `meta workplace.post content`. Oncall Summary posts must be skip-routed.
 3. [2026-04-29 manual] Pattern-match output is the OPENING of triage, not the conclusion. Always run ground-truth verification (snapshot timeline, mast job state, related SEVs) before publishing diagnosis. Sourced to ifu_lsr alert (model 883552231) where P01 (FULL_SNAPSHOT blocking deltas) was diagnosed but snapshot timeline showed no FULL_SNAPSHOT in flight — P01 falsified.
+4. [2026-05-27] NO-WAITING / THIN-WORK RULE (operator feedback threads `ItDP0eTCP7s` + `tpk5h4kssXE`): Never emit a message asking for data that can be fetched programmatically. If job name, model ID, or SEV is not in post body, search proactively via `meta ai.mast-job list --limit=20`, `meta sevmanager.sev list`, or `meta workplace.comment list` BEFORE asking operator. PARALLEL FETCH MANDATE: when a job/model is identified, immediately fetch in parallel BEFORE forming any hypothesis: (a) `meta ai.mast-job error --name=<id>` across all recent versions, (b) `meta scuba.dataset query -d mvai_metrics` liveness probe, (c) `meta sevmanager.sev list --tags=mvai-online-training --created-after="3 days ago"`, (d) `meta ai.model-series metadata --model-id=<id>`. VERDICT-FIRST: post complete diagnosis with evidence trail — NO "investigating..." placeholder messages, NO "can you share X?" requests. AUTO-EXECUTE SAFE NEXT STEPS: after posting verdict, immediately take safe autonomous actions (e.g., trainer-bound verdict → also check current trainer count vs recommended; DPP verdict → gate on DPP starvation_pct > 5% FIRST) without waiting for operator to ask.
 
 
 

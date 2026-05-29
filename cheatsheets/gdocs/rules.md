@@ -4,6 +4,30 @@ Quick reference for `gdocs` CLI operations. Load this before any Google Doc oper
 
 > **Meta-rule (operator request 2026-04-30):** ANY gdoc creation OR gdoc-tab creation must be followed immediately by a cheatsheet QA pass — verify comments preserved, set proportional column widths, set 11pt cell font, set `#C9DAF8` header bg, remove duplicate `<title>`-rendered paragraph, validate no `<pre>` damage. Hook (`~/work/claude/config/hooks/gdocs-post-verify.sh`) emits a MANDATORY reminder on creation events. Auto-memory entry `feedback_gdoc_creation_runs_cheatsheet.md` carries the canonical checklist for sessions that don't load this cheatsheet.
 
+## ⛔ Universal Write Gate — READ BEFORE ANY DOC WRITE
+
+**ALL writes use `gdocs` (`/usr/local/bin/gdocs`). NEVER `meta google.docs.<write>`.** This applies to text edits, structure edits, tab create/delete/rename, batch-update, replace, apply, insert-html, find-replace — every write path.
+
+**Self-check: if you find yourself doing ANY of these, STOP — you grabbed the wrong binary, not a real wall.**
+
+| You reached for... | Real answer |
+|--------------------|-------------|
+| `meta google.docs.tab.delete` / `.add` / `.rename` | `gdocs tabs delete` / `tabs create` / `tabs rename` (all accept `--untrusted-authors-mode`) |
+| `meta google.docs.insert.html` / `.replace` / `.batch-update` / `.bulk-find-replace` / `.edit` | `gdocs content insert-html` / `gdocs replace --tab-id` / `gdocs batch-update` / `gdocs content find-replace` |
+| `meta google.docs.apply` failing with missing `.base` sibling | `gdocs edit` → modify → `gdocs apply` (round-trip works under server-dispatch via gdocs) |
+| `meta google.docs.copy` failing with "untrusted authors" at execution | `gdocs copy --untrusted-authors-mode` |
+| `--local`, `--run-as-email`, `--auth-token-class`, `arc fix facts`, WWW On Demand setup | None of these. The wall is your binary choice. Switch to `gdocs`. |
+| `meta google.docs.<write>` rejects `--untrusted-authors-mode` as an unknown flag | Confirms wrong binary. Only `meta google.docs` `get`/`export`/`list`/`apply`/`create`/`delete` accept the flag — and `apply` is broken under server-dispatch anyway. `gdocs` accepts the flag on EVERY subcommand. |
+
+**Why:** `gdocs` is the Rust `google-mux` CLI; runs locally; reads `GOOGLE_MUX_UNTRUSTED_AUTHORS_MODE=1` from your shell or `--untrusted-authors-mode` on any subcommand. `meta google.docs.*` dispatches to a remote Hack sandbox that doesn't forward env vars and whose write subcommands either lack the flag or break on sibling-file staging. Docs with personal-gmail contributors (e.g. `denny.zhang001@gmail.com`, `SophiaZhang8709@gmail.com` in revision history) write fine via `gdocs` — they just refuse `meta google.docs.*` writes.
+
+**Quick examples for common "blocked" tasks:**
+- Merge tab A into tab B + delete tab A → `gdocs get <DOC> --untrusted-authors-mode` (extract A's body) → `gdocs content insert-html <DOC> --tab-id <B> --after-heading "..." --untrusted-authors-mode --file body-of-A.html` → `gdocs tabs delete <DOC> --tab-id <A> --untrusted-authors-mode`
+- Tab rewrite on commentless tab → `gdocs replace <DOC> --tab-id <T> --from file.html --full-replace-removes-comments --untrusted-authors-mode`
+- Round-trip edit → `gdocs edit <DOC> --untrusted-authors-mode` → modify → `gdocs apply <DOC> --untrusted-authors-mode`
+
+(Learned 2026-05-17 + reaffirmed 2026-05-26 + 2026-05-26: three sessions hit the same wall by grabbing `meta google.docs.*` first. Cheatsheet rule existed at line 93 but was buried — hoisted to top-of-file. If you're about to declare a doc "unwritable", you're wrong.)
+
 ## Decision Tree — "I want to do X"
 
 | I want to... | Use this | NOT this |

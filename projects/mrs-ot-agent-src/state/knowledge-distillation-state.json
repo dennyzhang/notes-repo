@@ -52,25 +52,33 @@
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S667544-2026-05-23.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-1480195820275950-2026-05-24.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/POST-1332867342141342-2026-05-24.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S667567-2026-05-24.md"
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S667567-2026-05-24.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S667620-2026-05-24.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-25-A1021144657237695.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S666880-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668029-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668033-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668181-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S655000.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S667355.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-25-W1332867342141342.md"
   ],
   "diffs_drafted": [
-    "D106127555"
+    "D106127555",
+    "D106556357"
   ],
   "deferred_patterns": [
     {
       "type": "recurring_followup",
-      "signal": "scribe_read_proxy threshold-tune task filed 4 times across STUS models 2130305043/2133539495/2144816217/878102693",
-      "detected": "2026-05-25"
+      "signal": "scribe_read_proxy threshold-tune task filed 5+ times; model 2144816217 alone: 5 fires May16/18/23/24/25 all under ZippyDB/Scribe SEVs (A1021144657237695 = 5th; deferred_patterns updated 2026-05-26)",
+      "detected": "2026-05-25",
+      "detected_updated": "2026-05-26"
     },
     {
-      "type": "pending_p56_draft",
-      "signal": "bot_self_correction=True in 2 incident records (POST-1332867342141342, SEV-S667567) same class=P44_to_elastic_agent_SIGSEGV_zombie",
-      "proposed_action": "New P56 row in known-patterns.md: SIGSEGV+D-state rank -> elastic-agent supervisor zombie (distinct from P44 GIL hang; same mitigation: kill vN + TMS restart; disambiguation: check /proc/<rank_pid>/status for D-state + dmesg for SIGSEGV before claiming P44)",
-      "target_file": "users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/known-patterns.md",
-      "aborted_reason": "BOT_INCOMPLETE: working copy dirty (ot-disk-watch-state.json uncommitted)",
-      "detected": "2026-05-25"
+      "type": "r18_validation_evidence",
+      "signal": "SEV-S668181-2026-05-26 is single bot_self_correction(R18 wrong scope: FBLearner batch model wrongly classified as MAST OT failure → T4 serving-stage). Below threshold (need ≥2 for new rule; R18 already exists). Deferred for validation-evidence update if a 2nd R18 correction occurs.",
+      "detected": "2026-05-27"
     }
   ],
-  "last_run_epoch": 1779741372
+  "last_run_epoch": 1779914611
 }

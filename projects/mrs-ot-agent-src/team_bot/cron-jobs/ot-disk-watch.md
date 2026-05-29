@@ -117,6 +117,9 @@ If `df -h <mount>` returns "Transport endpoint is not connected" or similar, tre
    ```
    HEARTBEAT_OK {mounts_checked: N, mounts_skipped: M, transitions: T, alerts_posted: A, auto_mitigation_fired: bool, reclaimed_gb: <int|null>}
    ```
+   **CRITICAL — never post a GChat message when transitions==0 AND alerts_posted==0.** The HEARTBEAT_OK token above is the cron's return value to the daemon, NOT a GChat post. When everything is ok and nothing changed, emit the token and exit silently. Do NOT post a "summary" or "all ok" message.
+
+9. **Concurrent-tick race handling:** If you read the state file, compute results, and then find when writing that the file epoch already advanced (another tick ran concurrently), do NOT re-read and re-run. Simply discard your write (the concurrent tick already persisted state) and exit silently with HEARTBEAT_OK. Do NOT post any GChat message about the concurrent-tick conflict.
 
 ## Self-escalation thresholds
 

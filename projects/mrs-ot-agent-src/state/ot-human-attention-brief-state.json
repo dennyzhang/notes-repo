@@ -1,12 +1,21 @@
 {
-  "last_run_epoch": 1779807991,
-  "last_brief_id": "2026-05-26-brief",
-  "low_confidence_seen_24h": [],
+  "last_run_epoch": 1779980695,
+  "last_brief_id": "2026-05-28-brief",
+  "low_confidence_seen_24h": [
+    "s668285-run6257",
+    "w1336148551813221-run6614"
+  ],
   "learnings_seen_24h": [
     "sigsegv-elastic-agent-zombie-run5818",
     "cl003-holddown-model-2144816217-run5818",
     "may-systemic-gaps-run5818",
     "P56-P57-blocked-validator-run5818",
-    "ot-shift-summary-epoch-bug-run5924"
+    "ot-shift-summary-epoch-bug-run5924",
+    "p57-collision-run6233",
+    "gchat-delivery-gap-run6233",
+    "fullsnapshot-3branch-run6243",
+    "s668285-validator-discrepancy-run6846",
+    "s668542-cascade-run7025",
+    "ne-ratio-uptrend-2134319967-run7050"
   ]
 }

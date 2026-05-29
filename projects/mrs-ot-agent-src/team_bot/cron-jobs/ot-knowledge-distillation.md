@@ -59,7 +59,17 @@ Inputs:
    The other matched signals → record in state for next run; mention in GChat digest as "deferred: <list>".
 
 7. **Draft the actual code change locally** in `/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/`:
-   - `sl status` clean first; if dirty, abort with `BOT_INCOMPLETE: working copy dirty, can't draft`.
+   - **Working-copy cleanliness check** (state-files-allowed, code/doc-strict). Transient `state/*.json` and `state/*.jsonl` files are continuously rewritten by sibling crons (ot-disk-watch, ot-prompt-change-validator, ot-monitor, etc.) and must NOT block drafting. Code, prompts, and docs being dirty IS still a real abort condition:
+     ```bash
+     DIRTY=$(sl status users/dennyzhang/projects/mrs-ot-agent-src/ 2>/dev/null \
+       | grep -v -E ' users/dennyzhang/projects/mrs-ot-agent-src/state/[^/]+\.(json|jsonl)$')
+     if [ -n "$DIRTY" ]; then
+       echo "BOT_INCOMPLETE: working copy dirty (non-state files), can't draft"
+       echo "$DIRTY"
+       exit 0
+     fi
+     ```
+     If only `state/*.json|jsonl` files are dirty → proceed. Per 2026-05-26 fix (consecutive 2-run block by `ot-disk-watch-state.json` + `ot-prompt-change-validator-state.json`).
    - Apply edits per the proposal.
    - Run `arc lint -a` on touched files.
    - For BUCK / Python changes: `buck2 build` smoke-test the affected target (skip if proposal is markdown-only).
@@ -95,7 +105,7 @@ Inputs:
 - **Never mutate external state**: no SEV updates, no alert reassignments, no Phab comments (per `feedback_no_phab_comments_via_jf_submit_dash_m.md` memory + CLAUDE.md "Never Do"), no task creation outside this cron's followup-task path (which itself uses `--owner=dennyzhang` per memory rule).
 - **Never publish_when_ready**: any drafted diff stays draft until operator manually publishes. Tag absent.
 - **Cap 1 diff per run**: if more than one threshold hits, defer the rest to next-day runs. Never overwhelm the operator's review queue.
-- **If `sl status` is dirty**: abort the run and emit `BOT_INCOMPLETE: working copy dirty`. Don't try to stash or commit unrelated changes.
+- **If `sl status` shows non-state-file dirty**: abort the run and emit `BOT_INCOMPLETE: working copy dirty (non-state files)`. Don't try to stash or commit unrelated changes. `state/*.json` and `state/*.jsonl` are allowed-dirty per the step-7 filter.
 - **If `arc lint -a` fails**: emit `BOT_INCOMPLETE: lint failed on <file>`, don't submit.
 - **If `buck2 build` fails on a code change**: emit `BOT_INCOMPLETE: build failed on <target>`, don't submit. Markdown-only changes skip this check.
 - **Out-of-org filter inheritance**: triage summaries written by ot-triage-summary already filter sibling-org SEVs (per `team_lane_scope.is_in_mrs_org_scope()`). This cron inherits that — should never see Ads/WhatsApp/etc. summaries. If one slips in, treat as bug in upstream cron, log + skip + alert.

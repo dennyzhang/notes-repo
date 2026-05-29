@@ -1,13 +1,37 @@
 [ot-alert-monitor cron] Hourly. Poll active alerts assigned to the `mrs_online_training` oncall rotation (the OT oncall), cluster by likely root cause, post one notification + deep-triage diagnosis per cluster.
 
-State file: /home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/alert-state.json — `{"diagnosed_ids": ["<feed_item_id>", ...], "last_run_epoch": <int>}`. Time budget: ~5 min per cluster.
+State file: /home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/alert-state.json — `{"diagnosed_ids": {"<feed_item_id>": {"added_epoch": <int>, "notification_outcome": <string>}, ...}, "last_run_epoch": <int>}` (v3 schema, 2026-05-27 T273158617 Fix 7 — see migration in step 1). Pre-v3 legacy: bare list (v1) or dict-of-bare-int (v2). Time budget: ~5 min per cluster.
+
+**`notification_outcome` schema (v3, same as ot-post-monitor).** One of: `POSTED:<msg_resource_name>` (notification sent + threaded reply created; resource name from `meta google.chat.message send -o json | jq -r .name`), `OOS:<reason>` (out-of-scope; e.g. `OOS:rotation_drift`), `DEDUP:<source>` (handled by another path), `ERROR:<one-line>` (send failed; details in raw_response). State advance with `notification_outcome` absent OR starting with `ERROR:` keeps the entry but flags it for `ot-cron-health-watch` class 6 audit (silent-drop detection).
 
 **Scope — single rotation.** This cron polls `mrs_online_training` only (every alert assigned to that rotation is OT by definition; no title-regex filter needed).
 
 Operator-set scope rule (2026-05-10): adjacent product rotations (e.g., `mrs_relevance_retrieval_i2i`, `feed_recommendation_ranking_modeling`, `ig_rec_modeling_lsr`, `videorecs_ranking`, etc.) are OUT OF SCOPE for this cron — even though OT-symptom alerts can fire there. Coverage of those surfaces is owned by the per-product oncall, not by `mrs_online_training`. If you find that an OT alert was missed because it routed to a sibling rotation, the right fix is to re-route the alert to `mrs_online_training` at its source (alert config), NOT to expand this cron's poll list. Tracking the rotation table in this prompt invites silent breakage when rotations are renamed/retired (the bot kept reporting `mrs_relevance_retrieval_u2i/u2m` as `MetaCLIEntityNotFoundException` for hours — see daemon log 2026-05-10 10:47–14:48 UTC).
 
 Procedure:
-1. Read state file. Extract diagnosed_ids. If file missing/corrupt, treat as empty set.
+0. **Concurrent-run guard (2026-05-27).** Before reading state, acquire run lock:
+   ```bash
+   LOCKFILE="/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-alert-monitor.lock"
+   LOCK_MAX_AGE=3600
+   NOW=$(date +%s)
+   if [ -f "$LOCKFILE" ]; then
+     LOCK_TIME=$(cat "$LOCKFILE" 2>/dev/null || echo 0)
+     LOCK_AGE=$((NOW - LOCK_TIME))
+     if [ $LOCK_AGE -lt $LOCK_MAX_AGE ]; then
+       echo "[ot-alert-monitor] Another instance running (lock age=${LOCK_AGE}s). Exiting."
+       exit 0
+     fi
+     echo "[ot-alert-monitor] Stale lock (age=${LOCK_AGE}s). Proceeding."
+   fi
+   echo "$NOW" > "$LOCKFILE"
+   ```
+   Release lock as the LAST action after writing state: `rm -f "$LOCKFILE"`
+1. Read state file. Extract `diagnosed_ids`. If file missing/corrupt, default to empty dict.
+
+   **Migrations (idempotent, run all):**
+   - v1→v2: if `diagnosed_ids` is a bare list, upgrade by mapping each id → `now_epoch` (best-effort fresh hold-down).
+   - v2→v3: if `diagnosed_ids` is a dict whose values are bare `<int>`, upgrade in-place to `{<id>: {"added_epoch": <int>, "notification_outcome": "LEGACY_UNKNOWN"}}`. Preserves the original added_epoch so `ot-cron-health-watch` step 6.7 can flag entries past the 14d threshold.
+   - Field access (post-migration): `diagnosed_ids[<id>].added_epoch` and `.notification_outcome`. Pre-migration code paths that read `diagnosed_ids[<id>]` as `<int>` MUST be updated to read `.added_epoch`.
 2. **Alert poll — `mrs_online_training` only.**
    ```bash
    meta oncall.feed list --oncall=mrs_online_training --item-type-is=Alert --status-is=Open \
@@ -19,7 +43,7 @@ Procedure:
 
    **HOLD-DOWN refinement (2026-05-16):** Do NOT prune an id within 24h of when it was added — even if it transiently leaves the OPEN set. Rationale: OneDetection alerts (especially `[Invalid Detector - No Data]` and AGG aggregations) oscillate open→closed→open within minutes–hours. Without hold-down, the alert re-fires as NEW on every oscillation, re-notifying the operator with identical content. Tonight's example: alert_id `1201406268614142` triaged 04:17 PDT (cluster B in thread `YjJ5L-XLxCg`), pruned from state when it briefly cleared, re-notified 11:17 PDT — same alert, same root cause, wasted operator time.
 
-   To implement: change `diagnosed_ids` schema from a bare list to `{<alert_id>: <added_epoch>}` (same pattern as ot-post-monitor's `processed_post_ids`). On prune: drop only if `(now - added_epoch) > 86400 AND alert_id NOT IN current_open_set`. New alerts (never seen) still notify normally. **Migration:** if existing state file has bare-list schema, upgrade in-place by mapping each id → `now()` (best-effort fresh hold-down; no false-positives since these ids are already classified as known).
+   To implement (v3 — 2026-05-27 T273158617 Fix 7): `diagnosed_ids` is a dict-of-dict `{<alert_id>: {"added_epoch": <int>, "notification_outcome": <str>}}`. On prune: drop only if `(now - entry.added_epoch) > 86400 AND alert_id NOT IN current_open_set`. New alerts (never seen) still notify normally. **Migration handled in step 1** (bare-list → dict-of-dict; bare-int values → dict-of-dict with `LEGACY_UNKNOWN`).
 
 5. If no NEW alerts: persist state, update last_run_epoch, respond HEARTBEAT_OK and stop.
 
@@ -49,7 +73,29 @@ Procedure:
       3. If upstream JSON `url` empty, render literal `<url-unavailable>`.
 
       Mandatory because soft fallback rule was ignored across S651844, S656875, S656725, S656729, alert cluster (rendered "First alert: mrs_online_training OMH"). Pre-fetch puts URL in scope as captured value.
-      Capture the returned thread id.
+
+      **Send-discipline — capture msg name from API response (T273158617 Fix 4 + 2026-05-27 hardening).** Use the separated-stderr + exit-code-gated pattern (DO NOT use `2>&1` — stderr deprecation warnings break jq parse and produce false-ERROR; DO NOT use `2>/dev/null` on jq — silent parse fail hides bugs):
+      ```bash
+      ERR_TMP=$(mktemp)
+      NOTIF_STDOUT=$(meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --as-meta-bot --text="$NOTIF_TEXT" -o json 2>"$ERR_TMP")
+      NOTIF_EXIT=$?
+      NOTIF_STDERR=$(cat "$ERR_TMP"); rm -f "$ERR_TMP"
+      if [ "$NOTIF_EXIT" -ne 0 ]; then
+        NOTIFICATION_OUTCOME="ERROR:notif_send_exit_${NOTIF_EXIT}:$(echo "$NOTIF_STDERR" | head -c 160)"
+        NOTIF_NAME=""; THREAD_ID="SEND_FAILED"
+      else
+        NOTIF_NAME=$(echo "$NOTIF_STDOUT" | jq -er '.name' 2>&1) || {
+          NOTIFICATION_OUTCOME="ERROR:notif_parse_failed:$(echo "$NOTIF_NAME" | head -c 100)|stdout=$(echo "$NOTIF_STDOUT" | head -c 60)"
+          NOTIF_NAME=""; THREAD_ID="SEND_FAILED"
+        }
+        if [ -n "$NOTIF_NAME" ]; then
+          THREAD_ID=$(echo "$NOTIF_STDOUT" | jq -er '.thread' 2>/dev/null | awk -F/ '{print $NF}')
+          NOTIFICATION_OUTCOME="POSTED:$NOTIF_NAME"
+        fi
+      fi
+      echo "[ot-alert-monitor] cluster=$CLUSTER_ID outcome=$NOTIFICATION_OUTCOME thread=$THREAD_ID"
+      ```
+      **Structural URL gate (T273158617 Fix 5, 2026-05-27).** Bot reply URL in the run summary (step 8) is **rendered conditionally**: emit `- Bot reply: https://chat.google.com/room/AAQAVOjYc80/$THREAD_ID` **only if `$THREAD_ID` is non-empty AND not `SEND_FAILED`**. Otherwise emit literal `- Bot reply: SEND_FAILED (outcome=$NOTIFICATION_OUTCOME)`. Never synthesize a thread ID. Anti-pattern: ot-post-monitor run #6517 fabricated `yF_aMB00xMk` while send had silently failed (T273158617).
 
    b. DEEP TRIAGE — required, not optional. Load `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/SKILL.md` if not loaded. Do NOT stop at first pattern match.
 
@@ -298,7 +344,7 @@ Procedure:
 
       Optional suffix: ` · auto-resolved` (pipeline self-healed before diagnosis ran). Mandatory if true.
 
-      `model_name` / `model_lane` / `model_role` — these are THREE orthogonal fields in the JSON block (see template below), not one merged field. `model_name` = literal series name from `meta ai.identify` (e.g., `facebook_reels_ifu_mtml_v0`). `model_lane` = ranking vs retrieval, derived by regex on the name. `model_role` = trainer vs stus, derived from R14 entrypoint check. **CRITICAL anti-pattern (2026-05-16):**
+      `model_name` / `model_lane` / `model_role` / `training_stack` — these are FOUR orthogonal fields in the JSON block (see template below), not one merged field. `model_name` = literal series name from `meta ai.identify` (e.g., `facebook_reels_ifu_mtml_v0`). `model_lane` = ranking vs retrieval, derived by regex on the name. `model_role` = trainer vs stus, derived from R14 entrypoint check. `training_stack` = MVAI vs SilverTorch, derived from `application_metadata.distributed_ai_stack` (R14b — added 2026-05-27 T273158617 Fix 8). **CRITICAL anti-pattern (2026-05-16):**
       - `model_name` is the SERIES NAME — NEVER substitute owner unixname, oncall name, model_id, or any other identifier. Source: 2026-05-16 thread `-7JtEC9JAGw` where cron emitted `"model_name":"shuyaoli"` (the owner) for model 2144816217.
       - `owner` is the unixname — populated separately from `model_name`.
       - If `meta ai.identify` returns empty or errors, render `model_name: "unknown"` rather than substituting a different identifier.
@@ -308,6 +354,8 @@ Procedure:
       Derivation rules:
       - `model_lane`: `/retrieval|t2i|u2i|i2i|embedding/i` → `retrieval`. `/ranking|mtml|cfr|ifu|esr|ifr|holdout|hstu|vdd|video/i` → `ranking`. Else `unknown`. Video/HSTU/VDD models added 2026-05-16 after model 877766932 (`facebook_reels_vdd_hstu_v0`) classified as `unknown`.
       - `model_role`: entrypoint contains `train` → `trainer`. Entrypoint contains `st_update_service` → `stus`. No MAST job or unrecognized → `unknown`.
+      - **`training_stack` (T273158617 Fix 8 — R14b)**: derive from `application_metadata.distributed_ai_stack` on the MAST job describe output. One-shot extraction: `meta ai.mast-job describe --name=<JOB> -o json | jq -r '.application_metadata | fromjson | .distributed_ai_stack'`. Maps to `MVAI` (default for `mvai-training-online-*` trainers + STUS), `SILVERTORCH` (`SilverTorch*`-prefix jobs, typically `OFFLINE_TRAINING` / `RECURRING_TRAINING`), or other vendor strings. If no MAST job is resolvable → `unknown`. **Verified 2026-05-27 across 11 sample jobs: signal is canonical and 100% reliable; do NOT regex the entrypoint as a substitute** — `entrypoint=silvertorch/experimental/st_update_service/*` indicates STUS *role* (R14) not stack, those jobs are still MVAI-stack.
+        - **TITLE-PREFIX FALLBACK (2026-05-27 backtest, thread `BvPAmLCNmyk`):** if MAST resolution returns `unknown` BUT the cross-referenced SEV title (where one is cited as evidence) matches `^\s*\[silvertorch/` (case-insensitive), set `training_stack = "SILVERTORCH"`, record `training_stack_source = "title_prefix"`. Same for `^\s*\[mvai/` → `MVAI`. MAST resolution takes precedence (`training_stack_source = "mast_describe"`). Ambiguous prefixes like `[model_e2e/ifr_prospector]` MUST fall through to `unknown` — that name maps to BOTH SilverTorch and MVAI jobs in production.
       - **`pg` (Product Group): COMBINED attribution from `sev_type` (via `meta sevmanager.sev describe` for any cross-ref'd SEV) AND title-regex matching.** Decision order: (1) `sev_type=Instagram` + title `/thread|tifu/` → `Threads`; (2) + title `/reels.*vdd|vdd_hstu|video_udd|video_ifu|videorec/` → `Video`; (3) + title `/facebook|fbr|cfr_main_feed|ifr_main/` → `Facebook`; (4) else `IG`. `sev_type=Multifeed` → `Facebook`. `sev_type=Production` + mvai/cogwheel/light_cli/silvertorch/fbpkg/TGIF/gmpp regex → `infra-cross-pg`; same sev_type + cfr_main_feed/ifr_main/fbr regex → `Facebook`; else `unknown`. `sev_type=Ads/Storage/Data Warehouse/AI Infra/Integrity` → R18 should drop. Source: 2026-05-16 thread `ZP2y-6Bdpwk` operator-driven design. Full table: `mrs-ot-agent-context/auto-learnings/patterns/failure-patterns.md` § "PG (Product Group) reference".
 
       **CRITICAL — distinguish "alert issue" from "model issue".** The verdict header MUST make this unambiguous via the `class` field. `THRESHOLD_MISFIT` / `DETECTOR_BROKEN` / `MISCONFIG_AGG` = alert-configuration issue (no model performance problem). `REAL_OT_FAILURE` / `UPSTREAM_INFRA` = real issue affecting model. Operator should NEVER have to read past line 1 to know which it is. Source: 2026-05-16 operator feedback thread `aT_6RlZgMwg`.
@@ -327,7 +375,7 @@ Procedure:
       ```
       <VERDICT HEADER LINE>
 
-      *PG*: <PG>  ·  *Owner*: <unixname> / <oncall>  ·  *Model*: <id> (<model_name>) | <model_role>
+      *PG*: <PG>  ·  *Owner*: <unixname> / <oncall>  ·  *Model*: <id> (<model_name>) | <model_role> | stack=<training_stack>
 
       *What happened*: <one paragraph. names exact metric / snapshot-type that triggered; for delta alerts name SPARSE_DELTA vs DENSE_DELTA vs FULL_SNAPSHOT EXPLICITLY — do NOT lump together; user-visible breakage; concrete metric values; timestamps>
 
@@ -362,6 +410,8 @@ Procedure:
         "model_name": "<full name from meta ai.identify, e.g. facebook_reels_ifu_mtml_v0>",
         "model_lane": "<ranking|retrieval|unknown>",
         "model_role": "<trainer|stus|unknown>",
+        "training_stack": "<MVAI|SILVERTORCH|unknown>",
+        "training_stack_source": "<mast_describe|title_prefix|none>",
         "owner": "<unixname>",
         "oncall": "<oncall name>",
         "signal_specifics": {
@@ -423,9 +473,55 @@ Procedure:
 
       If subagent / Agent tool is unavailable (cron context limitation — see L6 in `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/learnings.md`), DO NOT spawn the subagent. Update PASTE JSON: `"validator_status": "unavailable"`. No prose line, no gchat edit.
 
-   e. Add EVERY alert id in cluster to diagnosed_ids in state file immediately after validator pass completes.
+   e. Add EVERY alert id in cluster to `diagnosed_ids` in state file immediately after validator pass completes — use the v3 schema: `diagnosed_ids[<alert_id>] = {"added_epoch": <now_epoch>, "notification_outcome": "$NOTIFICATION_OUTCOME"}` where `$NOTIFICATION_OUTCOME` was captured in step 7's send-discipline block. **HARD GATE (T273158617 Fix 7):** if `$NOTIFICATION_OUTCOME` is unset OR starts with `ERROR:`, keep the entry but with the `ERROR:` outcome — DO NOT silently mark processed with a fabricated `POSTED:` value. `ot-cron-health-watch` step 6.7 will pick up the ERROR for triage.
 
-8. After loop: persist state, update last_run_epoch. Respond with HEARTBEAT_OK + per-cluster summary line that **MUST include the bot's posted gchat thread URL AND the original alert URL** for each cluster processed (so ot-human-attention-brief can extract these for daily skim links). Format:
+   f. **OPERATOR HANDOFF — @-mention oncall in thread, ONLY when class ∈ {`REAL_OT_FAILURE`, `REAL_OT_FAILURE_RECURRING`, `REAL_OT_FAILURE_FAMILY`}.** Pilot phase per [[20-pre-firing-pilot-operator-handoff]] / T273153751. Auto-mit paused — this is a visibility nudge, NOT a page.
+
+      ```bash
+      # 1. Resolve current mrs_online_training oncall unixname
+      UNIXNAME=$(meta oncall.rotation schedule --rotation=mrs_online_training --active -o json | jq -r '.[0].user // empty')
+      [ -z "$UNIXNAME" ] && { echo "[handoff] oncall lookup empty, skip mention"; SKIP_MENTION=1; }
+
+      # 2. Resolve GChat numeric user_id via 1:1 DM members (numeric id ≠ people FBID — always re-resolve)
+      if [ -z "$SKIP_MENTION" ]; then
+        DM=$(meta google.chat.message find-dm --user="$UNIXNAME" -o json | jq -r '.space_name // empty')
+        UID=$(meta google.chat.space members -s "$DM" -o json 2>/dev/null \
+              | jq -r ".[] | select(.email==\"${UNIXNAME}@meta.com\") | .name" \
+              | awk -F/ '{print $NF}')
+        [ -z "$UID" ] && SKIP_MENTION=1
+      fi
+
+      # 3. Post a SEPARATE threaded reply with ONLY the mention (keeps the locked-format diagnosis body lint-clean)
+      #    Capture msg name per T273158617 Fix 4; never synthesize URLs.
+      if [ -z "$SKIP_MENTION" ] && [ "$THREAD_ID" != "SEND_FAILED" ]; then
+        MENTION_RESP=$(meta google.chat.message send \
+          --space-name=spaces/AAQAVOjYc80 \
+          --as-meta-bot \
+          --reply-in-thread=spaces/AAQAVOjYc80/threads/$THREAD_ID \
+          --text="<users/${UID}> [oncall handoff] class=${CLASS_VALUE} — see diagnosis above. (No page; visibility nudge only.)" \
+          -o json 2>&1)
+        MENTION_NAME=$(echo "$MENTION_RESP" | jq -r '.name // empty' 2>/dev/null)
+        MENTION_SENT=$([ -n "$MENTION_NAME" ] && echo "true" || echo "false")
+      else
+        MENTION_SENT="false"
+      fi
+
+      # 4. Log handoff outcome to ot-alert-monitor-state.json under .handoffs[]
+      #    Schema: {epoch, alert_ids, class, oncall_unixname, gchat_uid, mention_sent: true|false, mention_msg_name: "$MENTION_NAME", skip_reason?}
+      ```
+
+      **Hard rules:**
+      - NEVER call any paging / oncall.feed mutation. Mention only.
+      - NEVER mention on `NO_ACTION` / `MONITOR` / `NEEDS_INVESTIGATION` / `UNKNOWN` (oncall-fatigue risk; expand only after 7-day shadow per pilot doc).
+      - Mention is a SEPARATE threaded reply, not edited into the diagnosis body. The diagnosis lint regex (step 7c) MUST NOT see `<users/...>`.
+      - Resolution failure (no oncall, DM missing, empty uid) → silent skip + log `skip_reason`. Do NOT block the loop or emit an error to the operator surface.
+      - This step is bounded by the autonomous-action-allowlist: tag-add, threaded-reply, @-mention. Anything beyond requires explicit operator approval.
+
+8. After loop: persist state, update last_run_epoch. Respond with HEARTBEAT_OK + per-cluster summary line that **MUST include the bot's posted gchat thread URL AND the original alert URL** for each cluster processed (so ot-human-attention-brief can extract these for daily skim links). 
+
+   **URL-derivation rule (T273158617 Fix 4, 2026-05-27):** the `<thread_id>` in the `Bot reply:` line MUST be the `$THREAD_ID` captured in step 7a's send. NEVER synthesize, NEVER re-use a thread from a prior cluster, NEVER use a thread the current cron tick did not create. If `$THREAD_ID == "SEND_FAILED"`, render `- Bot reply: SEND_FAILED (outcome=<notification_outcome>)` and prefix the cluster header with `⚠️ NOTIFICATION DROPPED`. Anti-pattern: ot-post-monitor run #6517 (2026-05-27 11:29 PT) fabricated `yF_aMB00xMk` thread URL while actual send had silently failed — operator only discovered the gap 78 min later.
+
+   Format:
 
    ```
    HEARTBEAT_OK

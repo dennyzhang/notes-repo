@@ -163,10 +163,20 @@
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-1955974545038771-2026-05-23.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-1670185680650606-2026-05-23.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/POST-1332867342141342-2026-05-24.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/POST-1332867342141342-2026-05-23.md"
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/POST-1332867342141342-2026-05-23.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S667355.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S655000.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S667620-2026-05-24.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-25-W1332867342141342.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-1455336899399360-2026-05-18.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S666880-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668029-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668033-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668181-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/critical-2026-05-27-A27534791649462484.md"
   ],
   "diffs_drafted": [],
-  "mega_learnings_count": 17,
+  "mega_learnings_count": 28,
   "last_systemic_gap_month": "2026-05",
-  "last_run_epoch": 1779775679
+  "last_run_epoch": 1779948398
 }
