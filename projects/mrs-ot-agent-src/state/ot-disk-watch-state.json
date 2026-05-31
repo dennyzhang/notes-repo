@@ -3,48 +3,48 @@
     "/": {
       "last_state": "ok",
       "last_pct_used": 57,
-      "last_free_gb": 487,
+      "last_free_gb": 485,
       "last_inode_pct": -1,
-      "consecutive_in_state": 415,
+      "consecutive_in_state": 431,
       "prev_state": "ok",
-      "last_run_epoch": 1780033539
+      "last_run_epoch": 1780047017
     },
     "/data/users/dennyzhang/notes": {
       "last_state": "ok",
       "last_pct_used": 0,
-      "last_free_gb": 487,
+      "last_free_gb": 485,
       "last_inode_pct": -1,
-      "consecutive_in_state": 524,
+      "consecutive_in_state": 540,
       "prev_state": "ok",
-      "last_run_epoch": 1780033539
+      "last_run_epoch": 1780047017
     },
     "/data/users/dennyzhang/fbsource": {
       "last_state": "ok",
       "last_pct_used": 0,
-      "last_free_gb": 487,
+      "last_free_gb": 485,
       "last_inode_pct": -1,
-      "consecutive_in_state": 525,
+      "consecutive_in_state": 541,
       "prev_state": "ok",
-      "last_run_epoch": 1780033539
+      "last_run_epoch": 1780047017
     },
     "/tmp": {
       "last_state": "ok",
       "last_pct_used": 57,
-      "last_free_gb": 487,
+      "last_free_gb": 485,
       "last_inode_pct": -1,
-      "consecutive_in_state": 415,
+      "consecutive_in_state": 431,
       "prev_state": "ok",
-      "last_run_epoch": 1780033539
+      "last_run_epoch": 1780047017
     }
   },
   "alerts_posted_24h": [],
-  "last_run_epoch": 1780033539,
+  "last_run_epoch": 1780047017,
   "last_raw_debug": {
-    "epoch": 1780033539,
-    "df_h": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       1.2T  625G  487G  57% /",
-    "df_h_vda4": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       1.2T  625G  487G  57% /",
+    "epoch": 1780047017,
+    "df_h": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       1.2T  627G  485G  57% /",
+    "df_h_vda4": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       1.2T  627G  485G  57% /",
     "df_i": "Filesystem     Inodes IUsed IFree IUse% Mounted on\n/dev/vda4           0     0     0     - /",
-    "btrfs_fi_usage": "Overall:\n    Device size:\t\t   1.12TiB\n    Device allocated:\t\t 722.38GiB\n    Device unallocated:\t\t 425.00GiB\n    Device missing:\t\t     0.00B\n    Device slack:\t\t  16.00EiB\n    Used:\t\t\t 624.16GiB\n    Free (estimated):\t\t 486.34GiB\t(min: 486.34GiB)\n    Free (statfs, df):\t\t 486.34GiB\n    Data ratio:\t\t\t      1.00\n    Metadata ratio:\t\t\t      1.00\n    Global reserve:\t\t 512.00MiB\t(used: 0.00B)\n    Multiple profiles:\t\t        no\n\nData,single: Size:678.36GiB, Used:617.02GiB (90.96%)\n\nMetadata,single: Size:44.01GiB, Used:7.14GiB (16.23%)\n\nSystem,single: Size:4.00MiB, Used:112.00KiB (2.73%)"
+    "btrfs_fi_usage": "btrfs unallocated: 411.00GiB, free: 484.15GiB, Data used: 619.22GiB/692.36GiB (89.44%)"
   },
   "last_auto_mitigation_epoch": null
 }

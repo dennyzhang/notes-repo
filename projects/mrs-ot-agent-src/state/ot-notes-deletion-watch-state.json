@@ -221,20 +221,17 @@
   "auto_recoveries_this_week": 0,
   "auto_recoveries_week_key": "2026-W22",
   "draft_only_files": {},
-  "last_baseline_hash": "7efa05a1a49ae3512ef09c3c075340183771a8f4",
+  "last_baseline_hash": "2f0a5ec2ad3aaa0956103d555ef308caee7d0185",
   "last_raw_debug": {
-    "current_files_count": 585,
+    "epoch": 1780044796,
+    "current_files_count": 586,
+    "last_seen_count": 586,
     "draft_only_count": 0,
-    "epoch": 1780034067,
-    "last_seen_count": 585,
-    "notes": "clean run \u2014 0 casualties, 0 orphans, 38 new files added to baseline. hash advanced to 7efa05a1",
     "recovery_attempts": []
   },
-  "last_run_epoch": 1780034067,
+  "last_run_epoch": 1780044796,
   "last_seen_files": {
     "users/dennyzhang/cheatsheets/notes-repo-operations.md": 1778973287,
-    "users/dennyzhang/projects/mrs-ot-agent-context/.claude/.claude-templates-manifest.json": 1780034067,
-    "users/dennyzhang/projects/mrs-ot-agent-context/.claude/settings.json": 1780034067,
     "users/dennyzhang/projects/mrs-ot-agent-context/README.md": 1778973287,
     "users/dennyzhang/projects/mrs-ot-agent-context/auto-fixes/2026-05/01-alert-url-full-id-encoding.md": 1779821651,
     "users/dennyzhang/projects/mrs-ot-agent-context/auto-fixes/2026-05/01-p57-post-fs-delta-pause.md": 1779821651,
@@ -723,7 +720,6 @@
     "users/dennyzhang/projects/mrs-ot-agent-src/human-input/tw-log-recipes.md": 1779558810,
     "users/dennyzhang/projects/mrs-ot-agent-src/human-input/worked-example-S644354.md": 1779558810,
     "users/dennyzhang/projects/mrs-ot-agent-src/setup.md": 1778969458,
-    "users/dennyzhang/projects/mrs-ot-agent-src/state-symlinks.manifest.txt": 1780034067,
     "users/dennyzhang/projects/mrs-ot-agent-src/state/alert-state.json": 1779052560,
     "users/dennyzhang/projects/mrs-ot-agent-src/state/context-ingestor-gchat-state.json": 1779133983,
     "users/dennyzhang/projects/mrs-ot-agent-src/state/context-ingestor-posts-state.json": 1779133983,
@@ -816,6 +812,10 @@
     "users/dennyzhang/projects/mrs-ot-agent-src/team_bot/setup-cron-jobs.sh": 1778969458,
     "users/dennyzhang/projects/mrs-ot-agent-src/team_bot/state-templates/ot-shift-gdoc-config.json": 1778969458,
     "users/dennyzhang/projects/mrs-ot-agent-src/team_bot/team_bot_config.yaml": 1778969458,
-    "users/dennyzhang/projects/mrs-ot-agent-src/tools/regen-archive-indexes.sh": 1779045583
+    "users/dennyzhang/projects/mrs-ot-agent-src/tools/regen-archive-indexes.sh": 1779045583,
+    "users/dennyzhang/projects/mrs-ot-agent-context/bot-debugging-threads/2026-05/thread-HQ2QrEyQXSo-gloo-tcp-retry-same-host-rule-l48-l49.md": 1780037609,
+    "users/dennyzhang/projects/mrs-ot-agent-context/bot-debugging-threads/2026-05/thread-3l_SghsIBZE-ubn-pre-firing-pilot-operator-handoff-phase-a.md": 1780037609,
+    "users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-bot-volume-watch.md": 1780037609,
+    "users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/cron-prompt-backups/ot-alert-monitor__20260528_224041_pre-monitoring-alert-query.txt": 1780037609
   }
 }

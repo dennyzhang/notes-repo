@@ -63,6 +63,62 @@ Operational rules for GChat — Claude sessions, MyClaw/MetaClaw daemons, and `c
 | Card / formatted block | `cardsV2` field |
 | Avoid double-post on retry | Use `requestId` for idempotency |
 
+## Brevity discipline (every msg earns its line)
+
+Default state is no-message. Every bot reply must earn its line in the operator's GChat — if unsure, don't send.
+
+**3 anti-patterns to cut:**
+
+1. **Status-during-work.** Don't post "🔁 Working on X, ETA 10 min" then "✓ done". Stay silent during work; post ONCE when done. Exception: work >15 min AND operator waiting on the specific deliverable → ONE brief "still on it, ETA N min" is OK.
+2. **Post-action self-confirms on pre-authorized moves.** Don't post "✓ Shipped X" / "✓ Memory saved" / "✓ Sync verified" after pre-authorized reversible work. The action speaks for itself. Reserve ✓ for "you asked me to verify, here is the verification."
+3. **Multi-section walls.** Default to ONE bullet + visual marker, not 3 paragraphs. Multi-step progressions (A → B → C of related fixes) should be ONE summary message, not 3 separate messages with full reasoning.
+
+**Discipline rules:**
+
+- Before sending: re-read draft. Cut every sentence that doesn't add new signal.
+- Consolidate within-thread: if about to send msg #3 in same thread within 30 min, fold into the previous and edit instead.
+- Lead with marker per § Visual marker vocabulary. Reserve scarcity.
+- 1 line per per-thread reply when the response is "ack" or "✓ done"; expand only when judgment / data / disagreement requires it.
+
+**Length cap heuristic:**
+
+| Response type | Default cap |
+|---|---|
+| Ack / confirmation | 1 line |
+| Routine status update | 2–3 lines |
+| Triage finding | 1 paragraph (≤80 words) |
+| Multi-finding report or adversarial review | bullets + markers; never multi-paragraph prose walls |
+| "Explain what you did" answers | bullets per fix, ≤5 bullets, ≤15 words each |
+
+Source: 2026-05-28 operator feedback — *"check the gchat messages in this space for today. there are too many msgs. are they all necessary and helpful?"* Audit: 24/105 bot msgs, ~30% verbose.
+
+## Visual marker vocabulary (for scannability)
+
+Operator scans 10+ summaries/threads per minute. Leading visual markers let the eye filter "what needs me" in <2 seconds. Buried prose ⚠️ inside a paragraph defeats the purpose — only **line-leading** markers work.
+
+**Vocabulary (small + distinguishable — do NOT proliferate):**
+
+| Marker | Meaning |
+|---|---|
+| ⚠️  | NEEDS-ATTENTION (operator should look — anomaly / risk / soft-fail) |
+| 🚫  | BLOCKED / degraded tool / hard-fail (escalation-worthy) |
+| 🛑  | HARD-STOP / safety refusal / would-violate-rule |
+| ✓   | DONE / verified (post-action confirmation) |
+| 🔁  | IN-PROGRESS / will-report-back (so operator knows you're not stuck) |
+| ▶   | NEXT-STEP / current-action (for run traces) |
+
+**Discipline rules:**
+
+1. **Lead-with-marker.** Bullets start with the marker: `⚠️ X`, not `X ⚠️`. Eye scans the LEFT column.
+2. **Reserve scarcity.** If every line gets ⚠️, none of them mean it. Default state is no-marker. One ⚠️ at the top of a 20-line message beats six scattered ⚠️s.
+3. **✓ only after verification.** Not after "I intended to do it" or "I just submitted it" without checking.
+4. **Don't reuse a marker mid-message with different meaning.** E.g., don't use ⚠️ for both "look at this" and "tool emitted a warning".
+5. **Marker inflation is the trap after positive feedback.** Instinct is "use more". Discipline is the opposite: use FEWER but always at the right moments.
+
+**Where to apply:** gchat replies (especially long multi-section), cron run summaries (ot-sev-monitor / ot-alert-monitor / ot-post-monitor / daily-brief / shift-summary), HEARTBEAT.md, ledger entries.
+
+Source: 2026-05-28 operator positive feedback in MyClaw 1:1 — *"I like the way you use ⚠️, this makes things need my attention scannable."*
+
 ## Common mistakes
 
 | Wrong | Right | Why |
