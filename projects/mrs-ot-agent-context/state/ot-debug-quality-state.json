@@ -1,5 +1,5 @@
 {
-  "last_run_epoch": 1779984572,
+  "last_run_epoch": 1780330295,
   "weekly_scores": [
     {
       "week": "2026-W21",
@@ -16,6 +16,24 @@
         "false_page": 0,
         "no_initial_triage": 5
       }
+    },
+    {
+      "week": "2026-W22",
+      "issues_scored": 26,
+      "total_archived": 40,
+      "match_pct": 73.1,
+      "avg_composite": 69.4,
+      "cluster_accuracy": 65.0,
+      "owner_accuracy": 65.4,
+      "mitigation_pct": 65.4,
+      "miss_classes": {
+        "cluster_wrong": 0,
+        "missed_cluster": 3,
+        "owner_wrong": 2,
+        "no_initial_triage": 14,
+        "missed_real_issue": 1,
+        "false_page": 1
+      }
     }
   ],
   "scored_issue_ids": [
@@ -29,6 +47,46 @@
     "SEV-S651873",
     "ALERT-A1480195820275950",
     "ALERT-A1427819186056622",
-    "POST-W1321547686606641"
+    "POST-W1321547686606641",
+    "SEV-S655000",
+    "SEV-S666880",
+    "SEV-S667332",
+    "SEV-S667355",
+    "SEV-S668029",
+    "SEV-S668033",
+    "SEV-S668181",
+    "SEV-S668285",
+    "SEV-S668293",
+    "SEV-S668455",
+    "SEV-S668566",
+    "SEV-S668656",
+    "SEV-S668689",
+    "SEV-S668720",
+    "SEV-S668965",
+    "SEV-S668996",
+    "SEV-S669230",
+    "SEV-S669437",
+    "SEV-S669751",
+    "SEV-S669835",
+    "SEV-S669904",
+    "SEV-S669985",
+    "ALERT-A1473457624222843",
+    "ALERT-A27534791649462484",
+    "ALERT-A1574093140800697",
+    "ALERT-A938817701854850",
+    "ALERT-A3362683783911618",
+    "ALERT-A1533487445064477",
+    "ALERT-A1021144657237695",
+    "ALERT-A1002291152283272",
+    "ALERT-A1020303910488347",
+    "ALERT-A2449443538836650",
+    "ALERT-A950082977383608",
+    "ALERT-A1810388853949261",
+    "ALERT-A1728833178491353",
+    "ALERT-A958652050294712",
+    "ALERT-A1808362690491387",
+    "ALERT-A1344400967541703",
+    "POST-W1332867342141342",
+    "POST-W1337733828321360"
   ]
 }

@@ -3,7 +3,8 @@
   "last_failure_at": null,
   "last_failure_msg": "",
   "last_alert_epoch": null,
-  "last_success_at": 1780045960,
-  "last_commit_hash": "e398b8ba6966",
-  "last_commit": "e398b8ba6966"
+  "last_success_at": 1748812920,
+  "last_commit_hash": "4b2bd5ff603b",
+  "last_commit": "4b2bd5ff603b",
+  "last_success_commit": "4b2bd5ff603b"
 }

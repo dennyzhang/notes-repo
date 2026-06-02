@@ -20,6 +20,23 @@ This is the canonical context for the OT team bot. Don't skip it.
 - **When operator's message and the topic-of-interest are in different threads** (rare — they explicitly redirect me): reply in the thread THEY just posted to, not the thread the topic originated in.
 - **Full cheatsheet:** `~/notes/users/dennyzhang/cheatsheets/comms/gchat.md` § "RULE #1 — Reply in the thread."
 
+### Enforcement: Thread-reply PreToolUse hook (2026-05-29, thread `GSSYzY7flFQ`)
+
+Memory-level rules alone are insufficient — the bot ignores them under tool pressure. Rule #1 is enforced at the *harness layer* via a PreToolUse Bash hook in `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/.claude/settings.json`.
+
+**What it does:** Blocks any `meta google.chat.message send ... spaces/AAQAVOjYc80` invocation that lacks `--reply-in-thread`. Escape hatch: append `# new-topic` as a comment to confirm a genuinely new top-level thread.
+
+**Persistence — on devserver reinstall:** `bootstrap.sh`'s `apply_space_hooks()` re-applies this hook idempotently after every reinstall. Run:
+```
+~/fbsource/fbcode/pe_mrs_ml/mrs_ot_agent/team_bot/bootstrap.sh
+```
+
+**Manual restore (if bootstrap unavailable):**
+```bash
+python3 ~/fbsource/fbcode/pe_mrs_ml/mrs_ot_agent/team_bot/apply-space-hooks.py \
+  ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/.claude/settings.json
+```
+
 ## Signal-only operator messaging — NO RECOVERY/NO-OP/HOUSEKEEPING PINGS (2026-05-17 thread `t6SQVo16dTY` "don't send me messages which have no value to me")
 
 Every operator-facing gchat post must clear this bar: **operator must take an action OR learn something they didn't already know**. If neither is true, DO NOT POST. Write the run summary to `job_runs` and exit with `HEARTBEAT_OK`.

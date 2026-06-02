@@ -1,27 +1,69 @@
-<html>
-<head><title>[Bot] OT Oncall Shift</title></head>
 <body>
 <!--
-  OT Shift Summary Template v4 (FORMAT SOURCE OF TRUTH)
-  Approved by operator 2026-05-25 based on the 5/26 tab
+  OT Shift Summary Template v5 (FORMAT SOURCE OF TRUTH)
+  v4 approved 2026-05-25; v5 amended 2026-05-29 per operator (thread 3tFk1T8bbyM); v5.1 2026-06-01 (comments on tab 6/2); v5.2 2026-06-01 (6 more comments on tab 6/2: AAAB8p7d1wg/wc/wU/wI/wE/vo)
+
+  RENDER NOTE (2026-06-01, comment AAAB7ndcDpA "why this useless line is back again?"):
+  This file INTENTIONALLY has NO <html>/<head>/<title> wrapper. A <title>[Bot] OT Oncall Shift</title>
+  leaks the text "[Bot] OT Oncall Shift" into the doc BODY as a useless redundant line (the doc + tab
+  already show it). NEVER re-add a <head>/<title>/<style>. Push <body> content only.
 
   RULES:
   - NO tables. Everything is bullet lists or narrative.
-  - Shift character is the FIRST paragraph after title (bold)
-  - SEVs filed by oncall go FIRST in HIGH-TOUCH list
-  - Observe-only SEVs: category counts only, no individual links
-  - Daily Timeline includes per-day alerts (from noisy-trends + oncall feed)
+  - HIGH INFORMATION DENSITY — counts + inline ID-lists, ONE line per category.
+    NOT per-SEV prose paragraphs. (2026-05-29: operator flagged a per-SEV-prose
+    version as "a journal now" with too-low density. Each Overview bullet packs
+    a whole category onto one line: "SEVs (HIGH-TOUCH): N — S1 (desc, owner), S2 ...".)
+  - MID-SHIFT mode (invoked off-cycle, current-week tab already exists): header
+    "{{DATE_RANGE}} (mid-shift, <day> ~HH:MM PT)", framing "Active oncall: <name>",
+    scope to current shift only (Tue->now). NOT outgoing/incoming handover framing.
+  - "🚨 Critical alerts (paged / robocalled this shift)" section goes FIRST, before
+    Overview. Lists every SEV/alert that robocalled or paged a human this shift,
+    one line each with link + who-paged + outcome. (operator KEEP request 2026-05-29.)
+  - Shift character is a bold paragraph after the active-oncall line (2 sentences max)
+  - SEVs filed by oncall / robocalled go FIRST in HIGH-TOUCH list
+  - Observe-only SEVs: category counts + inline IDs, one line
+  - Trunk-health SEVs (mrs_ml_release_oncall-owned): one-line footnote or omit; never headline
+  - Daily Timeline: ONE line per day (compact), per-day alerts from noisy-trends + oncall feed
+  - DAILY TIMELINE MUST INCLUDE MAJOR ALERT ACTIVITY, not only SEVs (comment AAAB8p7d1wg 2026-06-01
+    "why major/critical alerts activities are missing?"). Each day surfaces any CRITICAL/MAJOR alert
+    that fired that day (from `meta monitoring.alert list --oncall=mrs_online_training --urgency-is=CRITICAL,MAJOR`
+    + alert-monitor state), one line w/ resolvable onedetection link + model + outcome. The 🚨 Critical
+    alerts section is page/robocall-only; the timeline carries the broader major-alert firing history.
+  - DAILY TIMELINE DAY WINDOW = Tue (shift start) → now. DROP any pre-shift (pre-Tue) day entirely
+    (comment AAAB8p7d1wc 2026-06-01: 5/25 Mon was a pre-shift day and must not render).
+  - WEEKDAY LABELS MUST BE COMPUTED FROM THE DATE, never hand-typed (comment AAAB8p7d1wc: 5/25 was
+    labeled "Sun" but is Monday; the whole early-week run was off-by-one). Derive each `<h4>` label via
+    `date -d <YYYY-MM-DD> +%A` (or python `datetime.date(...).strftime('%A')`) — verify before render.
+  - NOTES-REPO REFERENCES MUST BE CLICKABLE (comment AAAB8p7d1wI 2026-06-01 "need to link notes repo").
+    Any `auto-learnings/...`, `digests/...`, `references/...` path → wrap as
+    <a href="https://www.internalfb.com/code/notes/users/dennyzhang/projects/mrs-ot-agent-context/<path>">path</a>.
+    Applies everywhere (Impact, Pain Points, Timeline), not just the timeline.
   - Pain Points include trending noisy models (from auto-learnings/noisy-trends.md)
-  - No "End of..." footer line
+  - No "End of..." footer line; no "FYI" filler
   - No FYI/Diffs sections — key diffs in Impact + Timeline, observe-only in Hand-off
+  - NO bot-autonomous-workflow content (cron fixes, registration, tooling diffs) — human signals only
   - Date headings must NOT have hyperlinks
+  - EVERY S###/A###/W###/D###/T### REF IN THE WHOLE DOC MUST BE A HYPERLINK ON THE BARE TOKEN
+    (comment AAAB8p7d1wU 2026-06-01 "SEV/post/alert in oncall shift should be clickable"). NO bare IDs anywhere.
+      · S### → https://www.internalfb.com/sevmanager/view/<numeric>   (no S prefix in path)
+      · A### / alerts → onedetection resolvable url from `meta monitoring.alert metadata --alert-id=<key> -o json` (.url);
+        NEVER sevmanager for an alert. The url is a long onedetection?alert_id=<urlencoded-key> form — that is correct.
+      · W### → fb.workplace.com/groups/mrs.ot/permalink/<id>/  (numeric-group permalink)
+      · D### → https://www.internalfb.com/diff/D<num>  ·  T### → https://www.internalfb.com/tasks/?t=<num>
+    Pre-push audit: regex-scan the rendered ghtml for [SAWDT]\d{6,} and assert each is inside an <a href>.
+  - SLICK status section is REQUIRED (operator 2026-06-01, thread 2aXJCXZ4VY0): always check + record SLICK SLO health for Discovery Online Models + Instagram Online Models; non-healthy → also add a Hand-off item.
+  - <=4 printed pages / <=13KB ghtml body / <=7 H3 sections
 
   KNOWN API LIMITATION: gdocs replace embeds <a href> links into headings
   that cannot be cleared via API. After any gdocs replace, manually remove
   links from date headings in the UI (select → right-click → Remove link).
 -->
 
-<h2>Oncall Summary for mrs_online_training: {{DATE_RANGE}}</h2>
+<h3>Oncall Summary for mrs_online_training: {{DATE_RANGE}}</h3>
+<!-- END-OF-SHIFT framing: "Outgoing -> X | Incoming -> Y".
+     MID-SHIFT framing (off-cycle run, tab already exists): replace the line below with
+     "Active oncall -> <name> (since <handover_date>). Day <N> of 7." and add "(mid-shift, <day> ~HH:MM PT)" to the H2. -->
 <p>Outgoing → <b>{{OUTGOING}}</b>  |  Incoming → <b>{{INCOMING}}</b></p>
 <p><b>{{SHIFT_CHARACTER}}</b></p>
 <!-- SHIFT_CHARACTER: 2 sentences MAX. Lead with impact, not mechanism.
@@ -30,14 +72,45 @@
      GOOD: "Heavy week — 23 SEVs (5 HIGH-TOUCH), dominated by zombie job pattern and DPP restart. Three conveyor failures unresolved."
      Rule: no diff numbers, no pattern IDs, no technical jargon. Those go in the timeline. -->
 
+<h3>🚨 Critical alerts (paged / robocalled this shift)</h3>
+<!-- One <li> per SEV/alert that robocalled or paged a HUMAN this shift: link + who-was-paged + outcome.
+     Detection: sevmanager auto_detected + page tag; oncall.feed; pagerduty. If none this shift, render: <ul><li>None this shift.</li></ul>
+     A### alert links MUST use the resolvable url from `meta monitoring.alert metadata --alert-id=<key> -o json` (.url), never bare ?alert_id=<numeric>. -->
+<ul>
+{{CRITICAL_ALERTS}}
+</ul>
+
 <h3>Overview</h3>
+<!-- DENSITY RULE: each bullet = one whole category on ONE line (counts + inline ID-lists), NOT per-SEV prose.
+     Format: "SEVs (HIGH-TOUCH): N — S1 (short-desc, owner), S2 (...), ...". Robocalled/oncall-filed SEVs first.
+     All S###/D###/T### auto-linkify; A### needs explicit monitoring.alert url wrap. -->
 <ul>
 <li><b>SEVs (HIGH-TOUCH):</b> {{SEV_HT_COUNT}} — {{SEV_HT_LIST}}</li>
 <li><b>SEVs (observe-only):</b> {{SEV_OO_COUNT}} — {{SEV_OO_CATEGORIES}}</li>
 <li><b>Alerts:</b> {{ALERT_ACTION}} actionable of {{ALERT_TOTAL}} total ({{ALERT_AUTO}} auto-resolved)</li>
+<!-- WP_AUTHORS MUST render each post as `<author>: <topic keyword> [link]`, NOT bare username
+     (comment AAAB8p7d1wE 2026-06-01 "need keywords for the post. Currently mainly username, not helpful").
+     Topic keyword = first line of post body via `meta workplace.post content --post-id=<id>` (strip leading
+     #, ≤8 words). SKIP prior shift-summary posts (title regex `^Oncall Summary for mrs_online_training`) —
+     do NOT count them toward WP_COUNT. -->
 <li><b>WP user reports:</b> {{WP_COUNT}} — {{WP_AUTHORS}}</li>
-<li><b>Diffs closed (oncall):</b> {{DIFF_COUNT}}</li>
+<li><b>Diffs that fixed a shift SEV:</b> {{DIFF_COUNT}} ({{DIFF_ONCALL}} oncall-authored) <!-- count diffs that fixed ANY shift SEV (any author, from SEV metadata), not just oncall-authored — a bare oncall '0' is misleading (comment AAAB7ndcDqI). --></li>
 <li><b>Difficulty:</b> {{DIFFICULTY}}/5 | <b>Hours:</b> {{HOURS}} | <b>Wakeups:</b> {{WAKEUPS}} | <b>Alert noise:</b> {{NOISE}}/5</li>
+</ul>
+
+<h3>SLICK status</h3>
+<!-- SLICK SLO health for the OT model groups (operator-required 2026-06-01, thread 2aXJCXZ4VY0).
+     Populate per procedure SLICK SLI probe: `meta slick.sli performance -s <service_id> --start-time <e> --end-time <e> -l 500`.
+     🛑 MUST pass `-l 500` (comment AAAB8p7d1vo 2026-06-01 "no, I see some are red"): WITHOUT a high limit the
+     CLI returns only the first ~10 SLIs (default limit) which can ALL read OK by luck → a FALSE "✅ healthy".
+     With -l 500: Discovery=199 SLIs, Instagram=48 SLIs (matches the operator's dashboard). NEVER claim healthy
+     unless the full-roster probe shows ZERO VIOLATION status. service_ids: Discovery=mrs_ml/v1_discovery, Instagram=mrs_ml/v1_instagram.
+     Render: ✅ healthy | 🔴 N SLIs breached (worst: <sli/bucket> <perf> vs <goal>) — list the worst few, not a count of all.
+     Any non-healthy → ALSO a Hand-off item. If a service_id can't be resolved, render `TODO (oncall): check SLICK for <group>` — never silently omit. -->
+<!-- Each group name MUST link to its SLICK dashboard (comment AAAB7ndcDo4 "slick dashboard should have link"). -->
+<ul>
+<li><b><a href="https://fburl.com/monitoring/rkhcqpuj">Discovery Online Models</a>:</b> {{SLICK_DISCOVERY}}</li>
+<li><b><a href="https://fburl.com/monitoring/gmdu02yq">Instagram Online Models</a>:</b> {{SLICK_INSTAGRAM}}</li>
 </ul>
 
 <h3>Impact this shift</h3>
@@ -65,11 +138,14 @@
 
 <h3>Daily Timeline</h3>
 {{DAILY_TIMELINE}}
-<!-- Per day: H4 heading (NO hyperlink on date), bullet list of:
-     - SEVs oncall engaged with (linked)
-     - WP posts (linked)
-     - Alerts that fired (model + type + resolution)
-     - Diffs landed
+<!-- NOT A LAUNDRY LIST (comments AAAB7ndcDo8 "laundry list, not helpful" + AAAB6WwCDwo "pure SEV numbers are thin context — attach keywords"):
+     - Only the NOTABLE events per day (what the oncall acted on / what mattered) — NOT every SEV that existed.
+       A quiet day = one line "(quiet)". Don't pad.
+     - EVERY SEV/alert ref carries a SHORT KEYWORD/symptom, never a bare number:
+       BAD: "S669486, S669785, S670040"
+       GOOD: "S669486 Threads snapshot-gap · S669785 Reels LSR NE-regression"
+     - Lead with the signal (what/who/outcome), keep each day scannable (1–4 bullets).
+     - SEV/WP links: hyperlink the ID TOKEN only (S669486), not the whole sentence; date headings have NO link.
      Source: daily-brief state + GChat bot space + auto-learnings + oncall feed + incidents folder -->
 
 </body>

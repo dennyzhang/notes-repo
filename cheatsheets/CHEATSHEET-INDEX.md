@@ -12,7 +12,7 @@ Load the matching cheatsheet before starting a task. Each category has a folder 
 | **Comms** | `comms/` | 3 | GChat operations (send/read/thread), message tone coaching, paste formatting |
 | **Career & Impact** | `career/` | 10 | PSC, SLO, project docs, impact, communication, capacity, roadmap, knowledge sharing, launch posts, sharing posts |
 | **Research & Thinking** | `research/` | 2 | Deep research, doc analysis, initiatives |
-| **System & Automation** | `system/` | 7 | Hooks, cron, workflows, Meta Tasks, task execution, sync rules, AI failure modes, agent pressure, MyClaw deletion |
+| **System & Automation** | `system/` | 8 | Hooks, cron, workflows, Meta Tasks, task execution, sync rules, AI failure modes, agent pressure, autonomous workflow principles, MyClaw deletion |
 | **Calendar & Meetings** | `calendar/` | 1 | Creating meetings, attaching VC (Zoom / Google Meet), `create-meeting.py` workarounds |
 | **Notes Repo Ops** | `notes-repo-operations.md` (top-level) | 1 | Any `sl` operation in `~/notes`: commit/push/pull/rebase, divergence recovery, file recovery. ALWAYS load before push-divergence troubleshooting (7 file-tracking casualties 2026-05-16 prove this is high-friction). |
 
@@ -55,6 +55,7 @@ Load the matching cheatsheet before starting a task. Each category has a folder 
 | Recurring AI mistakes (load before non-trivial work) | `system/ai-failure-modes.md` |
 | Designing prompts, classifiers, hooks, or any agent automation (Marty Dumaual research synthesis) | `system/agent-pressure.md` |
 | Deleting a MyClaw instance | `system/myclaw-delete.md` |
+| Autonomous agent design principles (output density, correctness, safety) | `system/autonomous-workflow-principles.md` |
 | Creating a meeting (with Zoom + AI meeting notes — boss's default), or fixing a meeting missing AI summary | `calendar/google-meet.md` |
 | OT customer support, Workplace post responses | `oncall/customer-support.md` |
 | Triage quality rules (R1-R13), per-fact tagging, cluster discipline | `oncall/triage-methodology.md` |

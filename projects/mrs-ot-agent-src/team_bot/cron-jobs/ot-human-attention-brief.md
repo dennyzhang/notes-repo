@@ -71,7 +71,7 @@ Existing crons each emit per-event posts (per-alert triage, per-SEV postmortem, 
    - **For triage cron run** (`ot-sev-monitor`, `ot-alert-monitor`, `ot-post-monitor`): the cron raw_response now includes per-cluster `Bot reply: <url>` + `Original alerts: <url>` lines (mandatory as of 2026-05-17 thread `Y3qbdh2hC20`). Extract these directly. Wrap them as `[model <id>](<bot_reply_url>)` for the human bullet.
    - **For validator cron** (`ot-postmortem-validator`): the validator output cites the parent thread URL. Wrap as `[validator pass](<thread_url>)`.
    - **For knowledge-curation** (`ot-knowledge-curation`): cite the commit hash. Wrap as `[commit <short_hash>](<commit_url>)`.
-   - **For SEV/alert/post mentioned by ID** in any source: render markdown-linked: `[S<id>](<sev_url>)` / `[A<id>](<alert_url>)` / `[post W<id>](<workplace_url>)`.
+   - **For SEV/alert/post mentioned by ID** in any source: render markdown-linked: `[S<id>](<sev_url>)` / `[A<id>](<alert_url>)` / `[post W<id>](<workplace_url>)`. **For `[A<id>]` the `<alert_url>` MUST come from `meta monitoring.alert metadata --alert-id=<full_alert_key> -o json | jq -r .url` — NOT the bare-numeric `?alert_id=<numeric>` form, which does NOT resolve for [AGG]/SUM alerts (2026-05-29 thread `HJG9Ec2LuX4`: bare `A2449443538836650` flagged as invalid link). If the full alert key isn't available, omit the link rather than emit a non-resolving one.**
    - **For cluster / pattern changes**: `[CL-<NNN>](<cluster_anchor_url>)` / `[P<NN>](<known_patterns_url>)`.
 
    **If multiple IDs in one raw_response (cluster of N alerts):** use the FIRST/PRIMARY alert URL. Cluster context can be a parenthetical.

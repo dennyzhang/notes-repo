@@ -1,5 +1,7 @@
 [ot-daily-learning-mitigated-posts cron] Daily 21:30 UTC (15-min stagger after ot-daily-learning-mitigated-alerts at 21:15). Harvest postmortem signal from OT-relevant Workplace posts that resolved in last 24h (the *mitigated posts* corpus), surface in team space as ONE consolidated digest, write one durable archive file per post, propose pattern entries for `known-patterns.md`. Strictly propose-only — no Workplace mutations. ot-post-monitor catches posts as they OPEN; this catches them after RESOLVE.
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 **Output shape: ONE top-line message + ONE threaded reply with all digests + ONE pattern-proposal threaded reply + ONE validator threaded reply + ONE chronic-noisy reply, PLUS one archive file per post.** Total 4-5 GChat messages per run regardless of post count. Archive files are durable artifacts (do not count as messages). If a run has 0 NEW resolved posts: HEARTBEAT_OK, no posts, no archive writes.
 
 **Archive scheme** (per OT Master Agent doc § Data model — "one mitigated issue one file"): `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/<YYYY-MM>/<YYYY-MM-DD>-W<post_id>.md`. Directory created if missing. The post body + comments ARE the log here (no separate ods/scuba slice needed). Referenced from the digest line so the operator + post author can click through to confirm. **Filename convention (2026-05-16):** dropped the `<lane>-` prefix that was producing inconsistent groupings. Lane classification lives in the archive file body's frontmatter, not the filename.
@@ -183,7 +185,7 @@ Procedure:
 
    b. **Threaded digest reply** (`digest_thread`) — concatenate all digests, separated by `---`. Per-post format (compact, ~500 chars each):
       ```
-      *W<post_id>* | <lane> | <duration> | author: @<author> | oncall: <source_oncall>
+      *<<post_X_url>|W<post_id>>* | <lane> | <duration> | author: @<author> | oncall: <source_oncall>
       • Verdict: <verdict> · Class: <class> · Cluster: <CL-NNN|none> · P-row: <P<NN>|none>
       • Title: <title>
       • Resolution signal: <which check fired + 1-line evidence>

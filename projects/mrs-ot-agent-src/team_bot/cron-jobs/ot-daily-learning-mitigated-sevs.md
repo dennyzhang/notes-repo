@@ -1,5 +1,7 @@
 [ot-daily-learning-mitigated-sevs cron] Daily 9 PM PT. Harvest postmortem signal from OT SEVs that closed/mitigated in last 24h (the *mitigated SEVs* corpus), surface in team space as ONE consolidated digest, write one durable archive file per SEV, propose pattern entries for `known-patterns.md`. Strictly propose-only — no SEV state mutations. ot-sev-monitor catches SEVs as they OPEN; this catches them after CLOSE. Daily cadence (not hourly) because postmortem text takes hours-to-days to populate. Renamed from `ot-sev-postmortem` 2026-05-12 to clarify input corpus and pair with sibling `ot-daily-learning-debugging` (real-time triage output).
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 **Output shape (post-2026-05-12 consolidation): ONE top-line message + ONE threaded reply with all digests + ONE pattern-proposal threaded reply + ONE validator threaded reply + ONE chronic-noisy reply, PLUS one archive file per SEV.** Total 4-5 GChat messages per run regardless of SEV count. Archive files are durable artifacts (do not count as messages). If a run has 0 NEW SEVs: HEARTBEAT_OK, no posts, no archive writes.
 
 **Archive scheme** (per OT Master Agent doc § Data model — "one mitigated issue one file"): `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/<YYYY-MM>/L<level>-<YYYY-MM-DD>-S<num>.md`. Directory created if missing. File survives log-rolloff (5-min MAST log slice captured durably) and is referenced from the digest line so the operator + SEV owner can click through to confirm.
@@ -111,11 +113,11 @@ Procedure:
 
       **Why grep, not count:** the cron previously suggested "P40" when grepping would have returned "P39" (P39 was already taken by an MAST-PENDING pattern). Counting from apparent last row produced an off-by-one Phabricator merge conflict. Grepping is cheap and authoritative — caught 2026-05-12 in K_OE73Id8g4 thread.
 
-   h. **Pull MAST error log slice — for archive only.** If the SEV metadata (or gchat) names a MAST job (`mvai-training-online-*` family — see ot-agent-conventions.md scope rule), capture ±5 min around `time_started`:
+   h. **Pull MAST error log slice — for archive only.** If the SEV metadata (or gchat) names a MAST job (`mvai-training-online-*` family — see ot-agent-conventions.md scope rule), pull its error summary:
       ```bash
-      meta ai.mast-job error --name=<job> --since=<t_started_minus_5min_iso> --until=<t_started_plus_5min_iso>
+      meta ai.mast-job error --name=<job> --version=<version> -o json
       ```
-      Store as `log_slice` (verbatim, ≤4KB; truncate middle with `[…N lines elided…]` marker if longer). If no MAST job linked, store `log_slice="[no MAST job linked to this SEV]"`. Out-of-scope job prefixes (aps-*, fire-*, torchx-*, conda-*) → store `log_slice="[out-of-MRS-OT-scope job: <prefix>]"` and skip fetch.
+      (`ai.mast-job error` has NO `--since`/`--until` time-window flags — corrected 2026-05-29; it returns errors for the specified/latest attempt. Pass `--version` / `--attempt` to scope to the failing attempt rather than a time window.) Store as `log_slice` (verbatim, ≤4KB; truncate middle with `[…N lines elided…]` marker if longer). If no MAST job linked, store `log_slice="[no MAST job linked to this SEV]"`. Out-of-scope job prefixes (aps-*, fire-*, torchx-*, conda-*) → store `log_slice="[out-of-MRS-OT-scope job: <prefix>]"` and skip fetch.
 
    i. **Write archive file** — durable per-SEV record:
       - Path: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/<YYYY-MM>/L<level>-<YYYY-MM-DD>-S<num>.md` (mkdir -p the YYYY-MM dir).

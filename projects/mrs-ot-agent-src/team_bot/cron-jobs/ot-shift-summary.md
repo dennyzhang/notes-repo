@@ -34,10 +34,11 @@ Parse frontmatter from each file:
 
 ### 1. Window resolution
 
-- `WINDOW_END` = today, 09:00 America/Los_Angeles (the formal shift handover slot). Render as `YYYY-MM-DD`.
-- `WINDOW_START` = `WINDOW_END` minus 7 days. Render as `YYYY-MM-DD`.
-- Date range string for the title: `<MMM DD> - <MMM DD>` (e.g., `28 Apr - 05 May`) using shift-end day's month names.
-- If `last_window_end` in state == today's `WINDOW_END`: stop, respond `HEARTBEAT_OK already-ran-today`. Same-day re-trigger guard.
+- **The shift window is ALWAYS Tuesday → Tuesday** — oncall rotates Tue 09:00 PT (operator comments AAAB8HXNZA8 + AAAB7ndcDq4 "start with Tue"). NEVER a rolling today-minus-7 window (that makes a mid-shift Monday run show Mon→Mon, which is wrong).
+- `SHIFT_START` = the most recent Tuesday at 09:00 America/Los_Angeles (= today if today IS Tuesday). `SHIFT_END` = `SHIFT_START` + 7 days (next Tuesday 09:00).
+- `WINDOW_START` = `SHIFT_START`. `WINDOW_END` = `SHIFT_END` on the final (Tuesday) run; on a MID-SHIFT run gather data through `now`, but the **title still spans the full Tue→Tue shift**.
+- Date-range string for the title: `<MMM DD> - <MMM DD>` = `SHIFT_START` → `SHIFT_END` (e.g. `26 May - 2 Jun`), month names from each boundary. Mid-shift appends "(mid-shift, <day> ~HH:MM PT)".
+- Same-day guard: if `last_window_end` == `SHIFT_END` AND this is not a mid-shift refresh → stop, respond `HEARTBEAT_OK already-ran-today`.
 
 ### 2. Identify the outgoing + incoming oncall
 
@@ -179,6 +180,8 @@ meta phabricator.diff list --author-is=<unixname> \
 
 Filter to OT-scoped paths (same as `daily-brief.md` rule 2): `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/`, `fbcode/minimal_viable_ai/`, `fbcode/silvertorch/`, `fbcode/ip_runtime/`, or paths matching `online_training`/`mvai`/`ot_agent`. Dedupe across authors. Bucket: **Diffs Produced** (Closed/Committed in window) vs **Open Diffs** (Needs Review / Changes Planned).
 
+**ALSO pull SEV-FIX diffs linked to THIS SHIFT's SEVs, any author (2026-06-01 comment AAAB7ndcDqI "I doubt it's really 0").** The author-only query above misses fix diffs landed by non-oncall, non-IC owners — so a shift where the oncall authored nothing renders a misleading `0` even though shift SEVs were fixed by diffs. For each shift SEV, extract its fix diffs: `meta sevmanager.sev metadata --sev=S<id> -o json` → the `D########` references. **Render the metric as: `Diffs that fixed a shift SEV: <N total, any author> (<M> oncall-authored)`** — NOT a bare oncall-authored `0`. Example: S668293 carried D106946261 + others (andrewxmao) — those count. State the criteria inline so it's not ambiguous.
+
 ### 7. Bot Post Score (self-report from triage_events)
 
 Query the bot's own triage activity for the window:
@@ -211,9 +214,16 @@ meta sevmanager.sev list --tags=mvai-online-training-review --created-after="14 
 
 If empty: this shift is the enrollment shift → emit `TODO: SEV-Review enrollment due — pick a teaching SEV from this shift and add #mvai-online-training-review tag`. If non-empty: render `SEV-Review last enrolled: S<num> (<date>); next due ~<date+14>`.
 
-### 9. Render the draft — TEMPLATE v3 (2026-05-25, operator-approved)
+### 9. Render the draft — FILL TEMPLATE v5 (the .html file is the ONLY format)
 
-**FORMAT SOURCE OF TRUTH:** `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-shift-summary-template.html`
+**FORMAT SOURCE OF TRUTH:** `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-shift-summary-template.html` (currently **v5** — bullet-only, no tables).
+
+> 🛑 **HARD OVERRIDE (2026-06-01, thread `2aXJCXZ4VY0`: operator "the latest tab is pretty bad").** The render is EXACTLY: read the v5 `.html` template → substitute `{{PLACEHOLDER}}` markers with data from steps 0–8 → push the FILLED FILE via `gdocs replace --tab-id <TAB> --from <filled_template_file>` (or `gdocs content insert-html`). Nothing else.
+> - **NEVER render tables.** Any "Headline numbers — explicit table", "§1/§4/§5 table", or `[Metric, Count, Detail]` instruction appearing LATER in this step is **DEPRECATED v3 residue** — it tells you WHAT data to gather, NOT how to render. The v5 template's bullet sections are the only layout. (The 6/1 09:13 run regressed to v3 tables by following that residue — do not.)
+> - **NEVER `meta google.docs.append markdown`** and never push raw `<style>`/CSS — that leaked `body { font-family: Arial … }` as visible text into the 6/1 tab. Only `gdocs replace`/`insert-html` of the filled template per `cheatsheets/gdocs/rules.md`.
+> - The template's sections are the contract: Critical alerts → Overview → **SLICK status** → Impact → Pain Points → Hand-off → Daily Timeline. If the filled output has a table or a `§N` heading, it is WRONG — re-render from the template.
+> - **Headings = native `<h2>`/`<h3>` bold style ONLY. NEVER apply a background-color fill / paragraph shading to a heading, and NEVER run a post-render styling batch-update on headings.** The `#FFF2CC` yellow is reserved for TODO blocks (step "Styled TODO"), NOT headers. 2026-06-01 (comment chain on tab 6/2): a batch-update painted every heading yellow → operator: "the font looks off, why is the background yellow?" "Highlighted/scannable" (comment AAAB7ndcDpE) = the native bold heading, which is already scannable — do NOT add color. Render is `gdocs replace` of the template and STOP; no styling pass. (Note: open Google-Docs COMMENTS also highlight their anchored text yellow — that is NOT formatting and clears when the comment resolves; don't try to "fix" it with formatting.)
+> - **The "Oncall Summary for…" line is `HEADING_3`, NOT `TITLE`** (operator decided 2026-06-01: match the section headings = h3). Title is 26pt and duplicates the tab-title size. The template marks it `<h3>`; if the html importer maps it to `TITLE`, correct with a batch-update `updateParagraphStyle namedStyleType=HEADING_3` on that paragraph.
 
 **CRITICAL: Do NOT regenerate the format. Do NOT add tables. Do NOT add sections.** Read the template, fill `{{PLACEHOLDER}}` markers with data from steps 0-8, push the filled template to the gdoc tab. The template IS the format.
 
@@ -296,8 +306,13 @@ Source: comment AAAB6WPRTgI on tab `6/2` (doc `1helRQh0I05stXhMEsroMYxbETPgtdyeN
 12. **Pain Points include trending noisy models.** Pull top 3 from auto-learnings/noisy-trends.md.
 13. **Observe-only SEVs: category counts only, no individual links.** Links only in Hand-off where they're actionable.
 
+**MAJOR-ALERT ACTIVITY IN TIMELINE (mandatory, comment AAAB8p7d1wg 2026-06-01 "why major/critical alerts activities are missing?").** The Daily Timeline (and the Critical-alerts section) must surface ALERTS that fired this shift, not only SEVs. Pull via `meta monitoring.alert list --oncall=mrs_online_training --start-time=<WINDOW_START_EPOCH> --end-time=<now> --urgency-is=CRITICAL,MAJOR --state-is=ACTIVE,CLEARED -o json -l 200` (the `alert` field = full title; `entity`/`urgency`/`state` present; resolvable url from `meta monitoring.alert metadata --alert-id=<key> -o json` .url → onedetection, NEVER sevmanager). Attribute each alert to its firing day and add a one-line `🔔 alert:` entry under that day with model + urgency + outcome + onedetection link. The 🚨 Critical-alerts section stays page/robocall-only; the timeline carries the broader CRITICAL/MAJOR firing history.
+
+**WEEKDAY + TUE-START CORRECTNESS (mandatory, comment AAAB8p7d1wc 2026-06-01 "two mistakes").** (a) Drop every pre-shift day (anything before the most-recent Tuesday 09:00 PT). (b) Compute each day's weekday label from its date — NEVER hand-type it. Use `date -d <YYYY-MM-DD> +%A` or python `datetime`. The 6/2 tab rendered 5/25 as "Sun" (actually Monday) and the whole early week off-by-one; the timeline must start at Tue 5/26 with correct labels.
+
 **Data sources for Daily Timeline:**
 - daily-brief state files (steps 0, 3-6)
+- `meta monitoring.alert list ... --urgency-is=CRITICAL,MAJOR` (major-alert activity — see rule above)
 - OT bot GChat space (`spaces/AAQAVOjYc80`) — read bot triage threads for per-SEV context
 - auto-learnings/digests/2026-W{NN}.md — cross-incident patterns
 - WP posts from mrs.ot group
@@ -325,17 +340,32 @@ Source: comment AAAB6WPRTgI on tab `6/2` (doc `1helRQh0I05stXhMEsroMYxbETPgtdyeN
 
 #### SLICK SLI probe (runs before template fill)
 
+  **REQUIRED — probe BOTH named SLICK services (operator 2026-06-01, thread `2aXJCXZ4VY0`): `Discovery Online Models` AND `Instagram Online Models`.** These two populate the template's `SLICK status` section (`{{SLICK_DISCOVERY}}`, `{{SLICK_INSTAGRAM}}`). Do NOT probe only `mrs_online_training` — that's a different/generic id.
+
   ```bash
-  # Discover SLIs for the service (resolve the actual service-id via slick.service first if mrs_online_training is not the canonical id):
-  meta slick.sli list --service-id=mrs_online_training --output=json
-  # Performance over the shift window (epoch seconds; performance returns all SLIs for the service):
-  meta slick.sli performance --service-id=mrs_online_training \
-    --start-time=<WINDOW_START_EPOCH> --end-time=<WINDOW_END_EPOCH> --output=json
+  # 1. Resolve each group's service_id (the display name is NOT the service_id). Match by name:
+  meta slick.service list --output=json   # find the service_id whose name == "Discovery Online Models" / "Instagram Online Models"
+  # 2. For EACH resolved <service_id>, pull SLI definitions + window performance.
+  #    🛑 MANDATORY `-l 500` (comment AAAB8p7d1vo 2026-06-01 "no, I see some are red"):
+  #    WITHOUT a high limit, `slick.sli performance` returns ONLY the first ~10 SLIs (default limit),
+  #    which can all read OK by chance → a FALSE "✅ healthy". With -l 500 the full roster is probed:
+  #    Discovery (mrs_ml/v1_discovery)=199 SLIs, Instagram (mrs_ml/v1_instagram)=48 SLIs — matching the
+  #    operator's SLICK dashboard. NEVER assert healthy unless the full-roster probe shows zero VIOLATION.
+  meta slick.sli list --service-id=<service_id> --output=json -l 500
+  meta slick.sli performance --service-id=<service_id> \
+    --start-time=<WINDOW_START_EPOCH> --end-time=<WINDOW_END_EPOCH> --output=json -l 500
   ```
 
-  Surface red signals inline: `<sli_name>: <status> (value=<v>, budget_burn=<b>)`. If the probe fails (CLI error, empty result, network) → fall back to the TODO + dashboard links so the oncall fills:
-  - `TODO (oncall): Discovery Online Models SLI — green / yellow / red? value? budget burn?  https://fburl.com/monitoring/rkhcqpuj`
-  - `TODO (oncall): Instagram Online Models SLI — green / yellow / red? value? budget burn?  https://fburl.com/monitoring/gmdu02yq`
+  Render each group's worst-SLI status into its placeholder:
+  - `{{SLICK_DISCOVERY}}` / `{{SLICK_INSTAGRAM}}` = `✅ healthy` | `⚠️ <sli> at-risk (value=<v>, burn=<b>)` | `🔴 <sli> breached (value=<v>)`.
+  - **The "only 10 SLIs" symptom was a MISSING `-l 500`, not an API scope limit (corrected 2026-06-01, comment AAAB8p7d1vo).** Earlier guidance blamed a narrow API scope; the real cause is the default result limit. With `-l 500` the probe returns the full roster (Discovery 199, Instagram 48) and the VIOLATION reds the operator sees on the dashboard DO appear. So: always probe with `-l 500`, then HONESTLY report the reds.
+  - **DO NOT assert a raw "all SLIs OK" count.** Render only: status icon + the SPECIFIC breached SLI names (worst few by gap) + the dashboard link. Never claim `✅ healthy` if ANY SLI has `status=VIOLATION` in the full-roster probe. A false "healthy" when reds exist is the exact failure operator flagged (comment AAAB8p7d1vo).
+  - **Any non-healthy group → ALSO add a Hand-off item** ("SLICK: <group> <sli> at-risk/breached — investigate").
+  - Surface all red signals inline: `<sli_name>: <status> (value=<v>, budget_burn=<b>)`.
+
+  If a service_id can't be resolved OR the probe fails (CLI error, empty, network) → render the TODO fallback for THAT group (never silently omit), so the oncall fills:
+  - `TODO (oncall): Discovery Online Models SLICK — green / yellow / red? value? budget burn?  https://fburl.com/monitoring/rkhcqpuj`
+  - `TODO (oncall): Instagram Online Models SLICK — green / yellow / red? value? budget burn?  https://fburl.com/monitoring/gmdu02yq`
 
 - **Headline numbers** — explicit table, render in this row order. **Schema MUST match 5/12 reference tab exactly: 3 columns `[Metric, Count, Detail]` — NO `#` column.** (Operator-validated 2026-05-18: 5/12 is the canonical layout; any divergence is a regression.)
 
@@ -594,21 +624,21 @@ NOTE: `gdocs` (`/usr/local/bin/gdocs`) and `meta google.docs.*` look interchange
 
 **(c) Apply operator-feedback rules** (from comments on prior 5/5 section, anchors `[g]…[l]`). Read these from `ot-shift-gdoc-config.json → standing_open_items_from_operator_comments`. They are HARD requirements for the rendered draft:
 
-- **`[g]` Alerts depth.** Section 4 must list every actionable alert in window with details + on-page comments. Pull via `meta oncall.feed list ...` (existing) AND for each alert: `meta oncall.feed metadata --id=<alert_id> -o json` + `meta oncall.feed comments --id=<alert_id> -o json` to capture investigation notes.
+- **`[g]` Alerts depth.** Section 4 must list every actionable alert in window with details + investigation notes. Pull via `meta oncall.feed list ...` (existing) AND for each alert: `meta oncall.feed describe --id=<alert_id> -o json --no-truncate` (single call — includes title, priority, assigned_user, description + investigation notes; `oncall.feed` has NO `metadata` or `comments` action — canonical is `describe`). For raw OneDetection alert detail (suppression state, urgency, resolvable url): `meta monitoring.alert metadata --alert-id=<full_alert_key> -o json`.
 - **`[h]` User posts completeness.** After running step 5's `meta workplace.post list`, sanity-check the count against the GChat space's `ot-post-monitor` cron output for the same window — these MUST match. If counts diverge, list the missing post URLs explicitly in the section header for operator follow-up.
 - **`[i]` Specific missing post.** Confirmed pattern: posts moved between Workplace groups can be missed. Use `--include-cross-posted` when available; otherwise verify the count check from `[h]`.
 - **`[j]` Creation Date column, sorted.** Section 5 user-posts table MUST include a `Created` column. Sort rows oldest → newest by `created` field. Use `YYYY-MM-DD HH:MM PT` rendering.
 - **`[k]` Add new "Adhoc Ask" subsection** (under Section 4 or Section 5 — operator's choice; default below Section 5). Captures urgent escalations the oncall got drafted into via 1:1 / GChat (e.g., prior shift had Patrick Tan + Shuguang requests). Source: scan the bot's own messages in `spaces/AAQAVOjYc80` whose content matches `(urgent|UBN|escalation|<oncall_unixname>)` and the human reply included a 1:1 mention. Default rendering: `_TODO (oncall): list any 1:1 / GChat escalations this shift_` if the heuristic finds none — never silently omit.
 - **`[l]` Diff summary, top 5 only.** Section 6 must summarize total diff count + top 5 by impact (heuristic: prefer diffs that close a SEV from this shift, then diffs landed by the outgoing oncall, then highest line-count). Render full diff list as a collapsed `<details>` block beneath the top-5.
 - **`[m]` SEV Stack column.** Section 3 SEV tables MUST include a `SEV Stack` column (between SEV-id and Title). Pull via `meta sevmanager.sev metadata --sev=S<id> -o json | jq -r '.stack // empty'`. Source comment: AAAB5ghIkk0.
-- **`[n]` Table background — header only.** When rendering tables, set background color (light gray / theme color) ONLY on the HEADER row — NEVER on data rows. Default markdown-converted-to-table rendering can produce alternating-row shading; if it does, post-process via `meta google.docs.format` after the insert to clear data-row shading. Source comment: AAAB5ghIkkQ.
+- **`[n]` Table background — header only.** When rendering tables, set background color (light gray / theme color) ONLY on the HEADER row — NEVER on data rows. Default markdown-converted-to-table rendering can produce alternating-row shading; if it does, post-process via `gdocs batch-update` with `updateTableCellStyle` (set data-row cells to white `{"red":1,"green":1,"blue":1}` / clear `backgroundColor` with `fields:"tableCellStyle.backgroundColor"`) to clear data-row shading. NEVER `meta google.docs.*` (write path goes through the wrong transport — see cheatsheet HARD RULE). Source comment: AAAB5ghIkkQ.
 
 **(d) Persist state.** Write `last_run_epoch`, `last_window_end`, `last_known_oncall = <outgoing_unixname>` to `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-shift-summary-state.json`. Also write `last_gdoc_append_epoch` + `last_gdoc_section_heading` to a new key for the gdoc-side dedup guard.
 
-**(e) Idempotence + dedup guard.** Before appending in (b), `meta google.docs export --id=<doc_id> --format=txt | grep -F "<DATE_RANGE>" -c` — if ≥1, a section for THIS WINDOW already exists (could be operator-curated or prior bot run). Do NOT append a duplicate. Instead:
+**(e) Idempotence + dedup guard.** Before appending in (b), `gdocs get <doc_id> --untrusted-authors-mode | grep -F "<DATE_RANGE>" -c` — if ≥1, a section for THIS WINDOW already exists (could be operator-curated or prior bot run). Do NOT append a duplicate. Instead:
 
-  1. Locate the existing section's start/end indices via `meta google.docs structure --id=<doc_id> --tab-id=<tab_id> -o json` (look for HEADING elements containing the date range).
-  2. UPDATE in place: render fresh body, then either (a) `meta google.docs.delete-content range --start=<s> --end=<e>` followed by an `insert` at `<s>`, or (b) targeted `replace-all` on individual cells if only a few values changed.
+  1. Locate the existing section's start/end indices via `gdocs get-structure <doc_id> --tab-id=<tab_id>` (look for HEADING elements containing the date range).
+  2. UPDATE in place. **First check comment count** (`gdocs comments list <doc_id> --untrusted-authors-mode`): if the tab has comments, `deleteContentRange` / `replace` are hook-blocked — use `gdocs content find-replace` or `gdocs batch-update` (insertText/updateTextStyle) for targeted cell updates only. If comment-free, either (a) `gdocs batch-update` with `deleteContentRange` (start=<s>,end=<e>) followed by `insertText` at <s>, or (b) `gdocs content find-replace` on individual cells if only a few values changed. NEVER `meta google.docs.*` for any write.
   3. If you can't safely locate the section (ambiguous heading), SKIP the gdoc write and log `gdoc-update-skipped ambiguous-section <DATE_RANGE>`. Still send the GChat post.
 
 This prevents the recurrence of the 2026-05-12 issue where the bot appended a `5/12` section duplicating the operator's existing `5/5` section (both labelled `5/5 – 5/12`). See `consolidate_no_duplicates` rule in `ot-shift-gdoc-config.json`.
@@ -640,9 +670,9 @@ NEVER omit a robocall from the shift summary; missing one is the highest-impact 
 
 If EITHER gate fails → drop silently. Anti-regression: S659671 (not OT-tagged, IFR error rate T4 serving) and S659877 (IGML T4 serving — no oncall engagement) MUST drop, not appear in observe-only list.
 
-**DIFFS-CLOSED FILTER (operator gdoc comments — bot-internal diffs cluttered the diffs list):** the "Diffs landed" section excludes bot-internal/sync/tooling diffs. Whitelist: tag `mrs-ot-reliability` OR path prefix `fbcode/pe_mrs_ml/` (oncall-authored fixes only — NOT auto-generated sync diffs from `ot-notes-fbcode-sync`/`ot-notes-fbcode-sync-weekly`). For each surviving diff: prepend a 3-8 word descriptor pulled from `diff title` (first line). NEVER emit bare `D<id>` tokens.
+**DIFFS-CLOSED FILTER (operator gdoc comments — bot-internal diffs cluttered the diffs list):** the "Diffs landed" section excludes bot-internal/sync/tooling diffs. Whitelist: tag `mrs-ot-reliability` OR path prefix `fbcode/pe_mrs_ml/` (oncall-authored fixes only — NOT auto-generated sync diffs from `ot-notes-fbcode-commit`/`ot-notes-fbcode-sync-weekly`). For each surviving diff: prepend a 3-8 word descriptor pulled from `diff title` (first line). NEVER emit bare `D<id>` tokens.
 
-**ALERTS SECTION (operator gdoc comments — "need to know 'critical alerts' fired, which robocalled oncall"):** alerts section emits TWO counts (total triaged / major or UBN) and enumerates every major/UBN alert inline with (alert-name, model, paged-oncall-name, detector-page URL). Never lump as a single total. Use `short_id` from `meta oncall.feed metadata --id=<numeric> -o json` as the href (the bare-numeric `?alert_id=<id>` URL does NOT resolve for [AGG] alerts — verified 2026-05-28 thread `WR9DFGuQ3dU` on alert A2449443538836650).
+**ALERTS SECTION (operator gdoc comments — "need to know 'critical alerts' fired, which robocalled oncall"):** alerts section emits TWO counts (total triaged / major or UBN) and enumerates every major/UBN alert inline with (alert-name, model, paged-oncall-name, detector-page URL). Never lump as a single total. Use the `url` field from `meta monitoring.alert metadata --alert-id=<full_alert_key> -o json` as the href (the bare-numeric `?alert_id=<id>` URL does NOT resolve for [AGG] alerts; `oncall.feed` has no `metadata` action — use the `monitoring.alert` namespace for raw alert URLs — verified 2026-05-28 thread `WR9DFGuQ3dU` on alert A2449443538836650).
 
 **SECTION-EXCLUSION RULES (operator thread `WhmgQGD72MQ` 2026-05-28 21:47 PT — two generic feedback):**
 

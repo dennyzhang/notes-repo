@@ -277,7 +277,7 @@ Procedure:
 
    **Safety gates (ALL must pass):**
    1. Job is on the **interval-only allowlist**: `ot-sev-monitor, ot-alert-monitor, ot-post-monitor, ot-prompt-change-validator, ot-cron-health-watch (excl-self), ot-notes-deletion-watch, ot-notes-commit-push, ot-disk-watch, ot-thread-summarizer, ot-fbpkg-cap-watch`. These are all READ-ONLY crons whose only external write is gchat post. Killing them mid-run loses at most the current run's findings; next schedule re-discovers.
-   2. Job is NOT on the **kill-prohibited list**: any cron with `cron=` schedule (daily/weekly), OR any cron that does WRITES beyond gchat (e.g., `ot-daily-learning-mitigated-*` writes archive files — killing mid-write could leave partial files). NEVER auto-kill `daily-brief, ot-daily-learning-debugging, ot-daily-learning-mitigated-{sevs,posts,alerts}, ot-knowledge-curation, ot-knowledge-distillation, ot-postmortem-validator, ot-triage-summary, ot-shift-summary, ot-sev-tag-review, ot-myclaw-backup-nightly, ot-myclaw-weekly-restart, ot-notes-fbcode-sync, ot-metrics-rollup, ot-human-attention-brief`.
+   2. Job is NOT on the **kill-prohibited list**: any cron with `cron=` schedule (daily/weekly), OR any cron that does WRITES beyond gchat (e.g., `ot-daily-learning-mitigated-*` writes archive files — killing mid-write could leave partial files). NEVER auto-kill `daily-brief, ot-daily-learning-debugging, ot-daily-learning-mitigated-{sevs,posts,alerts}, ot-knowledge-curation, ot-knowledge-distillation, ot-postmortem-validator, ot-triage-summary, ot-shift-summary, ot-sev-tag-review, ot-myclaw-backup-nightly, ot-myclaw-weekly-restart, ot-notes-fbcode-commit, ot-metrics-rollup, ot-human-attention-brief`.
    3. The stuck process has been in `Sl` (sleeping) state for `>= expected_window * 4` (e.g., 1h interval cron → must be stuck ≥15min before killing; 15min interval cron → ≥1h).
    4. The cron has NOT been auto-mitigated for `hung` in the last 6h (dedup; if it hung twice in 6h, there's a deeper bug — escalate to operator).
    5. The daemon log shows EXACTLY ONE `Scheduled job firing: <job_id>` line in the last 2h with no matching completion (single stuck process to kill, not a thundering-herd).
@@ -399,4 +399,8 @@ Future extensions:
 - v3 auto-mitigation patterns: **✅ `*→hung` kill-stuck-subprocess landed 2026-05-17 (thread `4GTCGhniXXU`)** with safety gates (allowlist + state-check + dedup) and SIGTERM-only (no SIGKILL). Still pending: per-keyword fix table for `silent_failure` (e.g., "BOT_INCOMPLETE: working copy dirty" → `cd ~/fbsource && sl status` to surface the dirty file). Build the table empirically from real failures observed in production.
 - Slack/page integration if HIGH severity persists >6h.
 - Cross-cron correlation: if multiple crons fail simultaneously, infer daemon-wide issue (auth token expired, network outage, etc.) and post a single rolled-up alert.
+
+## Delivery discipline (HARD, 2026-05-30)
+
+The daemon posts your final response to GChat verbatim unless it is EXACTLY `HEARTBEAT_OK`. Post ONLY on a real failure-state TRANSITION (new failure, persistent-failure escalation, or recovery). On a clean run (0 transitions, all jobs healthy) respond EXACTLY `HEARTBEAT_OK {jobs_audited: N, transitions: 0, alerts_posted: 0}` and NOTHING else — no "All clear.", no "State file updated.", no "Audit complete.", no summary block. Narration/no-op text leaks to chat as spam (operator 2026-05-30).
 

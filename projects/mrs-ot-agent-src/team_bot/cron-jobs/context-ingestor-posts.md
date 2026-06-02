@@ -45,7 +45,7 @@ Time budget: ~3 min per expert; cap = entire watch list (~7 today).
    b. **Pull last 7 days of posts** (14 if first-run):
       ```bash
       meta workplace.feed list --author=<unixname> \
-          --since="7 days ago" --limit=50 -o json
+          --after="7 days ago" --limit=50 -o json
       ```
 
       The `meta workplace.feed list --author=<unixname>` works across all groups the operator + expert share visibility on. **Important: this is per-author, not per-group**, so it captures posts the expert made in IG Relevance Reliability Working Group, mrs.ot, MVAI Users, etc. — all in one query.

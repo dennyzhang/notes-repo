@@ -28,9 +28,24 @@ sl cat -r master path/to/file | grep <marker>
 sl cat -r <hash_or_bookmark> path/to/file
 
 # View accumulated changes for a folder over N days (in browser)
-sl log -r "last(public() & date('<YYYY-MM-DD'), 1)" -T '{node|short}\n'  # get baseline hash
-sl diff -r <baseline> -r . -- path/to/folder/ | pastry                    # paste for web viewing
-# Open the paste URL — renders diff with syntax highlighting
+# 1. Baseline: the date() revset ABORTS on the notes repo (100k+ commit graph) and a -l walk
+#    only spans ~1.5 days per 600 commits. Use the -d date FILTER (short-circuits) instead:
+sl log -d '<YYYY-MM-DD' -l 1 -T '{node}\n'                                 # newest commit before the window
+# 2. Paste: `pastry`'s upload service is flaky (fails ERR_INVALID_CHAR on ANY input when down).
+#    Fallback that works: `meta phabricator.paste create --stdin` (different upload path).
+sl diff --stat -r <baseline> -r . -- path/to/folder/ | meta phabricator.paste create --title="..." --stdin --language=diff -o json
+#    --language=diff makes the paste RENDER as a colored +/- diff (not plain text). Use it for both
+#    the --stat map AND the full-content diff. The --stat map alone is usually "not good enough" when
+#    the operator wants to read the actual content.
+# 3. For a multi-day window the RAW diff is multi-MB and dominated by machine churn (cron-prompt-backups/
+#    frozen snapshots, state/*.json, incidents/auto-learnings/mega-learnings archives). EXCLUDE that to get
+#    a reviewable content diff. NOTE: `sl diff -X <pat>` SILENTLY NO-OPS with a positional path (does not
+#    filter) — instead drop noise file-blocks post-hoc:
+#      sl diff -r <baseline> -r . path/to/folder/ > /tmp/full.diff
+#      python3 -c "import re;n=re.compile(r'(cron-prompt-backups|/state/|/incidents/|auto-learnings|mega-learnings|bot-debugging-threads|resolved-(sevs|alerts|posts))');k=True;o=[];b=[]
+#      [ ( (o.extend(b) if k else None), b.clear() ) for _ in [0]]  # (use the flush-on-'diff --git' loop)"
+#      # simpler: split on lines starting 'diff --git ', keep blocks whose path !~ noise regex, then paste.
+# Browse alternative (no paste): https://www.internalfb.com/code/notes/users/<unixname>/ (CodeHub history)
 ```
 
 ## The push-divergence dance (when "Root is too far behind" fires)

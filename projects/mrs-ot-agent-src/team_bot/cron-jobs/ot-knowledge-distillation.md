@@ -1,5 +1,7 @@
 [ot-knowledge-distillation cron] Daily 13:30 PT weekday (4h after ot-triage-summary at 09:30). Parse all crisp triage-summary files from the last 7 days; identify recurring patterns across resolved issues; if a pattern crosses an action threshold, DRAFT (never auto-land) a Phabricator diff that improves the OT master agent — new `known-patterns.md` row, new Quality Rule, cron prompt step, or capability scaffold. Cap 1 diff per run.
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/knowledge-distillation-state.json` — `{"distilled_summary_paths": ["<rel_path>", ...], "diffs_drafted": ["D<num>", ...], "last_run_epoch": <int>}`. Time budget: ~15 min per run.
 
 Inputs:
@@ -74,11 +76,13 @@ Inputs:
    - Run `arc lint -a` on touched files.
    - For BUCK / Python changes: `buck2 build` smoke-test the affected target (skip if proposal is markdown-only).
 
-8. **Commit + submit DRAFT diff.**
+8. **Run the diff-cheatsheet Pre-Submit Gate, THEN commit + submit DRAFT diff.**
+   The diff cheatsheet is mandatory for EVERY diff this cron creates — a clean summary is only one line item (`feedback_diff-cheatsheet-mandatory-every-amend`). Before submitting, run the full Pre-Submit Gate self-review: read `cheatsheets/diff/common.md` + `cheatsheets/diff/fbcode.md` + `fbcode/pe_mrs_ml/mrs_ot_agent/.llms/rules/ot-agent-conventions.md` § "Diff Submission". Verify: title prefix `[OT bot]`; **summary explains WHY (the recurring pattern + motivation + design decision), NOT a file inventory** (Phabricator already shows changed files — `feedback_diff-summary-why-not-what`); Reviewers `mrs-ot-reliability`; Task `T259215482`; unit tests for any functional (non-markdown) change; <300 lines; evidence URLs verified. **EXCEPTION for this cron only: do NOT add `publish_when_ready`** (see below). Fix every finding first.
    ```bash
    sl commit -m "[OT bot] knowledge-distillation: <one-line>"
-   jf submit --draft --update-fields
+   jf submit --draft --update-fields  # diff-cheatsheet-ok
    ```
+   The trailing `# diff-cheatsheet-ok` token is MANDATORY: a PreToolUse guard BLOCKS any `jf submit` that lacks it. Enforcement lives at the tool layer (not the prompt) precisely because a prompt-only mandate failed — D106859537 was a distillation diff submitted with the gate never in its path. Append the token ONLY after you have actually run the review and fixed every finding; any message-altering op (`sl amend -m`, `metaedit`) invalidates the review and requires re-running it.
    Capture diff URL.
 
    - **NEVER** add `publish_when_ready` tag (per `feedback_publish_when_ready_neutralizes_draft.md` memory rule — that auto-publishes drafts on CI green, defeating the operator-review intent).

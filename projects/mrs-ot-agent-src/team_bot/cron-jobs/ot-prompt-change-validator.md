@@ -1,5 +1,7 @@
 [ot-prompt-change-validator cron] Every 10 min (interval=600s). Detect cron-prompt edits via sqlite-prompt-diff against a snapshot; for each changed prompt, simulate the new prompt against a representative past triage from the same cron to verify the new prompt still produces compliant output. Catches silent-failure prompt edits BEFORE the next live cron fire.
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 Goal: reduce operator's burden of catching silent failures. Today (2026-05-17) operator caught 5 silent failures in 2 hours from prompt-only edits with no execution verification. This cron automates pre-flight validation.
 
 State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/ot-prompt-change-validator-state.json` —
@@ -82,7 +84,9 @@ All 5 were prompt-only edits where I claimed "shipped" without executing. This c
          - Bad pattern: "X = distinct failure class; new P-row needed" — that's the topic, not the insight
          - Good pattern: "X mechanism causes Y symptom; mitigation is Z. [P-row landed]" — that's the insight
          - FAIL if any learning bullet reads as a topic-only summary without a falsifiable claim or actionable mitigation
-      - `--meta` CLI commands referenced are flag-correct (you can probe with `--help` if uncertain)
+      - `meta` CLI commands referenced are flag-correct. **MANDATORY before flagging any CLI flag/action as invalid: actually run `meta <platform>.<object> <action> --help` and confirm the flag/action is genuinely absent. NEVER flag from memory or pattern-match.** Two false-positive classes to avoid (both produced wrong FAILs):
+        1. **Prohibition-context strings.** A line saying "NEVER `meta google.docs.*`" or "`--foo` is FORBIDDEN" is documentation, NOT an invocation. Only flag a command that is actually being *invoked* (inside a ```bash block or as a step action), never one inside a NEVER/FORBIDDEN/do-not rule. (2026-05-28: flagged ot-shift-summary's `NEVER meta google.docs.*` rule as a bug.)
+        2. **Valid flags assumed invalid.** `--item-type-is=Alert` IS valid for `meta oncall.feed list` (in `--help` + works live); flagging it was wrong (2026-05-29: false-FAILed ot-debug-quality-weekly + ot-triage-summary). Conversely `--since` is genuinely invalid for `meta workplace.feed list` (use `--after`) and `meta ai.mast-job error` (no time-window flag at all) — those were REAL and correctly actionable. The ONLY way to tell real from false is `--help`, every time.
 
       Report: PASS (prompt is sound, past triage would still validate) | FAIL (prompt has a defect, here are the issues + suggested fix) | INCONCLUSIVE (past triage not representative enough, recommend manual review).
 

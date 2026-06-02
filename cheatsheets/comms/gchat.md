@@ -30,6 +30,44 @@ Operational rules for GChat — Claude sessions, MyClaw/MetaClaw daemons, and `c
 - Alternative: `messageReplyOption: REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD` when threading by `threadKey`
 - Dropping `thread.name` posts to the main space → looks like the bot ignored the user's thread
 
+**Fold same-topic messages (2026-05-29):** when answering MULTIPLE messages on the same topic, fold into ONE reply in the most-relevant existing thread — do not post several top-level messages. Scattered replies across many threads (38 in one day on 2026-05-28) was the root cause of a "115 messages from you" volume complaint. Threading is the third volume lever after brevity + noise-suppression.
+
+**Harness enforcement — the rule is NOT memory-only anymore (2026-05-29, thread `GSSYzY7flFQ`):** memory/cheatsheet discipline alone kept failing because the lapse happens exactly when attention is on the substantive work. So RULE #1 is now backstopped by a `PreToolUse` Bash hook in each space's `.claude/settings.json` that BLOCKS any `meta google.chat.message send ... spaces/<MY_SPACE>` lacking `--reply-in-thread`. The harness fails the tool call with a reminder — a bare top-level send cannot happen by accident.
+- **Escape hatch:** append `# new-topic` to the command to consciously confirm a genuinely-new top-level thread.
+- **Install / restore (any MyClaw instance, space-agnostic):** `python3 <bootstrap-dir>/apply-space-hooks.py ~/.myclaw-<INSTANCE>/spaces/<SPACE_ID>/.claude/settings.json` (idempotent; derives space id from the path; backs up before mutate). Re-applied on every reinstall by `bootstrap.sh` `apply_space_hooks()`.
+- **Raw payload (manual copy-paste, no script):** add this object to `.claude/settings.json` → `hooks.PreToolUse[]` (replace `<MY_SPACE>` with the instance's home space id, e.g. `AAQAVOjYc80`):
+  ```json
+  {
+    "matcher": "Bash",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "cmd=$(jq -r '.tool_input.command // empty'); case \"$cmd\" in *\"google.chat.message send\"*\"spaces/<MY_SPACE>\"*) case \"$cmd\" in *\"--reply-in-thread\"*) : ;; *\"# new-topic\"*) : ;; *) echo \"BLOCKED: send to home space without --reply-in-thread. Fold into the relevant existing thread (--reply-in-thread=spaces/<MY_SPACE>/threads/<id>). If genuinely a NEW topic, append '# new-topic' to confirm. (feedback_fold-messages-into-threads)\" >&2; exit 2 ;; esac ;; esac"
+      }
+    ]
+  }
+  ```
+  Merge into the existing `PreToolUse` array (don't replace it). `exit 2` is what blocks the send; the message goes to stderr. Validate after: `python3 -m json.tool .claude/settings.json`.
+- Detail + problem/goal framing: `~/.myclaw-ot-bot/RULES.md` §"Enforcement: Thread-reply PreToolUse hook"; backstop metric in `ot-bot-volume-watch` step 11 (daily distinct-thread count ≤10).
+
+## RULE #2 — BLUF: lead with the bottom line, then the details
+
+**Operator-set reply protocol (2026-05-30):** *"start with simple and more important msg, then critical details."* Every reply is an inverted pyramid — the reader gets the answer in the first line; supporting detail is layered below for whoever needs to drill in.
+
+| Position | Content |
+|---|---|
+| **Line 1** | The bottom line — the answer / status / decision in the plainest words. Readable standalone; a busy reader can stop here. |
+| **Middle** | The critical details that back the bottom line (what changed, the numbers, the why). |
+| **End** | Any open question or the one ask, clearly marked. |
+
+**Why:** the operator reads the first line and decides whether to drill in. Burying the answer under setup, methodology, or caveats forces them to parse the whole message to extract the point — the inverse of signal-first. A reply where the reader has to reach paragraph 3 to learn the status failed this rule (2026-05-30: operator said *"I don't understand what's the status"* after a detail-first reply).
+
+**How to apply:**
+- Open with the conclusion, not the journey. ❌ "I checked X, then Y, then Z, so the result is DONE." ✅ "✅ Done. (checked X/Y/Z)."
+- One bottom-line sentence first, even for complex multi-part work — then expand.
+- Caveats, methodology, and provenance go LAST, never before the answer.
+- Pairs with § Brevity discipline: BLUF decides *order*; brevity decides *how much*. Lead-with-marker (§ Visual marker vocabulary) makes line 1 scannable.
+
 ## Send vs Read — who can do what
 
 | Surface | Read | Send |
@@ -67,11 +105,12 @@ Operational rules for GChat — Claude sessions, MyClaw/MetaClaw daemons, and `c
 
 Default state is no-message. Every bot reply must earn its line in the operator's GChat — if unsure, don't send.
 
-**3 anti-patterns to cut:**
+**4 anti-patterns to cut:**
 
 1. **Status-during-work.** Don't post "🔁 Working on X, ETA 10 min" then "✓ done". Stay silent during work; post ONCE when done. Exception: work >15 min AND operator waiting on the specific deliverable → ONE brief "still on it, ETA N min" is OK.
 2. **Post-action self-confirms on pre-authorized moves.** Don't post "✓ Shipped X" / "✓ Memory saved" / "✓ Sync verified" after pre-authorized reversible work. The action speaks for itself. Reserve ✓ for "you asked me to verify, here is the verification."
 3. **Multi-section walls.** Default to ONE bullet + visual marker, not 3 paragraphs. Multi-step progressions (A → B → C of related fixes) should be ONE summary message, not 3 separate messages with full reasoning.
+4. **Post-close recap / re-confirmation.** Once a thread is closed, or work is done-and-verified (possibly already confirmed elsewhere), do NOT send a "✓ everything's consistent and done" / "still good" summary — **silence IS the close.** Re-confirming a settled state adds zero signal. (2026-05-30 thread `cAYCph-1ob0`: operator — *"what's the point of proactively sending this msg?"* — after a redundant post-close verification recap.)
 
 **Discipline rules:**
 

@@ -62,19 +62,9 @@ State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/triage-sum
 
 8. **Append to `summarized_ids` state.** Persist atomically. Update `last_run_epoch` to now.
 
-9. **Send GChat digest to `spaces/AAQAVOjYc80`** if any summaries written:
-   ```
-   📒 [Daily triage summary — N resolved | YYYY-MM-DD]
-   - SEVs: <count>
-   - Alerts: <count>
-   - Posts: <count>
-   - False alarms (R16): <count>
-   - Out-of-scope drops (R18): <count>
-   Files: ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-{sevs|alerts|posts}/<YYYY-MM>/
-   ```
-   Cap 800 chars. Then respond `HEARTBEAT_OK`.
+9. **NO GChat digest (2026-05-30 merge — folded into `daily-brief`).** This cron is now **file-writing only**: write the durable per-issue resolved summaries (steps 7–8) and respond with EXACTLY `HEARTBEAT_OK` — NEVER post a digest to GChat. The morning "Recently resolved (last 48h)" rollup is rendered by `daily-brief` (its section 5) as part of the single merged morning team digest; a separate `📒 Daily triage summary` post here would duplicate it. The durable files this cron writes remain the system of record that `daily-brief` and `ot-shift-summary` read from.
 
-10. **If zero new resolved issues** → respond `HEARTBEAT_OK` only. Do NOT send anything to GChat.
+10. **If zero new resolved issues** → respond `HEARTBEAT_OK` only. (Same as the normal path — this cron never posts to GChat anymore.)
 
 ## Safety / failure modes
 

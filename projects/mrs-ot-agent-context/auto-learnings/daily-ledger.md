@@ -7,6 +7,139 @@ Symlink: `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/learnings.md` → this file.
 
 ---
 
+## 2026-06-01 (L76–L77) — New entries this run
+
+### L76
+- **Type:** operational — ot-alert-monitor MONITOR routing gap (L74 not propagated)
+- **Trigger:** ot-alert-monitor 2026-06-01T05:03 PDT — facebook_ifr_main_mtml_main 2125752019 (MONITOR · REAL_OT_FAILURE_RECURRING · confidence:medium) and ig_reels_tab_cs_omni_retrieval 880283513 (MONITOR · UPSTREAM_INFRA · confidence:medium) both posted to team space `spaces/AAQA2bZMw24`. L74 applied the MONITOR exemption to ot-sev-monitor but not ot-alert-monitor. The ot-alert-monitor TEAM-SPACE GATE clause (a) still routed MONITOR/confidence:medium to team space.
+- **Learning:** ot-alert-monitor's TEAM-SPACE GATE must have the same MONITOR exemption as ot-sev-monitor (L74): ALL MONITOR verdicts → operator 1:1 (`spaces/AAQAVOjYc80`) only, regardless of confidence level. MONITOR/medium or MONITOR/low are "uncertain, not urgently paging" — quiet operator review, not team noise.
+- **Action:** Appended to ledger + amended ot-alert-monitor TEAM-SPACE GATE header + Learned Rule 8 (2026-06-01). Notes → sqlite VERIFY_PARITY_OK. Backup: `cron-prompt-backups/ot-alert-monitor__20260601T151147Z_pre-l76.notes.md`.
+- **Rollback (operational):**
+  ```bash
+  cp ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups/ot-alert-monitor__20260601T151147Z_pre-l76.notes.md \
+     ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-alert-monitor.md
+  sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db \
+    "UPDATE jobs SET prompt = readfile('/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-alert-monitor.md') WHERE id='ot-alert-monitor';"
+  ```
+
+---
+
+### L77
+- **Type:** operational — ot-post-monitor narration prefix on no-op runs
+- **Trigger:** ot-post-monitor 2026-05-31 through 2026-06-01: 10+ no-op runs emitted "State updated. No new posts since last run. State updated, lock released." and "GChat health: 403_seen=0..." before HEARTBEAT_OK. All delivered=skipped (daemon correctly suppressed via HEARTBEAT_OK detection), so no double-post occurred.
+- **Learning:** All no-op code paths (no new posts, prune-only, lock-release) must emit bare `HEARTBEAT_OK` with zero preceding text. Narration prefix violates clean-output principle (L75 generalized: no text before HEARTBEAT_OK in paths where daemon auto-delivery would be incorrect). Frequency (10+ in 24h) indicates a structural cron prompt issue, not a one-off.
+- **Action:** Appended to ledger + amended ot-post-monitor Learned Rule 5 (2026-06-01). Notes → sqlite VERIFY_PARITY_OK. Backup: `cron-prompt-backups/ot-post-monitor__20260601T151147Z_pre-l77.notes.md`.
+- **Rollback (operational):**
+  ```bash
+  cp ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups/ot-post-monitor__20260601T151147Z_pre-l77.notes.md \
+     ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-post-monitor.md
+  sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db \
+    "UPDATE jobs SET prompt = readfile('/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-post-monitor.md') WHERE id='ot-post-monitor';"
+  ```
+
+---
+
+## Validator Discrepancies
+
+### 2026-06-01
+- validator_discrepancy_count_today = 0
+- No `⚠ Validator found` markers in any raw_responses from the 24h window. No auto-loop items.
+
+---
+
+## 2026-05-31 (L73–L75) — New entries this run
+
+### L73
+- **Type:** operational — ot-sev-monitor dedup regression (triple-notification on S669904)
+- **Trigger:** ot-sev-monitor 2026-05-30 runs at 01:06, 02:00, 05:04 PDT all processed S669904 as NEW, yielding 3 separate PAGE notifications to yucheng and lupaul with differing verdicts (REAL_OT_FAILURE → CONVEYOR_REGRESSION → REAL_OT_FAILURE). L45 Learned Rule 11 (int/str normalization + second-pass file-read guard, 2026-05-25) did not prevent this recurrence.
+- **Learning:** After step 9.f state write, assert the written key is immediately readable from the persisted JSON file. If assertion fails → set `notification_outcome="ERROR:state_write_verify_fail"`, flag as PENDING_RETRY (same as L44/Rule 10) — do NOT claim "processed." Root cause likely: state file not re-read fresh between consecutive runs within the 3600s lock window, OR stale lock from the 01:06 run prevented the 02:00 run from seeing the updated `diagnosed_ids`. Three PAGEs to two engineers on one SEV erodes oncall trust.
+- **Action:** Appended to ledger + amended ot-sev-monitor prompt (Learned Rule 21, 2026-05-31). Notes → sqlite VERIFY_PARITY_OK. Backup: `cron-prompt-backups/ot-sev-monitor__20260531T151036Z_pre-l73-l74-l75.notes.md`.
+- **Rollback (operational):**
+  ```bash
+  cp ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups/ot-sev-monitor__20260531T151036Z_pre-l73-l74-l75.notes.md \
+     ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-sev-monitor.md
+  sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db \
+    "UPDATE jobs SET prompt = readfile('/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-sev-monitor.md') WHERE id='ot-sev-monitor';"
+  ```
+
+---
+
+### L74
+- **Type:** operational — ot-sev-monitor wrong channel routing for MONITOR/confidence:low
+- **Trigger:** ot-sev-monitor 2026-05-31T01:00 — S669985 MONITOR/confidence:low triage posted to team space `https://chat.google.com/room/AAQA2bZMw24/Z7V6kNvAM9M`. MONITOR cases should route to operator 1:1 only; the team-space gate (top of ot-sev-monitor prompt) documents this but was not enforced.
+- **Learning:** Channel routing: PAGE / REAL_OT_FAILURE → team space + operator 1:1; MONITOR → operator 1:1 ONLY; NO_ACTION / OOS / TRANSIENT_NOISE → suppress. MONITOR/low is "uncertain, not paging" — quiet review in operator's 1:1, not the team feed. Wrong routing adds noise and buries real PAGEs.
+- **Action:** Appended to ledger + amended ot-sev-monitor prompt (Learned Rule 22, 2026-05-31). Notes → sqlite VERIFY_PARITY_OK. Backup: same as L73.
+- **Rollback (operational):** (same as L73 — same backup covers all three rules)
+
+---
+
+### L75
+- **Type:** operational — ot-sev-monitor narration leak causing double-delivery
+- **Trigger:** ot-sev-monitor 2026-05-30T02:00 raw_response started with "State updated, lock released. Composing final output." + triage block; delivered=delivered → daemon auto-delivered narration+triage to operator 1:1 AFTER the cron had already sent an explicit gchat. S669904 content was delivered twice.
+- **Learning:** Final response MUST be exactly `HEARTBEAT_OK` when any explicit `meta google.chat.message send` succeeded this run. Any prose before HEARTBEAT_OK becomes the daemon's auto-delivered payload, bypassing suppression. Guard: if `SENT_COUNT > 0`, the FIRST and ONLY output line must be `HEARTBEAT_OK`. Recurring form: "State updated, lock released. Composing final output." as prefix.
+- **Action:** Appended to ledger + amended ot-sev-monitor prompt (Learned Rule 23, 2026-05-31). Notes → sqlite VERIFY_PARITY_OK. Backup: same as L73.
+- **Rollback (operational):** (same as L73)
+
+---
+
+## Validator Discrepancies
+
+### 2026-05-31
+- validator_discrepancy_count_today = 0
+- No `⚠ Validator found` markers in any raw_responses from the 24h window. No auto-loop items.
+
+---
+
+## 2026-05-30 (L72) — New entries this run
+
+### L72
+- **Type:** operational — ot-sev-monitor step-3 regex missed "OT training" abbreviation form
+- **Trigger:** ot-sev-monitor 2026-05-29T11:53 PT — S669681 "OT training runs producing NaN immediately on startup" self-noted as regex gap. Re-noted at 2026-05-29T14:55 PT. S669681 was sev_type=Ads (OOS confirmed by scope_check anyway), so no practical miss this instance.
+- **Learning:** "OT training" abbreviation form is not caught by `\bOT[\s._-]?jobs?` (L69) nor by `online[\s._-]?train` (requires "online" prefix). MRS-owned "OT training" SEVs would silently miss Query B. Fix: `\bOT[\s._-]?train` added as OR clause in step-3 regex.
+- **Action:** Amended `ot-sev-monitor.md` step-3 regex + regex history + Learned Rule #20. Notes → sqlite VERIFY_PARITY_OK. Backup: `cron-prompt-backups/ot-sev-monitor__20260530T151057Z_pre-l72-ot-train-regex.*`.
+- **Rollback (operational):**
+  ```bash
+  cp ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups/ot-sev-monitor__20260530T151057Z_pre-l72-ot-train-regex.notes.md \
+     ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-sev-monitor.md
+  sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db \
+    "UPDATE jobs SET prompt = readfile('/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-sev-monitor.md') WHERE id='ot-sev-monitor';"
+  ```
+
+---
+
+## 2026-05-29 (L69–L71) — New entries this run
+
+### L71
+- **Type:** domain (pattern) — DETECTOR_BROKEN subclass: zero-snapshot-ever + MAST DEAD = decommissioned QE
+- **Trigger:** ot-alert-monitor 2026-05-28T23:00 PT — facebook_reels_ifu_i2i 2132537419 (baseline reranker): MAST job DEAD since 2026-05-01 (27 days), zero snapshots ever produced, alert firing for 20 days.
+- **Learning:** When `meta ai.model.instance list --model-id=<ID>` returns zero records AND MAST job state is DEAD: DETECTOR_BROKEN / NO ACTION — decommissioned model or abandoned QE with stale detector. Zero-ever distinguishes from production regression (which shows history then a gap). Action: flag to model series owner for detector cleanup; DO NOT kill/restart.
+- **Action:** Ledger. Pattern proposal P58 in digest.
+
+---
+
+### L70
+- **Type:** domain (pattern) — THRESHOLD_MISFIT: alert threshold < model's historical min publishing cadence
+- **Trigger:** ot-alert-monitor 2026-05-29T03:55 PT — facebook_ifr_main_mtml_main 2125752019: alert fired 78 min after last FULL_SNAPSHOT; model's historical min cadence is 117 min → THRESHOLD_MISFIT / NO ACTION.
+- **Learning:** Before classifying a FULL_SNAPSHOT gap as REAL_OT_FAILURE, establish actual cadence: `meta ai.model.instance list --model-id=<ID> --instance-type SNAPSHOT --limit=20`. Compute min gap between consecutive FULL_SNAPSHOT timestamps. If alert_threshold < min_actual_gap → THRESHOLD_MISFIT. Cite: `[VERIFIED: alert_threshold_min=<N>, model_min_cadence_min=<M>, verdict=THRESHOLD_MISFIT]`.
+- **Action:** Ledger. Pattern proposal P59 in digest.
+
+---
+
+### L69
+- **Type:** operational — ot-sev-monitor step-3 regex missed "OT" abbreviation in SEV title
+- **Trigger:** ot-sev-monitor 2026-05-28T10:54 PT — self-reported: S669019 "Reels LSR MB9 - OOMs on OT jobs" missed. Untagged + "OT" abbreviation not "online training" spelled out → fell through Query A and step-3 regex.
+- **Learning:** Step-3 regex must include `\bOT[\s._-]?jobs?` to catch "OT job(s)" in titles. Phrase is distinctive; scope_check provides final arbiter for false positives.
+- **Action:** Amended `ot-sev-monitor.md` step-3 regex + Learned Rule #19. Notes → sqlite PARITY_OK. Backup: `cron-prompt-backups/ot-sev-monitor__20260529T151044Z_pre-l69-ot-abbrev-fix.*`.
+- **Rollback (operational):**
+  ```bash
+  cp ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups/ot-sev-monitor__20260529T151044Z_pre-l69-ot-abbrev-fix.notes.md \
+     ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-sev-monitor.md
+  sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db \
+    "UPDATE jobs SET prompt = readfile('/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot-sev-monitor.md') WHERE id='ot-sev-monitor';"
+  ```
+
+---
+
 ## 2026-05-28 (L53–L68) — New entries this run
 
 ### L68

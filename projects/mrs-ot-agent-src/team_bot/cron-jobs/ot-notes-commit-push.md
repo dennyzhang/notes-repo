@@ -82,7 +82,7 @@ Hourly auto-commit of bot-owned changes:
 
 Operator clarified 2026-05-15 23:16 PT: "you should have cron job to push to notes repo". Today's near-miss: ~10h of bot edits (path renames, READ-ONLY rules, sync-script fix) sat uncommitted in the notes working copy alongside the morning's missing-files reorg leftovers. A devserver loss / restart would have lost all of it. Hourly auto-commit caps the loss window at ≤1h.
 
-Pairs with `ot-notes-fbcode-sync` (4×/day): notes-side cron commits/pushes the canonical changes; fbcode-side cron mirrors them out so devserver reinstalls bootstrapping from fbcode see fresh prompts. The two crons are independent — notes-push is the durable backup; fbcode-mirror is the discoverability layer.
+Pairs with `ot-notes-fbcode-commit` (4×/day): notes-side cron commits/pushes the canonical changes; fbcode-side cron mirrors them out so devserver reinstalls bootstrapping from fbcode see fresh prompts. The two crons are independent — notes-push is the durable backup; fbcode-mirror is the discoverability layer.
 
 ## Learned Rules (auto-appended)
 

@@ -2,13 +2,6 @@
 
 Research methodology for understanding unfamiliar topics — company initiatives, org projects, strategy shifts, buzzwords, or any concept you've heard but don't fully grasp.
 
-## When to Use
-
-- Someone mentions a project/initiative you don't recognize ("Tailwind", "Project Aria")
-- A company-wide push you need to understand ("AI native", "efficiency year")
-- An org-level strategy you want to map to your work
-- Any vague term that needs concrete definition before you can act on it
-
 ## Source Matrix
 
 Search all sources in parallel. Each surface catches different signal.
@@ -25,64 +18,6 @@ Search all sources in parallel. Each surface catches different signal.
 
 For high-signal results, load full content with `knowledge_load(url: "<URL>")`.
 
-## Pre-Research Planning (MANDATORY — do this before ANY search)
-
-Before searching, produce a research plan. This prevents confirmation bias and ensures coverage of non-obvious angles.
-
-```
-## Research Plan: [Topic]
-
-### Core question: [restate what the user wants to know]
-
-### Sub-questions (must answer all):
-1. What is it? (definition, scope, history)
-2. Who owns it? (people, teams, decision-makers)
-3. What's the current state? (progress, metrics, blockers)
-4. What are the competing views? (disagreements, alternative approaches)
-5. What does it mean for me/my team? (actionable implications)
-6. What don't I know? (gaps, open questions, things I couldn't verify)
-
-### Search strategy:
-- Primary sources first: official docs, design docs, measurement data
-- Then: Workplace posts (announcements, reactions, debate)
-- Then: External context (industry comparison, academic references)
-- Explicitly search for: contrarian viewpoints, failure cases, criticism
-```
-
-Sub-questions 4 and 6 are the ones that differentiate good research from summaries — they force searching for disagreements and gaps rather than just confirming what you already found.
-
-## Search Strategy
-
-### Keyword Expansion
-
-Don't search just the literal term. Expand to catch related content:
-
-```
-Primary: "AI native"
-Expanded: "AI-native", "AI native engineering", "AI-native development", "native AI"
-```
-
-For project names, also search for:
-- The project name alone
-- "[project] + launch"
-- "[project] + announcement"
-- "[project] + roadmap"
-- "[project] + [your org name]"
-
-### Recency Weighting
-
-Default to recent content first (last 6 months). Company initiatives evolve — early posts may describe a different version than what's current. Use `start_creation_time` to filter.
-
-If recent results are thin, expand to 12 months, then all time.
-
-### Parallel Fan-Out
-
-Spawn parallel search agents — one per source type. Each agent:
-1. Searches its source with primary + expanded keywords
-2. Loads top 3-5 results via `knowledge_load`
-3. Extracts: definition, key people, timeline, relevance signals
-4. Returns structured findings
-
 ## Synthesis Template
 
 After collecting results from all sources, synthesize into this structure:
@@ -92,25 +27,10 @@ After collecting results from all sources, synthesize into this structure:
 **Date**: YYYY-MM-DD | **Sources searched**: [N] | **Documents loaded**: [N]
 
 ## What Is It?
-[1-2 paragraph definition. Be concrete — what does it actually mean in practice?
-Avoid restating the buzzword. If you can't explain it simply, you don't understand it yet.]
-
 ## Why Now?
-[What triggered this? Leadership push? External pressure? Technical milestone?
-Include timeline — when did this start, what's the current phase?]
-
 ## Key People and Teams
-| Person/Team | Role | Source |
-|-------------|------|--------|
-| [name] | Driving/sponsoring/executing | [link] |
-
 ## What It Means for Your Org
-[Concrete relevance to MRS / training infra / your projects.
-If no clear connection, say so — don't force alignment.]
-
 ## Current State
-[Where is this initiative right now? Planning? Executing? Shipped?
-What milestones have been hit? What's next?]
 
 ## Contested Points
 [Where sources disagree. Specific examples with source references.
@@ -153,19 +73,10 @@ Also: questions the user should ask a human expert about.]
 | 2 | Wiki | [title] | YYYY-MM-DD | [link] |
 ```
 
-**Source attribution rule:** Every factual claim MUST have a linked source. No source = mark as `[UNVERIFIED]`.
-
 ## Anti-Patterns
 
 | Anti-Pattern | Fix |
 |-------------|-----|
-| Relying on a single source | Require 2+ sources for any key claim |
-| Treating the first post as the definition | Check most recent posts — initiatives evolve |
-| Confusing buzz with substance | Look for concrete deliverables, not just vision statements |
-| Assuming relevance to your org | Map explicitly or note "no clear connection" |
-| Searching only the exact term | Expand keywords — people phrase things differently |
-| Skipping external context | External sources give industry framing that internal posts assume |
-| Presenting unverified synthesis | Flag gaps — better to say "unclear" than guess |
 | Saving research as local .md only — no Google Doc, no overview table row | ALWAYS create gdoc + add overview table row. Local file alone is invisible to the user for commenting/sharing. (Learned 2026-03-23) |
 
 ## Output Location
@@ -180,7 +91,7 @@ Save research artifacts to `research-and-rampup-private/RESEARCH-<SLUG>.md`. Thi
 Plan → Queue → Research → Review → Save → Google Doc → Index Table → Remind → Surface
 ```
 
-1. **Plan**: Produce a research plan with 6 sub-questions (see "Pre-Research Planning" above). Generate multi-perspective questions (Builder, Skeptic, User, Measurer — 3 questions each). These become the search queries.
+1. **Plan**: Produce a research plan with sub-questions covering: definition/scope, ownership, current state, competing views, relevance to your org, and gaps. Generate multi-perspective questions (Builder, Skeptic, User, Measurer — 3 questions each). These become the search queries.
 2. **Queue**: User says "research X" or adds a row to INDEX.md with status `queued`
 3. **Research**: Background agent runs the full methodology (parallel fan-out, load top hits, synthesize). Must include searches for contrarian viewpoints and failure cases (sub-question 4 from plan). Enforce source diversity: 2+ source types per key claim, else mark SPECULATIVE.
 3b. **Cross-finding synthesis**: After collecting findings, analyze interactions — dependency map, compounding effects, root vs symptom, "the one thing." Add as a section before recommendations.
@@ -204,30 +115,6 @@ The markdown file is the source of truth. The Google Doc is the collaboration co
 - **Sharing**: User adds collaborators directly in Google Docs. Claude never shares docs automatically.
 - **Updating**: If research is refreshed or redone, push into the SAME Google Doc — never create a new URL. Use `gdocs replace --tab-id t.0 --from <artifact.md> --full-replace-removes-comments`, then re-apply post-creation cleanup (column widths, header colors). Update INDEX.md content/score but keep the same doc URL.
 - **Comments**: User and collaborators comment in Google Doc. Claude reads comments on demand but never resolves them.
-
-### Entry Points
-
-| Trigger | What Happens |
-|---------|-------------|
-| `/my-think what is X` | Deep dive detects initiative-level → runs research inline → saves artifact → updates index |
-| "research X for me" | Background agent launched → artifact saved → index updated → user notified when done |
-| Row added to INDEX.md with `queued` | Next session picks it up and runs research |
-| Multiple topics at once | "research A, B, C" → parallel background agents, one per topic |
-
-### Managing Many Topics
-
-The registry at `research-and-rampup-private/INDEX.md` is the single source of truth:
-- Scan it to see what's done, what's queued, what's stale
-- Self-score each report (3-7 out of 10) so you know which ones need deepening
-- Topics >60 days old auto-flag as `stale` for refresh consideration
-- One-line summary lets you find past research without opening files
-
-### Batching
-
-When you have a list of topics (e.g., after an all-hands or planning session):
-1. Add all topics to INDEX.md as `queued`
-2. Say "run my research queue" → parallel agents research all queued topics
-3. Each finishes independently → artifact saved → index updated → summary presented
 
 ## Quality Bar
 

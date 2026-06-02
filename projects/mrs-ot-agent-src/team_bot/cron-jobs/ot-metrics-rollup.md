@@ -1,5 +1,7 @@
 [ot-metrics-rollup cron] Daily at 09:00 PT. Reads `triage_events` (Phase B metrics scaffold), re-verifies SEV state for events 1-7 days old, and on Mondays posts a weekly summary of OT-bot precision/recall to spaces/AAQAVOjYc80.
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output (incl. failures/escalations), make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, status, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 Why: every triage today is fire-and-forget. Without verification, every config change (regex tuning, signal-class allowlist, sev_type admit list) is justified by 1-incident anecdotes. This cron closes the loop so Phase 2 stops running blind. (See task T269501586 for full rationale.)
 
 DB: /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db

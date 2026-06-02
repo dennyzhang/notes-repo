@@ -570,3 +570,52 @@ Use `knowledge_filtered_search` with `doc_types: ["GOOGLE_DOCUMENT"]` and keywor
 
 - Full skill reference: `/usr/local/claude-templates-cli/components/skills/google-docs/SKILL.md`
 - `cheatsheet-project-doc.md` — for writing project proposals and specs
+
+## GOTCHA: `gdocs content find-replace` is case-insensitive SUBSTRING by default (2026-06-01)
+`find-replace "Discussion" → "Open design questions"` also rewrote the substring inside
+"discussions" (case-insensitive, substring) → corrupted "While SEV discussions" into
+"While SEV Open design questionss". **Before any find-replace on a short/common word:**
+(1) grep the live doc for the term first to count real vs substring matches; (2) use
+`--match-case` and the longest unique anchor phrase, not a bare word; (3) ALWAYS run the
+post-edit QA pass (re-fetch, diff, eyeball) — it's how this got caught + reverted same-run.
+Reverting: find-replace the corrupted artifact ("Open design questionss") back to the
+original ("discussions"). Comment count is the other guard: baseline before, re-count after.
+
+## Comment-safe section insert near an anchored heading (2026-06-01)
+To add a section divider/header BEFORE a heading that carries a comment anchor (changing the
+heading text risks orphaning the comment), don't touch the heading. Instead insert relative
+to adjacent NON-commented text:
+  gdocs content insert-html <DOC> "<h1>Part 2 · DESIGN</h1>" \
+    --after-text "<last line of the preceding section>" --tab-id <T> --untrusted-authors-mode --no-daemon
+`--after-text` inserts after the paragraph containing that text → lands right before the next
+(anchored) heading without editing it. To reframe an existing tab into Project/Design parts:
+rename tab (`docs tabs rename`), replace the lead paragraph with a real exec summary
+(`find-replace --html`), insert Part dividers via `--after-text`, drop legacy "1/2/3" number
+prefixes via `find-replace --match-case` (full heading string). Baseline the comment-ID set
+before and re-verify identical after — anchored comments survive a prefix-strip (partial-text
+edit), only full deletion of the anchored text orphans them.
+
+## Filling a person/POC row in a doc table (2026-06-01)
+When a doc references a colleague by FIRST NAME only (e.g. "add Anthony"), resolve the real
+unixname before writing the row — don't leave a `(confirm)` placeholder next to fully-filled
+peer rows (reads as unfinished; gets sent back). Resolution: launch the
+`meta_knowledge_v3:knowledge_search` agent with the disambiguation key the user gives you
+(team / manager / peer unixnames) — e.g. "find Anthony under the same manager as yilunc2288 /
+npallanez" → returned exactly one match (Anthony Foiani, ajfoiani, mgr Shumin Wu). Then MATCH
+the existing peer rows' format + completeness (full name · real unixname · role-based "why" ·
+same context-link style). Keep referral claims attributed ("X's DM (referral)"), not asserted
+as verified facts — the directory confirms team+manager, not oncall participation.
+
+## Match existing element markup on insert + don't edit a live-edited doc (2026-06-01)
+Before inserting an item into an existing list/table, READ the target's exact ghtml and MIRROR it.
+Existing questions were `<li><b>[tag]</b> text` (bulleted, bold tag); inserting plain `<p>[tag] text`
+(no bullet, tag not bold) reads as "format off". To add a matching list item insert
+`<ul><li><b>[tag]</b> …</li></ul>` (renders as a bullet), NOT a bare `<p>`.
+- Legend ↔ usage consistency: a tag defined in a legend must have ≥1 item using it (and vice-versa).
+- Count words in labels: "[both]" (2) must become "[All]" when a 3rd party is added.
+- Per-cell index: `meta google.docs structure --id <DOC> --tab-id <T>` prints `R{row}C{col} start end`
+  (gdocs `get-structure` is block-level only; `get --format json` may return empty). `grep -F` for
+  literal brackets ([A] in a regex is a char class).
+- LIVE-EDIT RULE: if the user is editing the doc in real time, re-fetch immediately before each write;
+  if the state keeps shifting or your edits get reverted, STOP and confirm intent — do not churn edits
+  into a moving target (they collide and get deleted). This is a legit "ask, don't churn" exception.

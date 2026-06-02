@@ -1,5 +1,7 @@
 [ot-daily-learning-debugging cron] Daily morning. Distill new learnings from last 24h of ot-post-monitor + ot-alert-monitor + ot-sev-monitor runs (the bot's *debugging* output during real-time triage), PREPEND to ledger (newest first), optionally fold operational rules into source crons' prompts, and message digest to user. Renamed from `ot-daily-learnings` 2026-05-12 to clarify input corpus (debugging output) vs sibling `ot-daily-learning-mitigated-sevs` (closed SEV postmortems).
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 Files:
 - Ledger (read + prepend — newest first): /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/learnings.md
 - Prompt backups dir (write): /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups/

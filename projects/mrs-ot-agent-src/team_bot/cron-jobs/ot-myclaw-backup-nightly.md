@@ -1,5 +1,7 @@
 [ot-myclaw-backup-nightly cron] Nightly two-phase backup: (Phase A) auto-commit + push local changes under `~/notes/users/dennyzhang/` to the notes repo (Mononoke `fb:notes`); (Phase B) `myclaw export` archive of `~/.myclaw-ot-bot/` for migration safety. Phases are independent — failure of one does NOT abort the other.
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output (incl. failures/escalations), make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, status, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 **Phase A — Notes repo auto-commit + push.** Captures the daily archive files written by the mitigated-{sevs,alerts,posts} crons + state files + any other operator notes added under `~/notes/users/dennyzhang/`. Notes repo is world-readable within Meta (per `~/notes/AGENTS.md`); only `.md/.txt/.json/.jsonl/.yaml/.png/.jpg/.mermaid/.mmd/.html/.css/.sh/.zsh/.bash*/.fish/.sql/.toml/.gitignore/.hgrc` file types are allowed (commit hook enforces).
 
 **Phase B — MyClaw state export.**

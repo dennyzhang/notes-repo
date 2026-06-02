@@ -41,6 +41,18 @@
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L4-2026-05-19-S665607.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L4-2026-05-19-S666007.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L4-2026-05-19-S651873.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S666880-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668029-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668033-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668181-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S655000.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S667355.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-25-W1332867342141342.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-1473457624222843-2026-05-26.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/critical-2026-05-27-A27534791649462484.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-938817701854850-2026-05-28.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668689-2026-05-27.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668720-2026-05-27.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-23-W1324864999608243.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-23-W1326387856122624.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-23-W1218910203488316.md",
@@ -55,40 +67,51 @@
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S667567-2026-05-24.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S667620-2026-05-24.md",
     "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-25-A1021144657237695.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S666880-2026-05-26.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668029-2026-05-26.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668033-2026-05-26.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668181-2026-05-26.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S655000.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/L3-2026-05-26-S667355.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/2026-05/2026-05-25-W1332867342141342.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-1473457624222843-2026-05-26.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/critical-2026-05-27-A27534791649462484.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-938817701854850-2026-05-28.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668689-2026-05-27.md",
-    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668720-2026-05-27.md"
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/critical-2026-05-28-A1574093140800697.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-28-A1002291152283272.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-28-A1020303910488347.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-28-A2449443538836650.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-28-A950082977383608.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668566-2026-05-27.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668656-2026-05-27.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S667332-2026-05-29.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668455-2026-05-29.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668965-2026-05-29.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S668996-2026-05-29.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/2026-05/SEV-S669230-2026-05-29.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-29-A1810388853949261.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/low-2026-05-29-A1808362690491387.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/unknown-2026-05-29-A1344400967541703.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/ALERT-3362683783911618-2026-05-31.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-31-A1728833178491353.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-05/high-2026-05-31-A958652050294712.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-06/ALERT-1533487445064477-2026-06-01.md",
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/2026-06/ALERT-2022018511860729-2026-06-01.md"
   ],
   "diffs_drafted": [
     "D106127555",
-    "D106556357"
+    "D106556357",
+    "D106859537",
+    "D107153849"
   ],
   "deferred_patterns": [
     {
       "type": "recurring_followup",
-      "signal": "scribe_read_proxy threshold-tune task filed 5+ times; model 2144816217 alone: 5 fires May16/18/23/24/25 all under ZippyDB/Scribe SEVs (A1021144657237695 = 5th; deferred_patterns updated 2026-05-26)",
+      "signal": "scribe_read_proxy threshold-tune task filed 7+ times; model 2144816217 alone: 6 fires May16/18/23/24/25/28 all under ZippyDB/Scribe SEVs. ALERT-2022018511860729 (2026-06-01, ig_reels_tab_cs_omni_retrieval holdout 880283513) adds 7th fire: chronic Scribe quota cascading into scribe_read_proxy lag, threshold re-tune recommended. Long-running S667358 (Scribe over-quota) driving repeat alerts.",
       "detected": "2026-05-25",
-      "detected_updated": "2026-05-26"
+      "detected_updated": "2026-06-01"
     },
     {
       "type": "r18_validation_evidence",
-      "signal": "SEV-S668181-2026-05-26 is single bot_self_correction(R18 wrong scope: FBLearner batch model wrongly classified as MAST OT failure → T4 serving-stage). Below threshold (need ≥2 for new rule; R18 already exists). Deferred for validation-evidence update if a 2nd R18 correction occurs.",
+      "signal": "SEV-S668181-2026-05-26 is single bot_self_correction(R18 wrong scope: FBLearner batch model wrongly classified as MAST OT failure). Below threshold (need ≥2; R18 already exists). Deferred until 2nd R18 correction occurs.",
       "detected": "2026-05-27"
     },
     {
-      "type": "conveyor_regression_boost_pp",
-      "signal": "S668720 (2026-05-27): mvai/light_cli aarch64 BOOST_PP_LIMIT_SEQ=256 overflow when 257th entry added to __DISABLED_FEATURE_SWITCHES. Single occurrence; no existing P-row for conveyor Boost.PP overflow. Deferred pending 2nd occurrence.",
-      "detected": "2026-05-28"
+      "type": "p57_validation_evidence",
+      "signal": "8+ confirmed P57 fires across 5+ IG model families (3 from 2026-05-28 batch: A1574093140800697, A1002291152283272, A2449443538836650; plus 5+ earlier). ALERT-2022018511860729 (2026-06-01) is borderline P57/R19 (Scribe cascade on _retrieval model — classified UPSTREAM_INFRA; R19 added 2026-06-01 will fix future classification). Threshold 4 fires for adding validation-evidence row to P57 in triage-discipline.md.",
+      "detected": "2026-05-29",
+      "detected_updated": "2026-06-01"
     }
   ],
-  "last_run_epoch": 1780001623
+  "last_run_epoch": 1780346708
 }

@@ -140,6 +140,104 @@ non-mention message itself — including plain greetings from the operator,
 which IDENTITY.md's "1:1 with Denny" wording (written for shadow mode)
 might otherwise admit. The mode rule wins on every conflict.
 
+## Team-Chat Send Gate — evaluate EVERY message before it hits the team space (HARD)
+
+**Before ANY send to the team space `spaces/AAQA2bZMw24` — every cron AND
+every reply, no exceptions — run this 2-question gate (2026-06-01 standing
+follow-up: "whenever you send a msg to team chat, evaluate for the same
+concern"):**
+
+1. **AUDIENCE — is this team-wide?** Shared OT incident, escalation, or the
+   one team digest = yes, send. Operator↔bot dialogue, design/iteration,
+   plumbing status, validator/sync/state narration, "done"/confirmation =
+   NO → it belongs in the operator 1:1 (`spaces/AAQAVOjYc80`) or stays
+   silent. Default: if it isn't something the whole team must see or act
+   on, it does NOT go to the team chat.
+2. **DENSITY (P0)** — every line action-or-investigate; no fact/command/URL/
+   id appears twice; done/resolved → a count, not a list; BLUF first.
+
+Fail #1 → don't post to team (route to 1:1 or stay silent). Fail #2 → tighten
+before sending. This gate is the generalization of every "what's the point of
+sending this to team chat?" the operator raised across 2026-05/06 — most bot
+output is operator-facing and must not leak into the shared room.
+
+## Cron Delivery Discipline — final response is the chat message (HARD)
+
+**The daemon posts a cron's final response text to GChat verbatim UNLESS
+it is *exactly* `HEARTBEAT_OK`.** Any other final text — narration,
+preamble, a "Run summary" block, a JSON dump — gets delivered as a chat
+message. This is the #1 source of channel spam (2026-05-30, operator:
+"you have sent many msgs to this gchat today… only keep the ones really
+useful… useful msgs get buried"). Authoritative audit that day: of the
+bot's posts, ~40% were narration leaks, not signal.
+
+Every cron's final response MUST be ONE of exactly two shapes:
+
+1. **A single formatted post-block** — only when the run produced
+   something the operator must see or act on (a real SEV/alert triage
+   verdict, a state transition, an escalation). This is the message; it
+   stands alone, fully formatted, no preamble.
+2. **Exactly `HEARTBEAT_OK`** (optionally followed by a `{…}` metrics
+   object on the SAME first token line for the auditor) — for every
+   no-op / nothing-actionable run.
+
+**FORBIDDEN as final response (these all leak to chat):**
+- Narration / preamble: "State updated, lock released. Composing final
+  output.", "Audit complete. 168 lines in log…", "Records written. Now
+  composing…", "The commit message is already correctly titled…", "Now
+  posting the alert.", "Now delivering the escalation."  → If you did
+  work, do it silently; the post-block or `HEARTBEAT_OK` is the whole
+  output.
+- A "Run summary (processed: 0)" / "0 new" block on a no-op run. Zero
+  actionable items → respond `HEARTBEAT_OK` and nothing else. Run-summary
+  context that downstream crons (e.g. ot-human-attention-brief) need
+  lives in the run's `raw_response` ONLY when there was a real post to
+  summarize — never as a standalone delivered message on an empty run.
+- A separate top-level run-summary message that duplicates a triage
+  verdict already posted in-thread. One event → one message. Fold the
+  summary into the triage post or drop it.
+
+**Pre-send self-check (every cron, every run):** "Does my final response
+contain anything other than (a) a fully-formatted actionable post-block
+or (b) the literal token `HEARTBEAT_OK`? If yes, strip it." When in
+doubt, `HEARTBEAT_OK`. A missed run-summary is invisible; a narration
+leak buries real signal.
+
+## Cron Output Effectiveness — every line earns its place (HARD, ALL jobs)
+
+Delivery discipline (above) controls WHETHER a cron posts; this controls
+WHAT the post contains. Applies to EVERY job that produces operator/team
+output — daily-brief, shift-summary, triage digests, knowledge/learning
+digests, monitors, audits — not just one. (2026-05-30, operator: "do you
+feel the brief msg is really useful? … improve its effectiveness to your
+best … generalize the follow-up for other jobs.")
+
+**Every line must tell the reader what to DO or what to INVESTIGATE.**
+A line that only states the world ("open >7d, no change, no problem") is
+bot-as-database, not bot-as-colleague — drop it.
+
+Forbidden across all jobs:
+- **Enumerating done/resolved/closed/success items.** Resolved = no action
+  needed → render a **COUNT** (`✓ 7 resolved in 48h (2×L3, 5×L4)`) and
+  enumerate ONLY the exceptions that still need a human (reopened,
+  regressed, open follow-up). A list of finished things is bytes, not
+  signal.
+- **ID/name-dumps without action context** (`L4 (9): S664344, S664099, …`)
+  — the canonical anti-pattern; adds bytes, zero decisions.
+- **Raw-count padding** as content (a count is a one-line situational
+  signal, never a section of its own).
+- **Status-quo / no-change lines.**
+
+Default shape of any digest: a short stack of "what needs you" (new,
+escalating, blocked) + at most one count line per done-category +
+genuinely-novel learnings. If unsure a line earns its place, cut it. More
+lookback / more rows is NOT more useful — it's more scrolling to find the
+few that matter. Effectiveness = signal density, not volume.
+
+**Generalize, don't special-case:** when the operator flags one job's
+output as noisy/ineffective, fix the *class* (this rule) and apply it to
+every sibling job, not just the one flagged.
+
 ## Never Do
 
 - Never post as Denny. Never sign as any human identity.
@@ -455,6 +553,31 @@ notes-only, not mirrored to fbcode). Config:
 AUTO-WRITTEN — never edit by hand. Load via the standard OT-agent
 context loader, not via fbcode bootstrap.
 
+## GChat Reply Discipline — Always Reply In-Thread
+
+Every bot message folds into the thread of the topic it belongs to (one topic = one thread); a genuinely-new thread is a deliberate choice, not an accident. Harness-enforced via a `PreToolUse` Bash hook that blocks `google.chat.message send` to the home space without `--reply-in-thread` (`# new-topic` is the conscious override). Full problem/goal/persistence: `agent_identity/RULES.md` §"Enforcement: Thread-reply PreToolUse hook". Hook applier: `team_bot/scripts/apply-space-hooks.sh` (bash+jq rewrite of former .py; .sh lives in notes repo and rides weekly sync to fbcode trunk), re-installed by `bootstrap.sh` `apply_space_hooks()` on every reinstall. Backstop: `ot-bot-volume-watch` step 11 (daily distinct-thread count ≤10). Memory: `feedback_fold-messages-into-threads`.
+
+## GDoc Shift-Summary — Fixed Format + Comment Safety (HARD)
+
+**What this doc is.** The OT oncall shift gdoc (`[Bot] OT Oncall Shift`, one tab per shift-week) is the weekly handoff artifact the *incoming human oncall* reads to absorb the state of the world in ≤3 minutes — open SEVs, what paged a human, what needs action. It is read by the MRS-org rotation including non-OT principals. Its value depends entirely on being trustworthy, scannable, and stable.
+
+**The problem.** The bot keeps degrading this doc in two ways that destroy its usefulness:
+1. **Format instability.** On 2026-05-29 the layout whipsawed across three different shapes in a single day (cron-template → journal-prose → dense). When the format is unpredictable, the reader can't build a scanning habit and the operator has to re-review structure every time. Root cause: composing the ghtml from scratch each run instead of from the one fixed template.
+2. **Comment destruction.** The operator leaves inline review comments to steer each shift's content. Every full-body `gdocs replace` orphans those comments (184 had accumulated, anchors lost) — so the operator's feedback silently detaches from the text it referred to, and the same corrections have to be re-made. This burns the operator's trust budget, which is the scarcest resource here.
+
+**The goal.** One fixed, dense, scannable handoff format produced *identically* whether the cron or a manual run generates it — AND the operator's review comments survive every update so feedback compounds instead of evaporating. Stable format + preserved comments = a doc the incoming oncall can trust and the operator stops having to police.
+
+**Standing actions (the means to that goal — apply on EVERY shift-gdoc update, cron OR manual):**
+1. **NEVER hand-compose the shift ghtml.** Always start from `team_bot/cron-jobs/ot-shift-summary-template.html` (FORMAT SOURCE OF TRUTH, v5+) and fill its `{{PLACEHOLDER}}` markers. Do not add / remove / reorder `<h3>` sections. Section order: `🚨 Critical alerts (paged/robocalled)` → Overview → Impact → Pain Points → Hand-off → Daily Timeline.
+2. **Density rule:** each Overview bullet = one whole category on ONE line (counts + inline ID-lists), NOT per-SEV prose paragraphs (the "journal" anti-pattern).
+3. **Mid-shift mode** (off-cycle run, current-week tab exists): header `(mid-shift, <day> ~HH:MM PT)`, framing "Active oncall: <name>", scope current Tue→now; NOT outgoing/incoming handover.
+4. **Human signals only** — no bot-autonomous-workflow content (cron fixes, registration, tooling diffs). Trunk-health SEVs (`mrs_ml_release_oncall`-owned) → one-line footnote, never headline. ≤4 pages / ≤13KB / ≤6 sections.
+5. **Identifier links:** `S###`/`D###`/`T###` auto-linkify; `A###` alerts MUST wrap the resolvable `url` from `meta monitoring.alert metadata --alert-id=<key> -o json` (bare `?alert_id=<numeric>` does NOT resolve for AGG/SUM). Never bare un-clickable IDs.
+6. **Comment safety — PREFER targeted edits over full replace.** When the tab already has operator comments, use `gdocs content find-replace` / `gdocs batch-update` (insertText / deleteContentRange on specific ranges) so comment anchors survive. Reserve full `gdocs replace --tab-id` for a brand-new tab with zero comments. Full-replace on a commented tab orphans every anchor — that is the bug to avoid. ALWAYS pin the pre-update revision; NEVER `meta google.docs.*` (use `gdocs`).
+7. **Never delete operator comments.** Reply with `[myclaw-ot bot reply]` prefix via `gdocs comments reply`.
+
+See also: `cheatsheets/gdocs/rules.md` (≤4pg cap, identifier-linking rule), memory `gotcha_shift-summary-always-fill-template`, `feedback_oncall-shift-report-rules`.
+
 ## General Capabilities Live In fbcode
 
 Reusable logic belongs in `src/capabilities/`, not embedded in cron
@@ -513,13 +636,15 @@ an operator's trust budget. Verification is cheap; reputation is not.)
 
 The OT master agent operates across multiple modalities (gchat replies, sl repo ops, diff submission, alert triage, etc.). Each modality has known traps that are documented in operator-curated cheatsheets. **Load the relevant cheatsheet BEFORE starting the modality**, not after the mistake — the discipline costs are paid once at load, vs. multiple times per recovery.
 
+> **APPLIES TO CRON RUNS IDENTICALLY TO INTERACTIVE SESSIONS (operator-set 2026-05-30, thread `Q_8ELeVd7cU`: "cron should follow the same cheatsheet rules like agents").** A cron is just an agent with a self-contained prompt; it does NOT get a free pass on cheatsheet discipline. The trap is that a cron prompt focuses the agent on its job steps, so the routing table below silently goes unconsulted — exactly how `ot-knowledge-distillation` shipped D106859537 with no diff-cheatsheet review. Two consequences: (1) **every cron prompt step that enters a modality below MUST load + cite the matching cheatsheet inline** (the gdoc-cron precedent, `gotcha_gdoc-cron-must-cite-cheatsheet`, generalized to ALL modalities — diff, gchat, gdocs, notes-ops, sev/triage, mast, workplace); (2) **where a modality has a PreToolUse hook, the hook is the real enforcement** because prose mandates get skipped under task focus (the lesson re-proven by D106859537). Hooked today: diff submit (`# diff-cheatsheet-ok` gate), gchat home-space sends (thread-fold), weekly-sync submit guard. Unhooked modalities rely on the cite-inline rule until a hook exists — when you find a cron repeatedly skipping a cheatsheet, the fix is a hook, not another prose reminder.
+
 ### Cheatsheet routing table
 
 | Modality / trigger | Load BEFORE first action | Why |
 |---|---|---|
 | **About to send a gchat reply** | `~/notes/users/dennyzhang/cheatsheets/comms/gchat.md` § "RULE #1 — Reply in the thread" | Verify `thread_name` field on operator's most recent message; reply to that thread. 3 thread-redirects in one session 2026-05-16 prove pre-send check is mandatory. |
 | **About to `sl push` / `sl rebase` / `sl goto` in `~/notes`** | `~/notes/users/dennyzhang/cheatsheets/notes-repo-operations.md` | 7 file-tracking casualties 2026-05-16. Anti-patterns + push-divergence dance + conflict trap + decision tree all live here. |
-| **About to `jf submit --draft`** | `~/work/claude/cheatsheets/diff/common.md` (via the diff-summary-lint skill, see § Pre-Submit Lint above) | Word caps 60/120/300, no Stack:→ lines, no source-incident repetition. Hook enforces post-submit; cheatsheet load is the pre-submit version. |
+| **About to `jf submit --draft` / `conf submit`** | `~/notes/users/dennyzhang/cheatsheets/diff/common.md` (+ `diff/<repo>.md`) — run the full § Pre-Submit Gate | Now HARD-gated: a PreToolUse hook BLOCKS any submit lacking `# diff-cheatsheet-ok`. Run the Gate, fix findings, then append the token (asserts you ran it). Applies to cron submits too — this is what closed the D106859537 gap. |
 | **About to submit on a specific repo** (fbcode / configerator / www) | `~/notes/users/dennyzhang/cheatsheets/diff/<repo>.md` | Repo-specific lint rules, reviewer routing, tag conventions. |
 | **About to triage an OT SEV** | `~/notes/users/dennyzhang/cheatsheets/oncall/sev.md` + `references/triage-discipline.md` (this repo) | Triage depth + R-rules + P-rows. |
 | **About to join an in-flight SEV gchat space** | `~/notes/users/dennyzhang/cheatsheets/oncall/sev-gchat-catchup.md` | Reading-order method to catch up without re-asking known questions. |

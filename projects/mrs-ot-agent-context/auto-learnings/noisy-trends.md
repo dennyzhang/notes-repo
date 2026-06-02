@@ -10,6 +10,10 @@ _Written by `ot-daily-learning-mitigated-alerts` cron._
 
 | Run Timestamp PT | Rank | Model (type) | Alert Count (7d) | Signal Breakdown | Notes |
 |---|---|---|---|---|---|
+| 2026-05-31 22:05 PT | — | (no chronic-noisy models) | 0 | — | top models 2144816217 and 2133008573 at 2 alerts each, below ≥3 threshold |
+| 2026-05-29 22:05 PT | 1 | 2130305043 (ig_reels_tab_cs_omni_retrieval) | 5 | unknown×5 (mixed AGG+SPARSE_DELTA from archive filenames) | recurring; last: A1002291152283272 1d ago; tied for top with 2144816217 |
+| 2026-05-29 22:05 PT | 2 | 2144816217 (ig_reels_tab_ss_omni_retrieval) | 5 | client_lag_in_seconds×2, other×3 | CL-003 Scribe/ZippyDB; last: A2449443538836650 1d ago |
+| 2026-05-29 22:05 PT | 3 | 2130324780 (ig_textpost_feed_m2m_retrieval) | 3 | FULL_SNAPSHOT×1, other×2 | persistent STUS corpus; last: A1009946182010606 7d ago; floor count |
 | 2026-05-28 22:05 PT | 1 | 2144816217 (ig_reels_tab_ss_omni_retrieval holdout/STUS) | 6 | UPSTREAM_INFRA×4, NEEDS_INVESTIGATION×1, THRESHOLD_MISFIT×1 | CL-003 ZippyDB/Scribe cascade; 6th fire in 8d; last: A2449443538836650 ~9h ago; owner: igr_retrieval |
 | 2026-05-28 22:05 PT | 2 | 2130305043 (ig_reels_tab_cs_omni_retrieval baseline) | 6 | UPSTREAM_INFRA×4, TRANSIENT_NOISE×2 | recurring CL-003/AGG; S667358 persistent root; last: A1002291152283272 ~12h ago; P57 confirmed |
 | 2026-05-28 22:05 PT | 3 | 2130324780 (ig_textpost_feed_m2m_retrieval/STUS) | 3 | REAL_OT_FAILURE_RECURRING×1, REAL_OT_FAILURE×1, FULL_SNAPSHOT×1 | DPP+KMEANS corpus recurring; last: A1009946182010606 ~159h ago; S665454 In Progress; owner: ronghuang |
@@ -55,6 +59,8 @@ _Written by `ot-daily-learning-mitigated-posts` cron._
 
 | Run (PT) | Rank | Grouping | Key | Post count | Breakdown | Notes |
 |---|---|---|---|---|---|---|
+| 2026-05-31 21:30 PT | (no chronic-post sources) | — | — | — | — | 2 posts in last 7d (W1332867342141342, W1337733828321360); below ≥3 floor; 0 new archives this run (4 check-8 stubs, 3 unresolved) |
+| 2026-05-30 21:30 PT | (only 1 category ≥3 posts — no Top-3 this week) | lane | mast_job/mast_job_id | 5 | W1218910203488316 W1321547686606641 W1324864999608243 W1326387856122624 W1332867342141342 | +1 ot_general today (W1337733828321360, ACL provisioning); mast_job dominance unchanged; no model_id chronic sources |
 | 2026-05-26 21:30 PT | (only 1 category ≥3 posts — no Top-3 this week) | lane | mast_job_id | 6 | W1326387856122624 W1218910203488316 W1321547686606641 W1324864999608243 W1324845696276840 W1332867342141342 | All MAST job reference posts; no single model_id ≥3; elastic-agent SIGSEGV added today (P58 class) |
 | 2026-05-23 14:30 PT | 1 | lane | mast_job_id | 5 | W1326387856122624 W1218910203488316 W1321547686606641 W1324864999608243 W1324729222955154 | Top clusters: CL-001 (snapshot-stuck), CL-013 (example-age), CL-009 (auto-start) |
 | 2026-05-23 14:30 PT | (no model_id chronic sources — max 1 post per model in 7d) | | | | | |

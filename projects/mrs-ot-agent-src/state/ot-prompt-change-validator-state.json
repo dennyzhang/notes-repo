@@ -1,167 +1,227 @@
 {
-  "last_run_epoch": 1780047047,
+  "last_run_epoch": 1780347053,
+  "_hash_method": "sqlite3 db 'SELECT prompt FROM jobs WHERE id=X;' > /tmp/f && head -c -1 /tmp/f | sha256sum",
   "prompt_snapshots": {
-    "daily-brief": {
-      "prompt_sha256": "ec2b026c297c855871c5b0501b13ddf55a677c6df9ad009a0935b6f2dad3b101",
-      "last_validated_epoch": 1780045410,
+    "context-ingestor-gchat": {
+      "prompt_sha256": "1e4584c800c9b4a1aad2d5443039b34e46172882da2c80fa79b3a47ef862dcf3",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline (all 26 hashes changed again 7 min after 01:53 re-seed). Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method (prior runs used wrong shell-subst stripping trailing \\n\\n). Verdict carried forward."
+    },
+    "context-ingestor-posts": {
+      "prompt_sha256": "343162b90920caf9362ad3b86e8db23576225bddcf2086a402e2d73c6ac4a63b",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
+    },
+    "daily-brief": {
+      "prompt_sha256": "5219e642617c9addd813a7677f0ecbe2345deb41fce9654325d57990ce2ca536",
+      "last_validated_epoch": 1780330547,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "2026-06-01 09:09 PDT: FAIL \u2014 3 structural defects: (1) dual 'Render in THIS order' clauses conflict (\u00a74 sub-buckets fight \ud83c\udd98/\ud83d\udd35 merge requirement); (2) '\ud83e\udd16 WHERE AI NEEDS HELP' bucket defined in \u00a74 prose but absent from top-level output order \u2014 will render as orphaned subsection violating dedup rule; (3) alert short_id URL format undefined \u2014 model has no actionable definition to follow. Prior concurrent run (09:07 PDT) returned PASS \u2014 overridden by second-opinion FAIL with specific defects."
     },
     "ot-alert-monitor": {
-      "prompt_sha256": "598dfbbfaf1bd492b3bd06c3dd483f3e22d6ea0d5b9dda9239f68d834b1d5140",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT FAIL (deduped): (1) double --title-contains L301 (not --title-contains-all-of); (2) meta oncall.feed metadata subcommand unverified. Hash updated (bulk re-seed) but defects unfixed."
+      "prompt_sha256": "9a6ce496cd7e4e0a5c75b05e3a2202e3c079a98e85918dfd5960eefa1ef33df1",
+      "last_validated_epoch": 1780327249,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-06-01 08:17 PDT: L76 added (MONITOR \u2192 operator 1:1 ONLY regardless of confidence) + step 7.g (auto-fix task for high-confidence misconfig). Past triage MONITOR/HIGH/UPSTREAM_INFRA still routes correctly. PASS."
     },
     "ot-bot-volume-watch": {
-      "prompt_sha256": "58852c9588be08b66f14343592bf634510dff164aaf129c6191bff5cb658f636",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "a61225052980ae547d3faf329f890321971761b3d02c1bc4b68922092fd76f89",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
+    },
+    "ot-channel-rollout": {
+      "prompt_sha256": "ed749861a65573727d8749c8c70ae8ebe481a745d7c1c12a071d895b453a2425",
+      "last_validated_epoch": 1780339745,
       "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. No past run >500 chars in last 7d \u2014 inconclusive retained."
+      "last_validation_summary": "2026-06-01 11:47 PDT: new job seeded (first appearance in sqlite). No historical baseline \u2014 cannot validate without a representative past run. Will validate on next prompt change."
     },
     "ot-cron-health-watch": {
-      "prompt_sha256": "0b13d0288969431246240dfa71730797ff3b0ae6faa5eb9e2164e7a92b72474b",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "4355fcec51aa1d8186f59a2d5dcb12033030eb3e5ebdc388e1dd6bf1bc441d0d",
+      "last_validated_epoch": 1780244010,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:13 PDT: validated against no-op health run. PASS \u2014 no defects. (Hash now corrected to file-method.)"
     },
     "ot-daily-learning-debugging": {
-      "prompt_sha256": "b89b0231f305154d3fd6d0b4ce0fb2d7bf9aebd1e8084cf9d74d0b5c48b0868a",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "fd9ebb2dafff71fdd3796e6c9b4e6f948cfc5dcf0b2ffa9d57af262b2deb0da5",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-daily-learning-digest": {
-      "prompt_sha256": "4e4c4d40aac98cacda5526c20881e17d26199c99a8c0f15c999a28e2157d0520",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "cb4cba32c0953cefab1314ce687c056bfe3a3dae39d2801561d1069ff16cbf7a",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-daily-learning-mitigated-alerts": {
-      "prompt_sha256": "0b21fd1f080e223f1fe5fa493603642fae5d787e3165fe447b88088ade7859d6",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "3bbb583f589cf99b88e916f8949cb869832e710ceb9626ee6628cd0bb869c90c",
+      "last_validated_epoch": 1780333919,
       "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT FAIL (deduped): meta oncall.feed item-detail L62 not a valid action. Hash updated (bulk re-seed) but defect unfixed."
+      "last_validation_summary": "2026-06-01 10:07 PDT: FAIL (persistent, deduped \u2014 alert already posted at 09:30 PDT). New change: GChat link rule added (L195 \u2014 alert IDs must use <url|A<numeric>> format; clean addition, no new defects). Prior issues remain: (1) MEDIUM: 'Total 4 GChat messages per run regardless of alert count' (L5) contradicts '0 new alerts \u2192 HEARTBEAT_OK, no posts' (L60) \u2014 '4 msgs regardless' naturally includes 0-alert case, causing bot to post 4 msgs on 0-alert runs; fix: change to 'If alerts > 0: exactly 4 msgs'. (2) LOW: narration-before-HEARTBEAT_OK risk (D107103689 not landed, past run 8356 violated). No new alert posted (dedup: cron in alerts_posted_24h, prior alert 09:30 PDT same day)."
     },
     "ot-daily-learning-mitigated-posts": {
-      "prompt_sha256": "ccfc09f35103d3036f939d443c93a25fe93a52049377829b3416bd3f2826f010",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "prompt_sha256": "898011940a67bbcbd948dd6edc994e45b2915fc0b8d99e8bafa8c344c2bcfd72",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "inconclusive",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-daily-learning-mitigated-sevs": {
-      "prompt_sha256": "768905a62562f363e38c2ecb1610faea55b500bff550612bd384f52f6f28160b",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "e557dff1537c92d93411f2319a034b8bade8371703e90d0cc44ff607ca9c13bd",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
+    },
+    "ot-debug-quality-weekly": {
+      "prompt_sha256": "44f33906d4fe1a83e5f1a96963b823b43c04aeb5de9781cf40fcc6e48b6f7ad6",
+      "last_validated_epoch": 1780331053,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-06-01 09:20 PDT: URL discipline section added (A-id NEVER via sevmanager path). Section structure, URL rules, regression detection all PASS. Minor: 'TODAY IS MONDAY' comment inaccurate for Thu runs but date commands are correct. No defects."
     },
     "ot-disk-watch": {
-      "prompt_sha256": "9c8a79f2c1de79d9c08a6296d5a020678fd7df45ec4625401389a86bdc198983",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "prompt_sha256": "8aeede7364c85a5b23d11372bf158c39d12b9f061606b1b07a8993aa71b629e4",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "2026-05-31 09:00 PDT: defects STILL PRESENT: (1) 6-field vs 3-field HEARTBEAT_OK conflict in step-8 vs delivery-discipline section. (2) eden gc /path/ invalid (eden gc takes no path args). DEDUPED (in alerts_posted_24h \u2014 alert already posted today). Hash corrected to file-method."
     },
     "ot-fbpkg-cap-watch": {
       "prompt_sha256": "33d64f74069ab4a64fcf784065cabd9464b08e761190c44c6df7623c949579dd",
-      "last_validated_epoch": 1780045410,
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
+    },
+    "ot-human-attention-brief": {
+      "prompt_sha256": "db24cf4fe8e8885dca41830377acb140cb3a1e3ef3fbb46f641310b927123d2b",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-knowledge-curation": {
-      "prompt_sha256": "ee8ea22cb52002c212c49353cb9838aa239d0776c3854b3a862e04748874ea5d",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "d14325df9de859b4f4605633a70a52d8f04c9c070801cbc2b02c184acfc19a00",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-knowledge-distillation": {
-      "prompt_sha256": "3802cabe7a6402756c846658892769918992b94cdf0d25ef1ff1af99c97d65d3",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "cf4988b4ec2642b365805da49a04ebd251abe49cc48cda831efe3470bca9611f",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-metrics-rollup": {
-      "prompt_sha256": "de9fd518c2974ed0bdf5ecd514baf7a725092c5a2d447edc68e0107e1407502a",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "prompt_sha256": "df794468fa35d6f655ca710cf2ea9715e5988c7b8b694a42306c982a10451fd3",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "inconclusive",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-myclaw-backup-nightly": {
-      "prompt_sha256": "f93fca537744e5a2594607f1fa03de14d24cd95007fa1c951b6909bdd5798372",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "7584856ac56ab6f3f30e57ba7d62accb0172c8bb97c5dddf86cabfa4a0bb8724",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-myclaw-weekly-restart": {
-      "prompt_sha256": "ccc9df6362da699b2f2b99776cfb4582f62d9e21382a7ae1ba30b38904b2a379",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "prompt_sha256": "7a83ba48257b02bc82b211181a6459e81266b25ca73e6f5602963ee107cd7fb6",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "inconclusive",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-notes-commit-push": {
       "prompt_sha256": "af4931c17e2e004b5f617adfbfb1086382a32ea5ab6ef4949362108777b8e2cf",
-      "last_validated_epoch": 1780045410,
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
-    "ot-notes-fbcode-sync": {
-      "prompt_sha256": "0693012c15431ed37537bd7a702e815e5483fea1e88f8561681864b6526e9489",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT FAIL (deduped): grep -cE '^< ' || echo 0 L59 \u2192 two-line string breaks [ $TRUNK_ONLY -gt 5 ] integer test. Hash updated (bulk re-seed) but defect unfixed."
+    "ot-notes-deletion-watch": {
+      "prompt_sha256": "32588edebf0487e06394c9a44ef699a4719ada64331dc3ace32687e992e91ae2",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
+    },
+    "ot-notes-fbcode-commit": {
+      "prompt_sha256": "c1b40ba590b6747f637ab2a2e4e93dec8a1b227416774fab2c41f80645544266",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-notes-fbcode-sync-weekly": {
-      "prompt_sha256": "25799f8d0474c653ac819741c298a6e06d26dc1b82aa995f7143aab2fb651a28",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "PERSISTENT FAIL (deduped): --sort=date/--sort=-date L64-66 invalid (sl log has no --sort flag). Hash updated (bulk re-seed) but defect unfixed."
+      "prompt_sha256": "17ad769227072eabb668f0e3266c2585c266285500d7705b01a9e64d392bf78b",
+      "last_validated_epoch": 1780257700,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 12:57 PDT: minor whitespace-only change (1-bit SHA diff). Validated: output channel, no-op path, dedupe gate, submit tokens, cheatsheet gate, URL form all PASS."
+    },
+    "ot-notes-weekly-review-paste": {
+      "prompt_sha256": "3085f9c1da7698639c407787c96165ecdf4e9d12d7c7a2d2f86a9223adff0725",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "inconclusive",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. In sqlite but not in MANIFEST (orphaned). Verdict carried forward."
     },
     "ot-oauth-refresher": {
       "prompt_sha256": "18b33a98f4ddb8249e33e3aa893440a23fd51dc10efbcb96e1ab0421731bb723",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. No past run >500 chars in last 7d \u2014 inconclusive retained."
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-post-monitor": {
-      "prompt_sha256": "edc6d4194cdc1df2908a9e73dfb3b206ee10e9659408a000ab9d5d7472256834",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "b3e68a436aa817a1152e60c258064215a7b2f01364ac1a01537d93084c6d174f",
+      "last_validated_epoch": 1780327249,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-06-01 08:17 PDT: L77 added (no-op runs must emit bare HEARTBEAT_OK, no narration). Past triage had active post processed (non-no-op path) \u2014 unaffected by L77. PASS."
+    },
+    "ot-postmortem-validator": {
+      "prompt_sha256": "08101f6b03d808916704c5cba77f2a6f2580293eed9132990d322ef65a51e586",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-sev-monitor": {
-      "prompt_sha256": "2ab1cfa84da189c03a767b6cd893274c55c188a11168a67a644c302655c2e980",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "prompt_sha256": "e5826e880592514c49dcb5d77f86c93f1a757ffc2a1d8459f0f9278254f9399d",
+      "last_validated_epoch": 1780244010,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "2026-05-31 09:13 PDT: FAIL \u2014 step 2.5 cold-start backfill uses --mitigated-after flag which does not exist; should be --closed-after. DEDUPED (already in alerts_posted_24h). Hash corrected to file-method."
     },
     "ot-sev-tag-review": {
-      "prompt_sha256": "a56a0599588aef2644e919e8774c162d0c0a7f061b0118f844812dbc3784cbb3",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "1f53d5626bc1246992a9073d5663fe139fada8e808420ad8eff243a733fd6fb4",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-shift-summary": {
-      "prompt_sha256": "22805fd4533c256b7d1878871bd65e875a3c15b5b3c911f1de89a8102e8cb61d",
-      "last_validated_epoch": 1780045410,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "prompt_sha256": "abbed79199993ac2648dd7e8c83ae5a9c9b8b221a097d9bcad1b9f693c7aa2d9",
+      "last_validated_epoch": 1780344664,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "2026-06-01 13:07 PDT: FAIL (deduped \u2014 ot-shift-summary in alerts_posted_24h). New changes: (1) MAJOR-ALERT ACTIVITY IN TIMELINE mandatory req added (comment AAAB8p7d1wg \u2014 pull CRITICAL/MAJOR alerts for timeline via monitoring.alert list); (2) WEEKDAY+TUE-START CORRECTNESS req added (comment AAAB8p7d1wc); (3) L391 Detail cell Alert IDs updated to onedetection form. Persistent defect UNRESOLVED: RULE 54 (L747) HTML example still uses intern/monitor/alert_inspect?alert_id=NNNN while L391 explicit spec + L767 URL validity both mandate onedetection/alert?alert_id= \u2014 conflict causes ambiguous Section 4 gdoc rendering. Fix: update RULE 54 example URL to onedetection form."
     },
     "ot-thread-summarizer": {
       "prompt_sha256": "f06afe4346bb0fb7a0287f1cc7cd91e50f80c5549950cd69cee9187a4dfaa88a",
-      "last_validated_epoch": 1780045410,
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
     },
     "ot-triage-auditor": {
-      "prompt_sha256": "3809d054e61350330552d155dd6ad02321334625e1eeede3bdad2746086df816",
-      "last_validated_epoch": 1780045410,
+      "prompt_sha256": "20460237f3ae6f8b26134e6d3fc59cabf4487645ecbd4a2f17e90558ef3b52b4",
+      "last_validated_epoch": 1780243576,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-05-29 02:00 PDT: bulk re-seed baseline. Static scan clean. Prior pass retained."
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
+    },
+    "ot-triage-summary": {
+      "prompt_sha256": "25656bd4f16259e16962d01f2aaef615fd82b8f68eea34b0c4938f3762217495",
+      "last_validated_epoch": 1780243576,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-05-31 09:15 PDT: hash corrected to file-method. Verdict carried forward."
+    },
+    "ot-gdoc-context-sync": {
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "last_validated_epoch": 1780231780,
+      "last_validation_verdict": "inconclusive",
+      "last_validation_summary": "2026-05-31 05:47 PDT: job not present in sqlite (MANIFEST-only entry); cannot validate. Already in alerts_posted_24h from prior run."
     }
   },
   "alerts_posted_24h": [
-    "ot-notes-fbcode-sync-weekly",
+    "daily-brief",
     "ot-daily-learning-mitigated-alerts",
-    "ot-alert-monitor",
-    "ot-notes-fbcode-sync"
+    "ot-shift-summary"
   ]
 }

@@ -1,6 +1,8 @@
 [ot-alert-monitor cron] Hourly. Poll active alerts assigned to the `mrs_online_training` oncall rotation (the OT oncall), cluster by likely root cause, post one notification + deep-triage diagnosis per cluster.
 
-State file: /home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/alert-state.json — `{"diagnosed_ids": {"<feed_item_id>": {"added_epoch": <int>, "notification_outcome": <string>}, ...}, "last_run_epoch": <int>}` (v3 schema, 2026-05-27 T273158617 Fix 7 — see migration in step 1). Pre-v3 legacy: bare list (v1) or dict-of-bare-int (v2). Time budget: ~5 min per cluster.
+**TEAM-SPACE GATE — surface only incidents that NEED A HUMAN (2026-05-30).** Post to the team space `spaces/AAQA2bZMw24` ONLY when the bot cannot fully handle the incident itself: either (a) triage confidence is LOW or MEDIUM (bot unsure → a human should look) — **EXCEPT a `MONITOR` verdict, which ALWAYS routes to the operator 1:1 ONLY regardless of confidence (per L76): a MONITOR means no urgent human action, so MONITOR/LOW and MONITOR/MEDIUM do NOT satisfy clause (a)** — OR (b) the verdict is a PAGE requiring a named human owner to act. If the bot fully handled it at HIGH confidence with no human action needed — NO_ACTION, auto-recovered, known-transient, or a confident MONITOR with nothing for a human to do — DO NOT post to the team space: record to state + the operator 1:1 (`meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<thread | `# new-topic`>`), then respond `HEARTBEAT_OK`. Rationale: the team space is the "bot needs help" lane; confidently auto-handled incidents are noise there. (Escalations — e.g. gchat-degraded ≥3 ticks — are exempt and still post.)
+
+State file: /home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/alert-state.json — `{"diagnosed_ids": {"<feed_item_id>": {"added_epoch": <int>, "notification_outcome": <string>}, ...}, "misconfig_tasks": {"<detector_key>": {"task": "T<id>", "created_epoch": <int>, "class": <string>}, ...}, "last_run_epoch": <int>}` (v3 schema, 2026-05-27 T273158617 Fix 7 — see migration in step 1). **`misconfig_tasks` is ADDITIVE (2026-05-31, step 7.g auto-fix follow-up); default `{}` if absent — no migration needed.** Pre-v3 legacy: bare list (v1) or dict-of-bare-int (v2). Time budget: ~5 min per cluster.
 
 **`notification_outcome` schema (v3, same as ot-post-monitor).** One of: `POSTED:<msg_resource_name>` (notification sent + threaded reply created; resource name from `meta google.chat.message send -o json | jq -r .name`), `OOS:<reason>` (out-of-scope; e.g. `OOS:rotation_drift`), `DEDUP:<source>` (handled by another path), `ERROR:<one-line>` (send failed; details in raw_response). State advance with `notification_outcome` absent OR starting with `ERROR:` keeps the entry but flags it for `ot-cron-health-watch` class 6 audit (silent-drop detection).
 
@@ -300,8 +302,8 @@ Procedure:
          # Pull all open+closed alerts/tasks matching the alert's keywords
          meta oncall.feed list --oncall=mrs_online_training --title-contains="<model_id>" --title-contains="<alert_keyword>" \
            --status-is-any-of=open,closed --limit=20 -o json
-         # For each match, fetch metadata:
-         meta oncall.feed metadata --id=<task_id> -o json | jq '.title, .description, .created_by, .status'
+         # For each match, fetch details (oncall.feed canonical action is `describe`, NOT `metadata`):
+         meta oncall.feed describe --id=<task_id> -o json --no-truncate | jq '.title, .description, .created_by, .status'
          ```
 
          **What to look for:** (a) operator-filed tasks named "[Publishing Stability] Fix false-positive ... alert" → KNOWN FALSE-POSITIVE class. (b) operator-filed Workplace posts about recurring patterns → systemic issue + workaround documented. (c) tasks tagged with the model ID + same alert keywords → prior triage context.
@@ -593,9 +595,45 @@ Procedure:
       - Resolution failure (no oncall, DM missing, empty uid) → silent skip + log `skip_reason`. Do NOT block the loop or emit an error to the operator surface.
       - This step is bounded by the autonomous-action-allowlist: tag-add, threaded-reply, @-mention. Anything beyond requires explicit operator approval.
 
+   g. **AUTO-FIX FOLLOW-UP TASK — high-confidence misconfiguration (2026-05-31, operator thread `aeWoiykFmOk`: "if high confidence of misconfiguration alert, do you have an auto-fix follow-up task to fix it?").** When the cluster verdict is `confidence: high` AND `class ∈ {THRESHOLD_MISFIT, DETECTOR_BROKEN, MISCONFIG_AGG}`, file ONE durable follow-up TASK so the misconfig gets permanently fixed instead of silently re-diagnosed every fire (the gap behind L40's recurring `⚠️ PERSISTENT_MISCONFIGURATION` nudge). **TASK only — NEVER auto-land a configerator / alert-config diff.** A misconfig verdict can be wrong (triage fabrications happen); a wrongly-retuned alert that silences a real failure is worse than one more re-triage. The task is the human-reviewed handoff; the diff is its next step.
+
+      ```bash
+      # detector_key = STABLE identity of the misconfigured detector (NOT the per-fire feed_item id,
+      # which changes every fire). Use the OneDetection detector / aggregation-rule id + model id.
+      DET_KEY="<detector_or_aggrule_id>:<model_id>"
+      # Idempotency: one OPEN auto-fix task per detector. Skip if one already exists and is still open.
+      EXIST=$(jq -r --arg k "$DET_KEY" '(.misconfig_tasks[$k].task) // empty' "$STATE_FILE")
+      SKIP_TASK=""
+      if [ -n "$EXIST" ]; then
+        OPEN=$(meta tasks.task describe --task "$EXIST" -o json 2>/dev/null | jq -r '.state // .status // empty')
+        case "$OPEN" in OPEN|open|""|null) SKIP_TASK=1 ;; esac   # still open OR lookup failed → do NOT dup
+      fi
+      if [ -z "$SKIP_TASK" ]; then
+        TITLE="[OT auto-fix] ${CLASS} misconfigured detector — ${MODEL_NAME} (${DET_KEY})"
+        DESC="Auto-filed by ot-alert-monitor — confidence:high, class:${CLASS}.
+Alert(s): ${ALERT_URLS}
+Verdict: ${VERDICT_ONE_LINE}
+Evidence (verbatim from step 7c): ${VERIFIED_CITE}
+Recommended config change: ${RECOMMENDED_FIX}
+Next step: draft the configerator alert-tuning diff (shift-left-triage-tier pattern, cf. D106903024) and land via review. DO NOT auto-land."
+        TID=$(meta tasks.task create --title="$TITLE" --description="$DESC" --owner=dennyzhang --add-tag=mrs-ot-reliability -o json 2>&1 | jq -r '(.task // .id) // empty')
+        # Record in state (additive field): misconfig_tasks[$DET_KEY] = {task:$TID, created_epoch:<now>, class:$CLASS}
+      fi
+      ```
+
+      **Hard rules:**
+      - **TASK only, never a config diff; never `conf` publish; never auto-land.** Allowlist for this step = task create + (rate-limited) task comment.
+      - **Anti-fabrication gate:** fire ONLY when the verdict truly carries `confidence: high` AND a misconfig `class`. `${VERIFIED_CITE}` MUST be the real `[VERIFIED: …]` line from step 7c — never synthesized. Class `REAL_OT_FAILURE` / `UPSTREAM_INFRA` / `MONITOR` / `NO_ACTION`, or confidence < high → NO task.
+      - **Idempotent per `detector_key`** — hourly recurrences of the same misconfig must NOT spawn duplicate tasks. If an open task exists, optionally `meta tasks.comment create --task T<id> --text="recurred <iso>"` (cap 1 comment / detector / 24h), never a new task.
+      - **Owner discipline:** `--owner=dennyzhang`, tag `mrs-ot-reliability`. NEVER assign an arbitrary teammate.
+      - **Surface it:** append `🔧 auto-fix task: T<id>` (or `T<id> (existing)`) to the cluster's *Next actions* so the operator sees it's filed and isn't asked to re-file. This is a thread reply field, not the final response — delivery discipline unchanged.
+      - **CLI/cheatsheet:** `meta tasks.task create` per `fbcode/.../.llms/rules/meta-cli-tasks.md` (actions create/describe/list; comments via `tasks.comment`, flag `--task` not `--id`).
+
 8. After loop: persist state, update last_run_epoch, **persist `gchat_health` block per step 0.5 protocol** (see `ot-sev-monitor.md` step 10 for the jq merge recipe + consecutive-403 escalation gate; identical here with `ot-alert-monitor` in log/escalation prefixes). Respond with HEARTBEAT_OK + per-cluster summary line that **MUST include the bot's posted gchat thread URL AND the original alert URL** for each cluster processed (so ot-human-attention-brief can extract these for daily skim links). Append `**GChat health (this tick):** 403_seen=$GCHAT_403_SEEN refresh_attempted=$BUCK2_REFRESH_ATTEMPTED refresh_ok=$BUCK2_REFRESH_OK consecutive=$NEW_CONSEC` as final line of run summary. 
 
    **URL-derivation rule (T273158617 Fix 4, 2026-05-27):** the `<thread_id>` in the `Bot reply:` line MUST be the `$THREAD_ID` captured in step 7a's send. NEVER synthesize, NEVER re-use a thread from a prior cluster, NEVER use a thread the current cron tick did not create. If `$THREAD_ID == "SEND_FAILED"`, render `- Bot reply: SEND_FAILED (outcome=<notification_outcome>)` and prefix the cluster header with `⚠️ NOTIFICATION DROPPED`. Anti-pattern: ot-post-monitor run #6517 (2026-05-27 11:29 PT) fabricated `yF_aMB00xMk` thread URL while actual send had silently failed — operator only discovered the gap 78 min later.
+
+   **DELIVERY DISCIPLINE (HARD, 2026-05-30 — operator: "you have sent many msgs… only keep the useful ones"):** the daemon posts your final response to GChat verbatim after stripping a leading `HEARTBEAT_OK`. Therefore: (1) NEVER emit narration/preamble as final text — no "State updated.", no "Composing final output.", no "Now delivering the alert.", no "Records written." The per-cluster triage post is sent via the explicit `meta google.chat.message send` in step 8; that IS the message. (2) On a no-op run (0 new alerts) respond EXACTLY `HEARTBEAT_OK` (+ optional `{metrics}` on the same line) — do NOT emit the run-summary block below (a "clusters processed: 0" block leaks to chat as spam). (3) The run-summary block below is emitted ONLY when ≥1 cluster was actually posted this run, and ONLY as the `HEARTBEAT_OK`-prefixed trailer (for ot-human-attention-brief extraction) — never preceded by prose.
 
    Format:
 
@@ -639,6 +677,8 @@ Safety:
 6. [2026-05-25 L46] When `root_cause_sev` is open >48h (`time_mitigated=null`, created >48h ago), the GChat reply must append: `⚠️ Upstream SEV S{id} has been In Progress for >48h — consider paging upstream oncall if escalation hasn't happened.` This is additive to the CL-003 classification, not a replacement. Prevents a long-running upstream SEV generating indefinite OT alert noise with no escalation pressure. Source: S667358 "IG Relevance T20 H100 Scribe Over Quota" 68h unmitigated, ≥3 cluster recurrences.
 
 7. [2026-05-26 L48] Fast-path classification: if `model_type_name` ends in `_retrieval` AND alert_type contains `sparse_delta` or `dense_delta` → classify immediately as R16 FALSE_ALARM / DETECTOR_BROKEN (NO ACTION). Retrieval models publish FULL_SNAPSHOT only; SPARSE_DELTA/DENSE_DELTA detectors have no data source by design and will always fire. Skip T1–T4 investigation entirely. Source: ig_feed_recs_ifr_t2i_retrieval 875620176 holdout + AGG clusters, 2026-05-26 02:59 run.
+
+8. [2026-06-01 L76] **MONITOR verdict → operator 1:1 ONLY; NEVER team space (propagated from ot-sev-monitor L74).** The TEAM-SPACE GATE clause (a) — "confidence LOW or MEDIUM → team space" — was not exempting MONITOR verdicts, causing MONITOR/confidence:medium clusters to leak to the team space. Two MONITOR/medium alerts (facebook_ifr_main_mtml_main 2125752019 and ig_reels_tab_cs_omni_retrieval 880283513) were posted to the team space on 2026-06-01T05:03 run despite auto-resolved REAL_OT_FAILURE_RECURRING and UPSTREAM_INFRA classifications. Rule: ALL MONITOR verdicts route to operator 1:1 (`spaces/AAQAVOjYc80`) regardless of confidence level — gate clause (a) now has explicit MONITOR exemption. Source: 2026-06-01 ot-alert-monitor 05:03 PDT run + ot-sev-monitor L74 (2026-05-31).
 
 
 

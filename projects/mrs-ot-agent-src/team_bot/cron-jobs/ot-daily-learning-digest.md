@@ -1,5 +1,4 @@
 [ot-daily-learning-digest cron] Daily 7:50 AM PT. ONE consolidated summary of what the bot LEARNED in the last 24h, delivered to Denny's 1:1 (spaces/AAQAVOjYc80) so he can (a) audit the learning quality and give feedback, (b) learn alongside the bot daily. Purpose: collapse 6+ learning surfaces (memory deltas, notes commits, cron-prompt amendments, mega-learnings, validator catches, draft diffs) into ONE skim-in-60-sec digest. Not a replacement for the per-surface crons — a meta-view over them.
-
 Created 2026-05-28 per Denny request in team-space thread (he asked "what's the point of this brief?" + "I'm thinking to polish this daily msg as a summary for what your ai daily auto-learning").
 
 Files:

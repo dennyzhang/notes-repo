@@ -150,3 +150,7 @@ Created 2026-05-16 in response to operator question about disk-watch coverage ga
 5. **No inode check** — block-level `df` misses tiny-file exhaustion. **Fixed:** step 2 + threshold.
 6. **`alerts_posted_24h` grew unbounded.** **Fixed:** step 7 prune-on-write.
 7. **No auto-mitigation** — alerts were operator-action-required even for safe knobs. **Fixed:** step 4b auto-mitigation (eden gc + dotslash trim + old-backup trim), gated to ok→warning/critical transitions only, 4h rate limit. Operator-only knobs (balance, sl strip, /tmp/.tmp*) explicitly excluded.
+
+## Delivery discipline (HARD, 2026-05-30)
+
+The daemon posts your final response to GChat verbatim unless it is EXACTLY `HEARTBEAT_OK`. Post ONLY on a real state transition (ok→warning/critical, or recovery). On a clean run (all mounts ok, no transition) respond EXACTLY `HEARTBEAT_OK {mounts_checked: N, transitions: 0, alerts_posted: 0}` and NOTHING else — no "All mounts ok…", no "State file already up to date…", no "State file written.", no summary. Narration/no-op text leaks to chat as spam (operator 2026-05-30).

@@ -1,5 +1,5 @@
 {
-  "last_run_epoch": 1779725587,
+  "last_run_epoch": 1780330484,
   "weekly_scores": [
     {
       "week": "2026-W20",
@@ -499,6 +499,290 @@
         }
       ],
       "notes": "W21 monitors in full production. 20 scored vs 14 in W20. No MISSED_REAL_ISSUE or FALSE_PAGE. Notable wins: S667544 exact DPP Zeus TTL call, A1009946182010606 T2I corpus collapse exact. Recurring miss: MONITOR vs NO_ACTION for upstream-infra (3 cases) \u2014 bot is slightly over-vigilant on self-resolving CL-003 events. CL-012 vs CL-001 cluster ambiguity on publisher-hang events. post-monitor has no live-triage coverage (all 5 W21 posts = no_initial_triage)."
+    },
+    {
+      "week": "2026-W22",
+      "run_type": "full_mon",
+      "window": "2026-05-25 to 2026-05-31",
+      "issues_scored": 31,
+      "no_initial_triage": 9,
+      "backfill_excluded": 0,
+      "match_pct": 0.77,
+      "cluster_accuracy": 0.75,
+      "verdict_accuracy": 0.85,
+      "root_cause_avg": 0.76,
+      "owner_accuracy": 0.5,
+      "mitigation_pct": 0.7,
+      "miss_classes": {
+        "false_page": 1,
+        "wrong_class_wrong_owner": 1,
+        "missed_cluster": 2,
+        "over_vigilant_monitor": 2,
+        "partial_root_cause": 2,
+        "owner_not_cited": 1,
+        "wrong_class_first_cut": 1,
+        "scope_check_degraded": 1,
+        "no_initial_triage": 9
+      },
+      "special_flags": {
+        "missed_real_issue": 0,
+        "false_page": 1,
+        "regression_detected": true,
+        "regression_vs": "W21 (90% \u2192 77%, -13%)"
+      },
+      "per_issue_paste": "P2359008968",
+      "per_issue": [
+        {
+          "id": "SEV-S666880",
+          "composite": 0.94,
+          "grade": "EXCELLENT",
+          "bot_verdict": "PAGE jakubbester/CL-013/REAL_OT_FAILURE",
+          "archive_class": "CL-013 confirmed throttle threshold",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S667355",
+          "composite": 0.2,
+          "grade": "MISS",
+          "bot_verdict": "PAGE ads_model_validation/CONVEYOR_REGRESSION/D103725870",
+          "archive_class": "REAL_OT_FAILURE/stale aps_ads_vm pkg+SV validator timeout",
+          "miss_class": "wrong_class+wrong_owner"
+        },
+        {
+          "id": "SEV-S668029",
+          "composite": 0.72,
+          "grade": "GOOD",
+          "bot_verdict": "CONVEYOR_REGRESSION/Rust justknobs API break",
+          "archive_class": "CONVEYOR confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S668033",
+          "composite": 0.73,
+          "grade": "GOOD",
+          "bot_verdict": "CONVEYOR_REGRESSION/AOTI InductorError/D105916880",
+          "archive_class": "CONVEYOR confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S668181",
+          "composite": 0.1,
+          "grade": "MISS",
+          "bot_verdict": "PAGE p92_relevance_growth/REAL_OT_FAILURE",
+          "archive_class": "OUT_OF_SCOPE: IPNext serving blockage S668184",
+          "miss_class": "FALSE_PAGE"
+        },
+        {
+          "id": "SEV-S668566",
+          "composite": 0.6,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/CL-017/NE spike",
+          "archive_class": "CL-017 NE spike partial/S668542 trigger",
+          "miss_class": "partial_root_cause"
+        },
+        {
+          "id": "SEV-S668656",
+          "composite": 0.74,
+          "grade": "GOOD",
+          "bot_verdict": "CONVEYOR_REGRESSION/D106415488/-mavx2 flags",
+          "archive_class": "CONVEYOR confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S668689",
+          "composite": 0.48,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/medium",
+          "archive_class": "REAL_OT_FAILURE partial/9.8h zero FULL_SNAPSHOT",
+          "miss_class": "partial_root_cause"
+        },
+        {
+          "id": "SEV-S668720",
+          "composite": 0.86,
+          "grade": "EXCELLENT",
+          "bot_verdict": "PAGE trevormathisen/CONVEYOR_REGRESSION/Boost.PP D104413329",
+          "archive_class": "CONVEYOR confirmed/D106439798 fix",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1473457624222843",
+          "composite": 0.76,
+          "grade": "GOOD",
+          "bot_verdict": "NO_ACTION/TRANSIENT_NOISE/TMS restart",
+          "archive_class": "TRANSIENT_NOISE confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A938817701854850",
+          "composite": 0.77,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/CL-003/S668542",
+          "archive_class": "UPSTREAM_INFRA/CL-003/S668542 confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1021144657237695",
+          "composite": 0.78,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/CL-003/S665114",
+          "archive_class": "NO_ACTION/UPSTREAM_INFRA/CL-003",
+          "miss_class": "over_vigilant_MONITOR"
+        },
+        {
+          "id": "ALERT-A1020303910488347",
+          "composite": 0.8,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/CL-003/S668542",
+          "archive_class": "NO_ACTION/UPSTREAM_INFRA/CL-003",
+          "miss_class": "over_vigilant_MONITOR"
+        },
+        {
+          "id": "ALERT-A950082977383608",
+          "composite": 0.82,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/THRESHOLD_MISFIT/CL-003/scribe lag",
+          "archive_class": "THRESHOLD_MISFIT/CL-003 confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A863227146150234",
+          "composite": 0.84,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/CL-012 sub-class 4",
+          "archive_class": "CL-012 sub-class 4 confirmed/auto-recovered",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S667332",
+          "composite": 0.73,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/low/scribe quota S668542",
+          "archive_class": "REAL_OT_FAILURE/scribe quota (CL-003 not cited)",
+          "miss_class": "MISSED_CLUSTER"
+        },
+        {
+          "id": "SEV-S667567",
+          "composite": 0.83,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE mrs_relevance_retrieval_i2i/REAL_OT_FAILURE/high/SIGSEGV rank7\u2192elastic agent",
+          "archive_class": "SIGSEGV rank7\u2192D-state\u2192elastic agent hang confirmed",
+          "miss_class": null,
+          "note": "sev-monitor corrected post-monitor P44 miss"
+        },
+        {
+          "id": "SEV-S667620",
+          "composite": 0.47,
+          "grade": "PARTIAL",
+          "bot_verdict": "UNKNOWN/NEEDS_INVESTIGATION/low",
+          "archive_class": "Training data signal anomaly/SSR pipeline/root cause undetermined",
+          "miss_class": "owner_not_cited"
+        },
+        {
+          "id": "SEV-S668285",
+          "composite": 0.66,
+          "grade": "GOOD",
+          "bot_verdict": "UNKNOWN/NEEDS_INVESTIGATION/low/retry_on_next_run",
+          "archive_class": "Self-recovering publish failures/partial root cause",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S668293",
+          "composite": 0.9,
+          "grade": "EXCELLENT",
+          "bot_verdict": "PAGE andrewxmao/CONVEYOR_REGRESSION/high/cogwheel HSTU/triton_aot lowering",
+          "archive_class": "CONVEYOR confirmed/andrewxmao fixed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S668455",
+          "composite": 0.56,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/CONVEYOR_REGRESSION/low [scope_check DEGRADED]",
+          "archive_class": "CONVEYOR/mrsk flash_attn packaging",
+          "miss_class": "owner_not_cited+scope_check_degraded"
+        },
+        {
+          "id": "SEV-S668965",
+          "composite": 0.88,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE akmahesh/CONVEYOR_REGRESSION/medium [scope_check DEGRADED]",
+          "archive_class": "CONVEYOR/GRAFTED_DIFFS validator; akmahesh fixed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S668996",
+          "composite": 0.88,
+          "grade": "GOOD",
+          "bot_verdict": "TRANSIENT_NOISE/auto-resolved",
+          "archive_class": "Transient noise/auto-resolved confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S669230",
+          "composite": 0.73,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/low/ESR pool delay (S669147+S668542)",
+          "archive_class": "UPSTREAM_INFRA/ESR pool delay (CL-003 not cited)",
+          "miss_class": "MISSED_CLUSTER"
+        },
+        {
+          "id": "SEV-S669437",
+          "composite": 0.92,
+          "grade": "EXCELLENT",
+          "bot_verdict": "PAGE yuliu1/REAL_OT_FAILURE/high/TypeError ScribeUnionDataset kwarg",
+          "archive_class": "REAL_OT_FAILURE/ScribeUnionDataset API break/yuliu1 fixed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S669751",
+          "composite": 0.79,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE/low/auto-resolved (TMS bot block)",
+          "archive_class": "REAL_OT_FAILURE/TMS bot block/auto-resolved confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S669835",
+          "composite": 0.78,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/CONVEYOR_REGRESSION/high/D106703103 -train job name overflow",
+          "archive_class": "CONVEYOR/D106703103/76-char limit confirmed",
+          "miss_class": "verdict_level_diff"
+        },
+        {
+          "id": "SEV-S669904",
+          "composite": 0.55,
+          "grade": "PARTIAL",
+          "bot_verdict": "Run1: PAGE yucheng/REAL_OT_FAILURE/medium; Run2: PAGE lupaul/CONVEYOR_REGRESSION",
+          "archive_class": "CONVEYOR/cogwheel HSTU/triton_aot lowering (S668293)",
+          "miss_class": "wrong_class_first_cut"
+        },
+        {
+          "id": "SEV-S669985",
+          "composite": 0.73,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA/partial/low",
+          "archive_class": "UPSTREAM_INFRA/job launch failure/partial",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1728833178491353",
+          "composite": 0.94,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION/DETECTOR_BROKEN/CL-018 (Rule 7 fast-path)",
+          "archive_class": "DETECTOR_BROKEN/CL-018 confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A958652050294712",
+          "composite": 0.94,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION/DETECTOR_BROKEN/CL-018 (Rule 7 fast-path)",
+          "archive_class": "DETECTOR_BROKEN/CL-018 confirmed",
+          "miss_class": null
+        }
+      ],
+      "notes": "W22 full (May 25-31): 31 scored (23 SEVs, 8 alerts). First full-week run after stabilization. 9 no_initial_triage (6 alerts/posts with no feed coverage, 3 pre-monitor/gap). Regression vs W21 (90%\u219277%, -13%) driven by 2 trust-breaking misses from mid-week (FALSE_PAGE S668181 + wrong-class S667355). Positive new: S669437 exact TypeError ScribeUnionDataset call; S668293 PAGE andrewxmao exact; DETECTOR_BROKEN/CL-018 Rule 7 fast-path working for retrieval models. Recurring miss: MISSED_CLUSTER (2\u00d7) \u2014 bot identifies CL-003 mechanism in narrative but does not cite CL-NNN tag. Prompt fix needed."
     }
   ],
   "scored_issue_ids": [
@@ -548,6 +832,46 @@
     "ALERT-A1304408738257286",
     "ALERT-A1955974545038771",
     "ALERT-A2149157265940350",
-    "ALERT-A997443402676035-449"
+    "ALERT-A997443402676035-449",
+    "SEV-S666880",
+    "SEV-S667355",
+    "SEV-S655000",
+    "SEV-S668029",
+    "SEV-S668033",
+    "SEV-S668181",
+    "SEV-S668566",
+    "SEV-S668656",
+    "SEV-S668689",
+    "SEV-S668720",
+    "ALERT-A1473457624222843",
+    "ALERT-A938817701854850",
+    "ALERT-A27534791649462484",
+    "ALERT-A1574093140800697",
+    "ALERT-A1021144657237695",
+    "ALERT-A1002291152283272",
+    "ALERT-A1020303910488347",
+    "ALERT-A2449443538836650",
+    "ALERT-A950082977383608",
+    "ALERT-A863227146150234",
+    "SEV-S667332",
+    "SEV-S667567",
+    "SEV-S667620",
+    "SEV-S668285",
+    "SEV-S668293",
+    "SEV-S668455",
+    "SEV-S668965",
+    "SEV-S668996",
+    "SEV-S669230",
+    "SEV-S669437",
+    "SEV-S669751",
+    "SEV-S669835",
+    "SEV-S669904",
+    "SEV-S669985",
+    "ALERT-A1810388853949261",
+    "ALERT-A1728833178491353",
+    "ALERT-A958652050294712",
+    "ALERT-A1808362690491387",
+    "ALERT-A1344400967541703",
+    "POST-W1337733828321360"
   ]
 }

@@ -1,4 +1,6 @@
-[ot-notes-fbcode-sync-weekly cron] Monday 09:00 PDT (16:00 UTC). Companion to `ot-notes-fbcode-sync` (4×/day, commit-only). This weekly cron folds all accumulated `[OT bot weekly sync]` local commits in fbcode into a single Phabricator diff and submits it.
+[ot-notes-fbcode-sync-weekly cron] Monday 09:00 PDT (16:00 UTC). Companion to `ot-notes-fbcode-commit` (4×/day, commit-only). This weekly cron folds all accumulated `[OT bot weekly sync]` local commits in fbcode into a single Phabricator diff and submits it.
+
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
 
 State file: NONE — fully idempotent. No-op when there are no draft sync commits to submit.
 
@@ -60,10 +62,10 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
    c. **≥2 commits** → fold them. The oldest commit is the base; fold all subsequent ones into it:
       ```
       cd ~/fbsource
-      OLDEST=$(sl log -r 'draft() & user(dennyzhang) & desc("OT bot weekly sync")' \
-        -T "{node|short}\n" --sort=date -l 1 | head -1)
-      NEWEST=$(sl log -r 'draft() & user(dennyzhang) & desc("OT bot weekly sync")' \
-        -T "{node|short}\n" --sort=-date -l 1 | head -1)
+      OLDEST=$(sl log -r 'sort(draft() & user(dennyzhang) & desc("OT bot weekly sync"), date)' \
+        -T "{node|short}\n" -l 1 | head -1)
+      NEWEST=$(sl log -r 'sort(draft() & user(dennyzhang) & desc("OT bot weekly sync"), -date)' \
+        -T "{node|short}\n" -l 1 | head -1)
       sl fold --exact -r "$OLDEST::$NEWEST" --message "$(cat <<EOF
       [OT bot weekly sync] notes->fbcode $(date -u +%Y-W%V)
 
@@ -87,12 +89,26 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
 
 3. **Verify** the resulting single commit (`sl log -r . -T "{node|short} {desc|firstline}\n"`).
 
+3.5. **Run diff cheatsheet gate** (MANDATORY, thread `Q_8ELeVd7cU` 2026-05-30 — crons follow the same cheatsheet rules as agents):
+
+   Self-review against `cheatsheets/diff/fbcode.md` + `cheatsheets/diff/common.md`:
+   - Title: `[OT bot weekly sync] notes->fbcode YYYY-WNN` — correct prefix?
+   - Summary: explains WHY (motivation/design), NOT a file inventory (Phab shows changed files)
+   - Test plan: present and specific (not "documentation only" without evidence)
+   - Task/Reviewers/Tags: `T259215482`, `mrs-ot-reliability`, `publish_when_ready`
+   - <300 lines? (`sl diff --stat | tail -1`)
+   - No dup fields in commit message?
+
+   Fix every finding before proceeding to step 4. The PreToolUse gate requires `# diff-cheatsheet-ok` in the submit command — only append it after completing this self-review.
+
 4. **Submit** to Phabricator:
    ```
    cd ~/fbsource
-   timeout 180 jf submit --draft --publish-when-ready 2>&1 | tail -10
+   timeout 180 jf submit --draft --publish-when-ready 2>&1 | tail -10  # diff-cheatsheet-ok # ot-weekly-sync-submit-ok
    ```
    Capture the diff URL from the output.
+
+   **Both trailing tokens are MANDATORY.** `# ot-weekly-sync-submit-ok` bypasses the weekly-sync guard (2026-05-30, thread `S2zrir2qpBY`); `# diff-cheatsheet-ok` bypasses the cheatsheet gate (thread `Q_8ELeVd7cU` 2026-05-30 — these are now independent guards). Do NOT remove either, and NEVER add `# ot-weekly-sync-submit-ok` to the commit cron. Do NOT append `# diff-cheatsheet-ok` without completing step 3.5.
 
 5. **Send ONE GChat message** to spaces/AAQAVOjYc80:
    ```
@@ -118,7 +134,7 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
 
 ## Provenance
 
-Created 2026-05-22 as part of plan B (split sync into commit-only + weekly-submit). Decision in MyClaw thread `zv128jeH6Q8` after S22 incident where 3 sync diffs created in 6h. Companion to `ot-notes-fbcode-sync` (4×/day, commit-only).
+Created 2026-05-22 as part of plan B (split sync into commit-only + weekly-submit). Decision in MyClaw thread `zv128jeH6Q8` after S22 incident where 3 sync diffs created in 6h. Companion to `ot-notes-fbcode-commit` (4×/day, commit-only).
 
 ## Learned Rules (auto-appended)
 

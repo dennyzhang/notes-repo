@@ -52,8 +52,22 @@
     "S666434",
     "S657170",
     "S668965",
-    "S661157"
+    "S661157",
+    "S669751",
+    "S669822",
+    "S665871",
+    "S645912",
+    "S667720",
+    "S667719",
+    "S661583",
+    "S669016",
+    "S666051",
+    "S669876",
+    "S669878",
+    "S644354",
+    "S660181",
+    "S638914"
   ],
-  "last_run_epoch": 1780028087,
-  "last_run_note": "2026-05-28 21:00 PDT \u2014 Q1 (tagged): S668965,S668996,S661783,S665222,S661157,S657606. Q2 backstop: S669351,S667738. Strict OT-title post-filter: S657606 PASS (online training). All others skip_silently (KEEP_REGEX miss). scope_check S657606: in_scope=true (mrs_online_training, Instagram-default). Gather: postmortem fields empty; gchat signal = DPP xregion enforcement blocked Hive access tetrisArgs misreporting. Archive OVERWRITTEN 2026-04/L4-2026-04-30-S657606.md (3562\u21924839 bytes, corrected D103756077 abandoned vs pushed). UPSERT: existing 2026-04 archive detected (glob false-negative on first check). Chronic-noisy: 0 models meet >=2 SEV threshold. Digest thread spaces/AAQAVOjYc80/threads/FbHcyT19Kaw. validator_status: unavailable. sevs_processed: 1, patterns_proposed: 1 (P58), patterns_matched: 0, archives_written: 1 (overwrite), archives_skipped_stub: 0, archives_skipped_existing_richer: 0."
+  "last_run_epoch": 1780286773,
+  "last_run_note": "2026-05-31 21:00 PDT \u2014 Q1 (tagged mvai-online-training): S644354 ([Feed ESR] Main model OT 2134440419 frequent NCCL timeout error). Q2 backstop title-class matches: S660181 (Hedwig), S638914 (ATN publish). Step 4.5 KEEP_REGEX: S644354 fails (\"model OT <number>\" \u2014 OT not followed by job/model/training; no spell-out of online training in title); S660181 fails (infra Hedwig, not OT); S638914 fails (ATN serving publish). 0 NEW in-scope OT SEVs. sevs_processed: 0, patterns_proposed: 0, patterns_matched: 0, archives_written: 0, archives_skipped_stub: 0, archives_skipped_existing_richer: 0, validator_status: n/a."
 }

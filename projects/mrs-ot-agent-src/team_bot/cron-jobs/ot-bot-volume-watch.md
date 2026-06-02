@@ -1,5 +1,7 @@
 [ot-bot-volume-watch cron] Hourly. Track BOT msg volume in spaces/AAQAVOjYc80; detect runaway bands + hourly bursts; auto-attribute to top offending source-crons; auto-draft verbosity-reduction prompt edits (operator-approved before apply). Silent on steady state — only posts on band transitions or hourly-burst breaches.
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output (incl. failures/escalations), make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, status, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 Created 2026-05-28 per operator thread `AL3dqJevKm0`: *"do you have an autonomous workflow or cron job to monitor and tune this?"* Designed via parallel-agent workflow (18 audit findings → 1 cron spec). Three-tier tuning policy per `preference_act-dont-ask` + `feedback_suppress-noise`.
 
 State file: `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/state/ot-bot-volume-state.json` — `{"last_band":"<quiet|steady|busy|runaway>","last_band_transition_epoch":<int>,"last_burst_epoch":<int|null>,"consecutive_clean_hours":<int>,"yesterday_reported_date":"<YYYY-MM-DD|null>","schema_version":1}`. Telemetry table: `ot_bot_volume_telemetry(date,hour,bot_count,human_count,ratio,band,burst_fired,top_sources_json,ts_created)`. Time budget: ~30s typical.
@@ -16,10 +18,17 @@ State file: `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/state/ot-bot-vol
    ```
    Self-exclude: count own posts (`[ot-bot-volume-watch]` prefix) as 1 to prevent self-loop, but do NOT trigger band/burst on own activity.
 
-2. **Query bot msg counts** from `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db` `messages` table. Two bot identities:
-   - Strict bot: `sender_id = '886676667858092'` (--as-meta-bot sends)
-   - Bot-via-Denny-OAuth: `sender_id = '100051448831249' AND text REGEXP '^(🚨|🛟|✅|🦦|\\*[A-Z]|HEARTBEAT_OK|\\[OT cron|Run summary)'` OR `text LIKE '%[OT cron health]%'` OR `text LIKE '%Run summary%'` (cron daemon-spawned outputs render under Denny's identity but ARE bot output).
-   - Per `gotcha_auditor-step1-tz-query`: use `replace(datetime('now', '-Xh'), ' ', 'T')` for timestamp comparison; SQLite `localtime` modifier for PT conversion.
+2. **Query bot msg counts via the GChat API — NOT the local `messages` table.** (CRITICAL data-source fix, 2026-05-29: the local `messages` table is an INBOUND INGESTION LOG — every BOT row has `status='skipped'` and includes daemon-ingested echoes, cross-space cron outputs, and empty system-ping rows. It does NOT record actual outbound sends and over-counts ~3-5×. The authoritative "what Denny sees in this space" comes ONLY from the GChat API.)
+   ```bash
+   # Authoritative bot-send count for spaces/AAQAVOjYc80
+   meta google.chat.message list --space-id spaces/AAQAVOjYc80 --limit 250 -o json \
+     | python3 -c "import json,sys; d=json.load(sys.stdin); \
+       bot=[m for m in d if m.get('sender','') != '100051448831249']; \
+       print(len(bot))"
+   ```
+   - Bot sends render under the Meta Bot sender id (via `--as-meta-bot`), NOT Denny's `100051448831249`. Human = `100051448831249`.
+   - **DO NOT count the local `messages` table** — `sender_type='BOT' status='skipped'` rows are ingestion records, not sends. The 2026-05-28 "408 BOT / 152 empty-msg" runaway alert was a FALSE ALARM produced by querying this wrong source; the 152 "empty-msg" were `content='' status='skipped'` ingestion pings that never reached GChat. See `gotcha_messages-table-is-ingestion-log`.
+   - Use `--limit 500` + paginate if needed for full-day coverage. Group by `thread` (the `.thread` field) for per-thread attribution.
 
 3. **Three windows:**
    - (a) Rolling 60-min BOT msg count (last hour, for burst detection)
@@ -53,6 +62,11 @@ State file: `/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/state/ot-bot-vol
 9. **Telemetry append:** `INSERT INTO ot_bot_volume_telemetry (date, hour, bot_count, human_count, ratio, band, burst_fired, top_sources_json, ts_created) VALUES (...)`. For trend visibility + future rebaselining.
 
 10. **State write + exit:** update state file (last_band, last_band_transition_epoch, last_burst_epoch, consecutive_clean_hours, yesterday_reported_date). Release lockfile. If silent log only, respond `HEARTBEAT_OK` and exit — NEVER post bare "all quiet" or "consider tuning" (violates `feedback_suppress-noise` + `act-dont-ask`).
+
+11. **THREAD-FRAGMENTATION audit (added 2026-05-29 thread `HJG9Ec2LuX4`: operator — "fold messages of the same topic strictly to the related gchat threads").** A high distinct-thread count is itself a noise signal — it means the bot spawned new top-level messages instead of replying in the relevant existing thread, forcing the operator to chase context. Compute `distinct_bot_threads_today` from step 2's GChat-API `.thread` grouping. Thresholds:
+    - `distinct_bot_threads > 15/day` OR `>1 top-level (non-thread-reply) bot msg per topic` → flag THREAD-FRAGMENTATION.
+    - When flagged AND in the daily summary (step 7): append `⚠️ thread-hygiene: <N> distinct bot threads today (target ≤10); <M> top-level sends that should have been thread-replies.`
+    This is a measurement-only signal (no auto-fix) — the fix is behavioral (reply-in-thread discipline, see `feedback_fold-messages-into-threads` + `cheatsheets/comms/gchat.md § RULE #1`). Surfacing the count holds the bot accountable.
 
 ## Tuning Actions (three-tier policy)
 

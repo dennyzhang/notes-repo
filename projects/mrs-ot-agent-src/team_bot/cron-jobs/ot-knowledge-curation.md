@@ -1,5 +1,7 @@
 [ot-knowledge-curation cron] Nightly 23:00 PT (90 min after the three mitigated-* crons finish at 21:00/21:15/21:30). Consume postmortem archives written by `ot-daily-learning-mitigated-{sevs,posts,alerts}`; produce three deliverables: (D1) up to 2 engineering diffs for immediate small gaps, (D2) up to 5 "mega learnings" appended to a weekly curated digest, (D3) one systemic-gap report per month. Complementary to `ot-knowledge-distillation` which operates on real-time triage records — this cron operates on postmortems.
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/knowledge-curation-state.json` —
 ```
 {
@@ -149,13 +151,21 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
 ## GChat output
 
-9. **One consolidated message to spaces/AAQAVOjYc80** (the bot's home space) summarizing the run:
-   ```
-   📚 ot-knowledge-curation: <N> diffs drafted, <M> mega-learnings appended, <K> systemic gaps surfaced
-   ```
-   Then ONE threaded reply with the mega-learnings block (titles only, with archive paths). NO inline diffs, NO inline full text — just titles and file links. Operator clicks through to read.
+9. **POST ONLY IF ACTIONABLE (2026-05-30, operator: "what's the point of sending me this msg?").** Send a GChat message to spaces/AAQAVOjYc80 **only when the run produced something the operator must see or act on** — i.e. `diffs_drafted > 0` OR `systemic_gap_generated == true` OR a D1 diff was HELD on a validator discrepancy. A mega-learnings-only run (0 diffs, 0 gaps) is **silent**: still append the mega-learnings to the ledger/archive per steps 5–7, just respond `HEARTBEAT_OK` and post nothing. Mega-learnings are reference material, not an interrupt — the operator reads them from the ledger or the daily-learning-digest, not from a per-run ping.
 
-   If only HEARTBEAT_OK (no NEW archives), NO GChat message. Just respond `HEARTBEAT_OK`.
+   When a post IS warranted, **one consolidated message** to spaces/AAQAVOjYc80 (the bot's home space), leading with the actionable item:
+   ```
+   📚 ot-knowledge-curation: <N> diff(s) drafted<, K systemic gap(s) surfaced if any>
+   ```
+   Then ONE threaded reply with the mega-learnings block (titles only, with archive paths) for context. NO inline diffs, NO inline full text — just titles and file links. Operator clicks through to read.
+
+   **IDENTIFIER RENDERING — MANDATORY (2026-05-29 thread `HJG9Ec2LuX4`: operator flagged bare `A2449443538836650` as an "invalid link"):** when the mega-learnings block cites evidence, the source items are archive FILENAME stems like `high-2026-05-28-A2449443538836650.md`. Do NOT paste the bare `A<numeric>` token into GChat — bare alert IDs do NOT auto-linkify (unlike `S###`/`D###`/`T###`), so they render as broken-looking plain text. Two correct renderings:
+   - **Preferred (clickable):** resolve each alert id to its real URL via `meta monitoring.alert metadata --alert-id="<full_alert_key>" -o json | jq -r .url` and emit `<url|A<id>>`. (The full alert key — `<numeric>@#$<entity>@#$<key>@#$<name>` — is stored in the archive file frontmatter; if only the numeric stem is available and the full key can't be reconstructed, fall back to the next option.)
+   - **Fallback (explicit non-link):** render as a code-span archive reference `` `resolved-alerts/2026-05/high-2026-05-28-A<id>.md` `` so it`s visibly a FILE PATH, not a clickable link. NEVER emit a bare `A<id>` that looks like it should be clickable but isn`t.
+   - Same rule applies to the mega-learnings markdown FILE written in step 6 — use code-span file refs or resolved URLs, never bare `A<id>`.
+   - `S###` / `D###` / `T###` / `W###` auto-linkify in GChat — those can stay bare. Only `A###` (alerts), `m###`/model-ids, and `f###` (FBLearner) need explicit wrapping.
+
+   If no NEW archives, OR a mega-learnings-only run (0 diffs, 0 systemic gaps, no held diff), NO GChat message. Just respond `HEARTBEAT_OK`.
 
 10. **Persist state.** Append processed archive paths to `distilled_archive_paths`, append diff commit hashes, bump mega_learnings_count, set last_run_epoch, write state file. Respond HEARTBEAT_OK with summary `{archives_processed: N, diffs_drafted: D, mega_learnings: M, systemic_gap_generated: bool, validator_status: confirmed|partial|unavailable}`.
 

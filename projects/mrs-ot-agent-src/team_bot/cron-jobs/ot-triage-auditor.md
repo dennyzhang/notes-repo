@@ -1,5 +1,7 @@
 # ot-triage-auditor — draft spec
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 **Status**: DRAFT (not yet enabled). Created 2026-05-19 by live session in thread `2w5Schmk83U` per operator request "C" (prototype + formalize).
 
 **Purpose**: post-hoc audit of `ot-alert-monitor` + `ot-sev-monitor` triage outputs. Catches:
@@ -150,13 +152,13 @@ Append one JSONL record per audited triage. Cap log file at 10000 lines (rotate 
 
 ### Step 7 — Respond
 
+**DELIVERY DISCIPLINE (HARD, 2026-05-30 — operator: "you have sent many msgs… only keep the useful ones; useful msgs get buried"):** the daemon posts your final response to GChat verbatim after stripping a leading `HEARTBEAT_OK`. NEVER emit narration/preamble as final text — no "Audit complete. 168 lines in log…", no "Records written. Now composing…", no "Composing output." Do the audit silently; the response below is the ENTIRE output.
+
 ```
 HEARTBEAT_OK {triages_audited: N, findings: F, pages: P, nudges: NU, self_heals: SH, passes: PA, in_thread_followups_posted: FU}
 ```
 
-If `pages == 0 AND nudges == 0 AND self_heals == 0`: respond JSON-summary only, no gchat post (per RULES.md signal-only).
-
-If `pages >= 1`: also post the real-time ping per step 3 (NOT in thread; new top-level message in space).
+**Post to GChat ONLY when `pages >= 1`** — a page = a real misattribution/fabrication the operator must see. In that case, send the page ping via an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 ...` to the operator 1:1 (per the OUTPUT CHANNEL header), THEN respond with EXACTLY the `HEARTBEAT_OK {…}` line. **The final response is ALWAYS `HEARTBEAT_OK {…}` — NEVER the page ping itself** (the daemon auto-delivers a non-HEARTBEAT_OK final response to the team space `spaces/AAQA2bZMw24`, which would leak the page out of the 1:1). For EVERY other outcome — including `nudges >= 1` and `self_heals >= 1` — respond EXACTLY the `HEARTBEAT_OK {…}` line and post nothing. Nudges/self-heals are logged to the JSONL audit trail (step 6) for trend review, NOT delivered to chat (changed 2026-05-30: nudge-tier posts were the single largest noise source — 8 delivered msgs in one day — and carry no operator action).
 
 ---
 

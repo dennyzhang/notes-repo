@@ -1,5 +1,7 @@
 [ot-sev-tag-review cron] Daily, weekday morning. Find OT SEVs missing the right tags. Three categories:
 
+**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+
 **Rendering rules (apply to every SEV line in the output):**
 - **Never append `https://www.internalfb.com/sevmanager/view/<num>` after a SEV id.** GChat auto-linkifies bare `S<num>` tokens, so the trailing URL is pure noise. Same for `D<num>` (diff), `T<num>` (task). Drop the entire URL-sourcing pre-fetch step — we don't render URLs anymore.
 - **Order SEVs by status + severity within each section.** Status: In Progress first, then Mitigated, then Closed/Resolved. Within status, by level: L1 > L2 > L3 > L4. Stable secondary sort: SEV id descending (newer first).

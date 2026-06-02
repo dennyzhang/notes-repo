@@ -136,6 +136,12 @@ Both exist; nobody has been measuring the delta. This cron closes the loop: how 
    📊 Per-issue scores: <paste_url>
    ```
 
+   **URL discipline — link by id-PREFIX, NEVER cross-map (2026-06-01 thread `QqRxpjmc1xE`).** Every `[<id>](url)` MUST use the URL form matching the id prefix:
+   - `S<digits>` → `https://www.internalfb.com/sevmanager/view/<digits>`
+   - `A<digits>` (ALERT, not a SEV) → resolve via `meta monitoring.alert metadata --alert-id=<full_alert_key> -o json | jq -r .url`; if only the numeric stem is known, `https://www.internalfb.com/onedetection/alert?alert_id=<digits>`. **NEVER render an A-id with the `/sevmanager/view/` path** — that's what 404'd (A1728833178491353 → `/sevmanager/view/1728833178491353`). If the alert url can't be resolved, render the bare `A<digits>` token WITHOUT a hyperlink rather than a 404 link.
+   - `W<digits>` → `https://fb.workplace.com/groups/<numeric_group_id>/permalink/<digits>/` · `D<digits>` → `https://www.internalfb.com/diff/D<digits>` · `T<digits>` → `https://www.internalfb.com/tasks/?t=<digits>`
+   Applies to the Wins/Misses lists AND the per-issue paste. See RULES.md § URL validity.
+
    Keep narrative under 3000 chars. Spill the per-issue detail table to paste.
 
 8. **Persist state.** Append this week's row to `weekly_scores`. Add all scored issue IDs to `scored_issue_ids` (prevent re-scoring on backfill runs). Write state file.

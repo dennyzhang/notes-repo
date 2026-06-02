@@ -1,19 +1,19 @@
 {
-  "last_run_epoch": 1779725199,
+  "last_run_epoch": 1780329600,
   "per_space": {
     "spaces/AAQAR1xHaQU": {
-      "last_catchup_date": "2026-05-25",
-      "last_msg_create_time": "2026-05-21T10:47:35-07:00",
+      "last_catchup_date": "2026-06-01",
+      "last_msg_create_time": "2026-06-01T06:27:00-07:00",
       "display_name": "RT Infra WS2: OT Reliability & Understanding",
       "slug": "rtinfra-ws2",
-      "notes": "10 human msgs; S665521 + MAST metadata injection + D105733308 client buffer bump"
+      "notes": "5 human msgs; scribe age regression (P90 ~11min vs SLO ≤10min); item streaming QPS drop → training delay; new Scuba URL dpp_stats_v2; DFM read/write expansion proposed (Josef Cohen)"
     },
     "spaces/AAQAXSNWvcM": {
-      "last_catchup_date": "2026-05-25",
-      "last_msg_create_time": "2026-05-21T14:07:49-07:00",
+      "last_catchup_date": "2026-05-29",
+      "last_msg_create_time": "2026-05-28T17:05:05-07:00",
       "display_name": "MVAI OT Dev",
       "slug": "mvai-ot-dev",
-      "notes": "42 human msgs; OTModelMetadata design + snapshot type enum + oncall scope decision"
+      "notes": "0 new msgs this week (only boundary returned); low-signal; re-poll next Monday"
     },
     "spaces/AAQAtGhVkUw": {
       "last_catchup_date": "2026-05-18",
@@ -21,14 +21,14 @@
       "display_name": "IG ATS Alerting",
       "slug": "ig-ats-alerting",
       "skip_until_epoch": 1782144399,
-      "notes": "0 new msgs since last run; back-off 4 weeks"
+      "notes": "0 new msgs since last run; back-off 4 weeks (until ~2026-06-18)"
     },
     "spaces/AAQATpEgSyk": {
-      "last_catchup_date": "2026-05-25",
-      "last_msg_create_time": "2026-05-23T10:49:18-07:00",
+      "last_catchup_date": "2026-05-29",
+      "last_msg_create_time": "2026-05-26T13:56:25-07:00",
       "display_name": "MRS Online Training Oncall",
       "slug": "mrs-ot-oncall",
-      "notes": "98 human msgs; RES + PVR + SLICK gate + Yabin departure + oncall scope"
+      "notes": "0 new msgs this week (only boundary returned); low-signal; re-poll next Monday"
     }
   }
 }

@@ -40,6 +40,7 @@ See [`solution-design.md`](solution-design.md) for flywheel goal, problems, metr
 | Per-incident post archives | `incidents/resolved-posts/<YYYY-MM>/` |
 | Per-incident alert archives | `incidents/resolved-alerts/<YYYY-MM>/` |
 | Per-conversation thread summaries | `bot-debugging-threads/<YYYY-MM>/` |
+| **War stories** (deep incident narratives) | `war-stories/INDEX.md` |
 | Daily orphan fbpkg dumps | `incidents/fbpkg-audits/<YYYY-MM-DD>.json` |
 
 ```
@@ -73,7 +74,9 @@ mrs-ot-agent-context/
 │   ├── resolved-alerts/<YYYY-MM>/         (<pri>-<date>-A<id>.md + README + INDEX)
 │   ├── open.md                            (active incidents the team is working on)
 │   └── fbpkg-audits/<YYYY-MM-DD>.json
-└── bot-debugging-threads/<YYYY-MM>/       (per-thread conversation summaries)
+├── bot-debugging-threads/<YYYY-MM>/       (per-thread conversation summaries)
+└── war-stories/                           (deep incident narratives — investigation journey + durable lessons)
+    └── INDEX.md                           (catalog of war stories)
 ```
 
 ## Taxonomy
@@ -87,6 +90,7 @@ mrs-ot-agent-context/
 | **Generic methodology** (human-written) | `human-input-generic/` | Reusable: triage methodology R1-R10, agent principles, report templates |
 | **Per-conversation rollups** | `bot-debugging-threads/` | Per-thread distillations from operator-bot debugging sessions |
 | **Bot-proposed fixes** | `auto-fixes/` | Fix patches the bot generated (not yet shipped) |
+| **War stories** | `war-stories/` | Deep narratives of significant incidents — investigation journey, false starts, technical breakthroughs, durable lessons. Teaching artifacts for new oncall. |
 
 ## What's NOT here
 

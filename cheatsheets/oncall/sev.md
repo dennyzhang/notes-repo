@@ -14,133 +14,6 @@ Quick reference for the full SEV lifecycle: active response, review preparation,
 
 ## Active Mode
 
-### First 60 Seconds: 3 Questions (Source: Google SRE)
-
-Before anything else, answer these three:
-1. **What is broken?** (service, model, pipeline — name it)
-2. **Who is affected?** (users, revenue, internal teams)
-3. **Is it getting worse?** (trend: growing, stable, recovering)
-
-If you can't answer all three in 60 seconds → escalate immediately. You're missing context that someone else has.
-
-**Declare high, downgrade later.** If uncertain between SEV1 and SEV2, declare SEV1. Over-declaring is free. Missing a SEV1 costs hours.
-
-### Assess Severity and Blast Radius
-
-| Factor | Questions |
-|--------|-----------|
-| **Severity** | SEV1 (revenue/safety), SEV2 (significant degradation), SEV3 (limited impact)? |
-| **Blast radius** | How many users/services? Which regions? |
-| **Revenue impact** | Estimated $/hour — SEV1: $500K-$2M, SEV2: $50K-$200K, SEV3: $5K-$50K |
-| **Trend** | Getting worse, stable, or improving? |
-| **Dependencies** | Upstream/downstream services affected? |
-
-### Escalation Criteria (Source: PagerDuty Incident Response)
-
-Escalate when ANY of these are true:
-- Impact is growing and mitigation hasn't started within 15 min
-- You don't understand the failure mode after 10 min of investigation
-- Fix requires access/expertise you don't have
-- Multiple teams need coordinated action
-- Customer-facing impact crosses a product boundary
-
-**Never escalate "too early" — early escalation is always cheaper than late.**
-
-### Incident Roles (Source: ICS adapted for software)
-
-| Role | Responsibility | When needed |
-|------|---------------|-------------|
-| **Incident Commander (IC)** | Owns the response. Decides priorities, assigns tasks, controls communication cadence. | Always (defaults to oncall engineer) |
-| **Comms Lead** | Posts updates at committed intervals. Shields IC from status requests. | SEV1 or when >3 teams involved |
-| **Subject Matter Expert** | Deep-dives into specific systems. Reports findings to IC. | When root cause crosses domain boundaries |
-| **Scribe** | Records timeline, decisions, actions in real-time. | SEV1 (for accurate postmortem) |
-
-For SEV2-3 with 1-2 people, the oncall engineer plays all roles. Split roles only when coordination overhead justifies it.
-
-### SEV Post Templates
-
-**Initial post:**
-```
-**[SEV Level]: [One-line description]**
-
-**Impact:** [Who/what is affected, scope]
-**Status:** Investigating
-**DRI:** @[name]
-
-**Current understanding:**
-- [Symptoms observed]
-- [Timeline: when it started]
-- [What we know / don't know]
-
-**Next update:** [Time — 30 min for SEV1, 1 hour for SEV2]
-```
-
-**Update:**
-```
-**Update [Time]:** [SEV-ID]
-
-**Status:** [Investigating / Mitigating / Resolved]
-**Change:** [What changed since last update]
-
-**Current actions:**
-- [Action 1]: [Owner]
-- [Action 2]: [Owner]
-
-**Next update:** [Time] or when status changes
-```
-
-**Resolution:**
-```
-Resolved: [SEV-ID] [One-line description]
-
-**Duration:** [Start] - [End] ([X hours])
-**Impact:** [Final impact — users, duration, revenue]
-**Root cause:** [1-2 sentences]
-**Fix:** [What was done]
-
-**Follow-ups:**
-- [ ] [Action]: [Owner] - [Date]
-
-Post-mortem: [Link when available]
-```
-
-### Verify Mitigation with Metrics (Source: Google SRE)
-
-After applying a fix, don't trust "it looks better." Define the validation metric and watch it:
-
-1. Identify the metric that proves impact stopped (staleness age, NE, error rate, traffic)
-2. Watch for 15 minutes after mitigation
-3. If no improvement → mitigation failed, try next option
-4. Only declare "mitigated" when the metric confirms recovery
-
-**"Mitigated" ≠ "Resolved."** Mitigated = user impact stopped. Resolved = root cause fixed and prevention deployed. These are different SEV states.
-
-### Mitigation Options
-
-Evaluate in order of speed and safety:
-
-| Option | Speed | Risk | When to Use |
-|--------|-------|------|-------------|
-| **Rollback** | Fast | Low | Recent deploy caused the issue |
-| **Config change** | Fast | Low-Med | Feature flag, rate limit, config-driven fix |
-| **Traffic shift** | Fast | Medium | Regional or capacity issue |
-| **Disable feature** | Fast | Medium | Isolate faulty component |
-| **Scale up** | Medium | Low | Capacity-related |
-| **Hotfix** | Slow | Medium | Root cause known, targeted fix |
-
-**Key question:** "What is the fastest safe way to stop the bleeding?"
-
-### Investigation Checklist
-
-```
-Recent Changes:
-- [ ] Code deploys in the last 24 hours
-- [ ] Config changes (feature flags, rate limits)
-- [ ] Infrastructure changes (capacity, networking)
-- [ ] Dependency updates (upstream services, libraries)
-- [ ] Traffic pattern changes (seasonal, campaign-driven)
-```
-
 ### Investigation Paste — 2 Canonical Questions
 
 Every major SEV investigation eventually needs a shareable paste
@@ -173,7 +46,7 @@ For each tier, include:
 - Action with file:line refs
 - Owner (specific person or oncall name — never "TBD")
 - Risk (low / medium / high) with one-line justification
-- Expected effect (quantified where possible — "X→Y minutes", "rate-Z events / week")
+- Expected effect (quantified where possible — "X->Y minutes", "rate-Z events / week")
 
 **Rules:**
 
@@ -185,94 +58,6 @@ For each tier, include:
   needs prose, it's not actually immediate.
 - If you can't fill a tier in Q2, write "N/A — <reason>" rather
   than skip it. Empty tier is a smell.
-
-### Root Cause Analysis: 5 Whys (Source: Toyota/Google SRE)
-
-Don't stop at the first cause. Ask "why" 5 times to reach the systemic root:
-
-```
-Symptom: Model staleness alert fired
-Why 1: Trainer hasn't produced a snapshot in 6 hours
-Why 2: Trainer crashed with OOM
-Why 3: Batch size doubled from config change
-Why 4: Config change wasn't validated against memory limits
-Why 5: No pre-deploy memory check exists for config changes
-→ Root cause: Missing validation gate, not the OOM itself
-→ Fix: Add memory budget check to config deploy pipeline
-```
-
-**Rules:**
-- Each "why" must be supported by evidence (log line, metric, timeline entry)
-- Stop when you reach a process/system gap (not a person's mistake)
-- If you can't answer a "why", that's your investigation gap — find the evidence
-
-### Blameless Postmortem Template (Source: Google SRE + Etsy)
-
-```markdown
-# Postmortem: [SEV-ID] [One-line description]
-
-## Summary
-[2-3 sentences: what happened, impact, duration]
-
-## Timeline (UTC)
-| Time | Event |
-|------|-------|
-| HH:MM | First symptoms observed |
-| HH:MM | Alert fired / incident declared |
-| HH:MM | Root cause identified |
-| HH:MM | Mitigation applied |
-| HH:MM | Incident resolved |
-
-## Root Cause (5 Whys)
-[Chain from symptom to systemic cause — see template above]
-
-## Impact
-- Duration: [X hours]
-- Users affected: [N]
-- Revenue impact: [$X] ([confidence])
-- Error budget consumed: [X%]
-
-## What Went Well
-- [Specific thing that worked — be concrete]
-
-## What Went Wrong
-- [Specific thing that failed — focus on systems, not people]
-
-## Action Items
-| Action | Owner | Priority | Due | Task |
-|--------|-------|----------|-----|------|
-| [Preventive fix] | @name | P0 | YYYY-MM-DD | T<number> |
-| [Detection improvement] | @name | P1 | YYYY-MM-DD | T<number> |
-
-## Lessons Learned
-[What would we do differently? What should other teams know?]
-```
-
-**Blameless principle:** Focus on "what" and "why", never "who". Replace "X didn't monitor" with "monitoring for X was not configured." The goal is to make the system safer, not to assign fault.
-
-### Follow-Up Categories
-
-| Category | Examples |
-|----------|---------|
-| **Preventive** | Add monitoring, improve alerting thresholds |
-| **Detective** | Better dashboards, anomaly detection |
-| **Process** | Update runbooks, improve escalation paths |
-| **Architectural** | Eliminate single points of failure, add circuit breakers |
-| **Testing** | Chaos tests, integration tests |
-
-### Active Mode Checklist
-
-Before closing active response:
-
-- [ ] SEV post with accurate severity and blast radius
-- [ ] Regular updates at committed intervals
-- [ ] Root cause identified (or investigation plan)
-- [ ] Mitigation applied and verified
-- [ ] Resolution post with impact summary
-- [ ] Follow-up action items with owners and dates
-- [ ] DRI handoff communicated (if applicable)
-- [ ] SLI linkage verified — did SLIs detect this? If not, gap identified
-- [ ] Error budget impact calculated
 
 ---
 
@@ -325,16 +110,6 @@ Expected answer: [What a good answer looks like]
 3. "Which other services have the same pattern and are exposed?"
 4. "What's the rollback time right now — is that acceptable?"
 
-### Never Ask
-
-| Bad | Why | Ask Instead |
-|-----|-----|-------------|
-| "What went well?" | Invites self-congratulation | "What would have made detection 10x faster?" |
-| "What did we learn?" | Too vague | "Which follow-up prevents the next occurrence?" |
-| "How can we improve?" | Too broad | "Who owns the SLI gap fix and when will it ship?" |
-| "Is everyone comfortable?" | Social, not engineering | "Has the fix been verified under same load conditions?" |
-| "Should we have escalated sooner?" | Hindsight bias | "What signal would trigger automatic escalation?" |
-
 ---
 
 ## Retrospective Mode
@@ -350,18 +125,6 @@ For framing SEV contributions in PSC and impact discussions.
 | **Mitigation Implementer** | "I wrote the fix/rolled back/deployed" | Execution speed and MTTR reduction |
 | **Follow-Up Owner** | "I built monitoring/wrote runbook" | Preventive impact; future SEVs prevented |
 | **Preventive** | "My automation caught it/my monitoring alerted" | Proactive engineering; blast radius reduction |
-
-### Quantify Contributions
-
-| Metric | How to Calculate |
-|--------|------------------|
-| **MTTD reduction** | "Without my [action], detection would have taken X longer" |
-| **MTTR reduction** | "My [action] reduced resolution by X" |
-| **Blast radius reduction** | "Limited impact to X instead of Y" |
-| **Revenue saved** | Duration reduction x hourly cost (see severity table above) |
-| **Incidents prevented** | "Follow-up prevents N similar incidents/year" |
-
-Confidence levels: **High** (from SEV timeline/dashboards), **Medium** (extrapolated from similar incidents), **Low** (rough estimate).
 
 ### Impact Statement Templates
 
@@ -391,10 +154,6 @@ For impact quantification anti-patterns (credit without contribution, vague impa
 
 ---
 
-## See Also
-
-`career/psc.md` (SEV contributions in PSC), `career/slo.md` (error budget), `career/impact-quantifier.md` (quantifying impact), `references/impact-metrics.md`
-
 ## SEV Triage Discipline (learned 2026-05-20/23)
 
 1. **Verify model_id before locking in.** Opsmate's literal model_id citation is often wrong. Cross-check via `flow_model_type` + `flow_entitlement` + oncall match against the SEV title family before triaging. (Source: S665454 — Opsmate cited m2129246926, actual was m2124122280.)
@@ -407,7 +166,7 @@ For impact quantification anti-patterns (credit without contribution, vague impa
 
 5. **Read SEV chat via `meta sevmanager.chat list`.** Works when the bot lacks gchat room membership. Returns SEV-specific chat content as text, bypassing the room-membership requirement. (Source: S661645 — gchat URL inaccessible, CLI worked.)
 
-6. **"Zero in last N" is not a valid staleness check.** Compare gap-since-last-event to the model's historical cadence. "0 FULL_SNAPSHOT in last 30 instances" could mean normal (STUS model that publishes FS every 200 instances) or critical (model with 45-min FS cadence that's been silent 19 hours). Always: `gap / normal_cadence` ratio. Ratio > 2× = investigate. (Source: m2130324780 — "0 FS in last 30" classified as THRESHOLD_MISFIT, was actually a 19.5h publish failure.)
+6. **"Zero in last N" is not a valid staleness check.** Compare gap-since-last-event to the model's historical cadence. "0 FULL_SNAPSHOT in last 30 instances" could mean normal (STUS model that publishes FS every 200 instances) or critical (model with 45-min FS cadence that's been silent 19 hours). Always: `gap / normal_cadence` ratio. Ratio > 2x = investigate. (Source: m2130324780 — "0 FS in last 30" classified as THRESHOLD_MISFIT, was actually a 19.5h publish failure.)
 
 7. **Verify baseline before applying holdout-noise heuristic.** Any "holdout is noisy, ignore" classification is only valid when the corresponding baseline is clean. If baseline is ALSO firing, the signal is shared-infra, not holdout-specific noise. Check baseline state first, then decide. (Source: holdout E2E latency alerts — 36% noisy heuristic applied blindly without baseline check.)
 
@@ -417,3 +176,7 @@ For impact quantification anti-patterns (credit without contribution, vague impa
 |---|---|
 | No second alert found in this scan — likely auto-recovered. Continue monitoring. | No second alert in 24h window. Current CHC rate: [link live Scuba query]. If ... |
 | Do NOT restart without clearing ALL 6 channels first — OOM guaranteed. Runboo... | Owner: serving_infra_oncall (Hedwig/publisher layer). Do NOT restart without ... |
+
+## See Also
+
+`career/psc.md` (SEV contributions in PSC), `career/slo.md` (error budget), `career/impact-quantifier.md` (quantifying impact), `references/impact-metrics.md`
