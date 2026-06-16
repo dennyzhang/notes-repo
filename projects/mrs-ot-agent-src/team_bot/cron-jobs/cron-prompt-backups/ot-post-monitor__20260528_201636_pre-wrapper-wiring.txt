@@ -89,11 +89,11 @@ Procedure:
          1. SEVs: `meta sevmanager.sev list --title-contains="<MODEL_ID>" --limit=20 -o json` (180d+ retention)
          2. Cleared alerts: `meta monitoring.alert list --alert-contains="<MODEL_ID>" --state-is=CLEARED --start-time=$(date -d '30 days ago' +%s) --limit=20` (<30d retention)
          3. Local archives: `grep -lr "<MODEL_ID>" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-{sevs,posts,alerts}/ | grep -vE "/(INDEX|README|MISSING|NOISY-MODELS)\.md$"`
-         4. Mega-learnings: `grep -lr "<MODEL_ID>" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/` — hits in failure-patterns.md = canonical CL-NNN already mapped (first-class signal)
+         4. Mega-learnings: `grep -lr "<MODEL_ID>" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/` — hits in failure-patterns.md = canonical CL-NNN already mapped (first-class signal)
 
          If 2+ prior incidents had same mitigation → short-circuit hypothesis. Cite: `[VERIFIED: model_<MODEL_ID> prior_SEVs=N; prior_alerts=N|unverified; local_archives=[...]; cluster_evidence=[<CL-NNN>, ...]; mega_learnings=[...]]`. Source: operator 2026-05-17 thread `r70kC-3eghA` + `Uc-pVBEXNQ8`.
 
-      ii-b. **R21 — CROSS-WORKLOAD PATTERN.** After R20, check family for the same symptom: extract model_type_name; sweep `meta sevmanager.sev list --tags=mvai-online-training --in-progress --title-contains="<family_keyword>"`; map symptom to CL-NNN in `mrs-ot-agent-context/auto-learnings/patterns/failure-patterns.md`. 2+ sibling models same symptom 24h → family-wide escalation. Cite: `[VERIFIED: family=<model_type_name>, sibling_sevs_7d=<N>, matching_cluster=<CL-NNN or none>]`.
+      ii-b. **R21 — CROSS-WORKLOAD PATTERN.** After R20, check family for the same symptom: extract model_type_name; sweep `meta sevmanager.sev list --tags=mvai-online-training --in-progress --title-contains="<family_keyword>"`; map symptom to CL-NNN in `mrs-ot-agent-context/learnings/patterns/failure-patterns.md`. 2+ sibling models same symptom 24h → family-wide escalation. Cite: `[VERIFIED: family=<model_type_name>, sibling_sevs_7d=<N>, matching_cluster=<CL-NNN or none>]`.
 
       iii. **Owner correction.** For `model_series`/`mast_job_id`/`mlhub_url`: run `meta ai.model-series metadata --model-id=<MODEL_ID>` (resolve job → model first). Compare against post author's ownership signal. If they differ, list BOTH: post author (asker) AND actual model owner (escalation target).
 

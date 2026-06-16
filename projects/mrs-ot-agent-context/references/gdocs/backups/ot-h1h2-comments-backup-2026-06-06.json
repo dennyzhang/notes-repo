@@ -1,0 +1,879 @@
+{
+  "comments": [
+    {
+      "author": {
+        "displayName": "Denny Zhang"
+      },
+      "content": "numbers should have supporting links attached",
+      "createdTime": "2026-06-06T04:19:09.191Z",
+      "id": "AAAB84JCwMs",
+      "replies": []
+    },
+    {
+      "author": {
+        "displayName": "Denny Zhang"
+      },
+      "content": "need to audit this, and provide supporting links",
+      "createdTime": "2026-06-06T04:18:55.087Z",
+      "id": "AAAB84JCwMo",
+      "replies": []
+    },
+    {
+      "author": {
+        "displayName": "Denny Zhang"
+      },
+      "content": "The doc should be concise - no more than 6 pages\n\nBusiness centric - talk from customer perspective, goal should be measurable, no jargon",
+      "createdTime": "2026-06-06T03:35:52.557Z",
+      "id": "AAAB84JCwJc",
+      "replies": []
+    },
+    {
+      "author": {
+        "displayName": "Denny Zhang"
+      },
+      "content": "Section #2 should organized with three themes. Each themes should have 2-3 projects. Each projects should 2-3 KRs.\n\nYour planning should follow the conventions and best practice from meta MRS and M10N org.\n\nYou can reach current content, and a few key docs in OT mater agent as input.\n\nAslo read below docs and files as input:\n\nhttps://docs.google.com/document/d/1mpy7J9r-GCkUTNjQzzdWsJDWbFC9iJ3ctZsFdvyX-qs/edit?tab=t.0#heading=h.eev10vq2e7k1\n\n~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/patterns/INDEX.md\n\nA few key painpoints should be addressed in your proposal\n- measurement & observability: OT infra metric, dashboard, debugging\u00a0table for key events\n- top3 error patterns from H1 SEV learnings should be addressed\n- Make the support scale within 3 oncall constraint. This indicate reduce alert noise, debug agent, fewer major+ alerts, self-served user tooling.",
+      "createdTime": "2026-06-06T03:29:36.672Z",
+      "id": "AAAB84JCwJU",
+      "replies": []
+    },
+    {
+      "author": {
+        "displayName": "Denny Zhang"
+      },
+      "content": "Section #1 should list below key items\n- Key deliverables.\u00a0\n- Committed goals\n- Unplanned work\n\nCheck OT master agent context as your input. Also landed diffs, posts from everyone in OT dev group.\n\nEach section should be concise, easy\u00a0to read, and business centric",
+      "createdTime": "2026-06-06T03:21:59.418Z",
+      "id": "AAAB84JCwJQ",
+      "replies": []
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "@dennyzhang@meta.com @lupaul@meta.com Could you add more item from PE side towards reliability (we can make them concise\u00a0and brief). Thanks!",
+      "createdTime": "2026-06-06T01:27:26.048Z",
+      "id": "AAAB86iyQZ0",
+      "replies": [],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "@lupaul@meta.com @dennyzhang@meta.com Could you help add some highlevel planning for reliability\u00a0agent/skill for H2 by this weekend (sry that I need to build the slides\u00a0by Mon). Thank you!",
+      "createdTime": "2026-06-05T23:55:34.472Z",
+      "id": "AAAB86AEQ9E",
+      "replies": [],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "maybe move these two up?",
+      "createdTime": "2026-06-03T07:27:24.349Z",
+      "id": "AAAB8tKRB3c",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done in the current revision \u2014 Publish status and Job status now lead the 'What we measure' list, ahead of the latency signals.",
+          "createdTime": "2026-06-06T04:12:33.384Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "does IG added them together as the latency? if so let's make it clear as well",
+      "createdTime": "2026-06-03T07:26:41.842Z",
+      "id": "AAAB8tKRB3Y",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the observability section now states explicitly that IG sums Scribe latency + model age into one end-to-end number held to the \u226410 min / 95%-of-hours SLO, under 'Combined (scribe + inference) latency'.",
+          "createdTime": "2026-06-06T04:12:34.670Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Change to Estimated Eng Weeks",
+      "createdTime": "2026-06-03T06:46:06.833Z",
+      "id": "AAAB8tKRBx0",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the column is now labeled 'Estimated Eng Weeks' in the \u00a72.2 'What we plan to build' table.",
+          "createdTime": "2026-06-06T04:13:18.428Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "modifies this to talk about things we plan to build",
+      "createdTime": "2026-06-03T06:44:53.898Z",
+      "id": "AAAB8tKRBxw",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 this paragraph now reads as plan-to-build: it names the three gaps (no OT-first end-to-end view, no per-model event history, no clean T2 attribution) and maps each to the view that closes it (OT Health Board, OT Event Log, T2 ATS Dash).",
+          "createdTime": "2026-06-06T04:13:31.654Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "you missed the event logger?",
+      "createdTime": "2026-06-03T06:43:37.519Z",
+      "id": "AAAB8tKRBxs",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Added \u2014 the event logger is now covered: 'Lifecycle events' (launches, restarts, snapshots, deltas, stalls, recoveries as a per-model timeline) is in the 'What we measure' list, and the OT Event Log is one of the three views in the build table.",
+          "createdTime": "2026-06-06T04:13:30.311Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "sub bullet explain what they are, scribe example age? and what is model age metric?",
+      "createdTime": "2026-06-03T06:40:29.480Z",
+      "id": "AAAB8tKRBxo",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 Scribe example age (training-data lag / 'scribe example age') and model age (how stale the served snapshot is) are now defined as sub-bullets under Freshness Latency, with the combined number called out as IG's end-to-end SLO metric.",
+          "createdTime": "2026-06-06T04:13:27.737Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "may put OT observability as the first sentence of the goal?",
+      "createdTime": "2026-06-03T06:39:28.443Z",
+      "id": "AAAB8tKRBxk",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] The \u00a72.2 goal currently leads with 'make OT reliable \u2014 bring recovery from hours toward minutes', then lists observability as workstream (1). If you'd prefer observability as the literal first clause, I'd reword to: 'Goal: stand up OT-first observability and make OT reliable \u2014 bring recovery from hours toward minutes.' Flagging for you since the rephrase touches comment-anchored text.",
+          "createdTime": "2026-06-06T04:13:24.652Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "expand it a bit it?",
+      "createdTime": "2026-06-03T06:38:58.405Z",
+      "id": "AAAB8tKRBxg",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Expanded \u2014 the single OT-health signal is now described as a green/yellow/red per-model roll-up of freshness, streaming success, publish, and job status against per-product targets, so an unhealthy model is one glance away.",
+          "createdTime": "2026-06-06T04:13:22.098Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Can we make these into the table as well?",
+      "createdTime": "2026-06-03T06:27:22.855Z",
+      "id": "AAAB8tKRBxY",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 these three views (OT Health Board, OT Event Log, T2 ATS Dash) are now a table with columns Name / Type / What it measures / High-level steps / Estimated Eng Weeks.",
+          "createdTime": "2026-06-06T04:13:33.133Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "move this one to the top of the list",
+      "createdTime": "2026-06-03T06:19:52.623Z",
+      "id": "AAAB8tKRBxQ",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Already at the top \u2014 'MRS OT Reliability \u2014 cross-team follow-ups (Doc)' is the first item in the References list.",
+          "createdTime": "2026-06-06T04:13:28.967Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "make the format a little easier to follow",
+      "createdTime": "2026-06-03T06:18:56.287Z",
+      "id": "AAAB8tKRBxM",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Reformatted \u2014 this section is now a severity-ranked (P0\u2192P2) table: Pri / SEVs / What fails / Fix / Goal (measurable) / Owner, which is easier to scan than the prior prose.",
+          "createdTime": "2026-06-06T04:13:26.140Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "remove",
+      "createdTime": "2026-06-03T06:17:33.904Z",
+      "id": "AAAB8tKRBxI",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Removed \u2014 the '15 still open' phrasing is gone from the current revision.",
+          "createdTime": "2026-06-06T04:13:23.407Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Create a table, give a short name for each table/logger, and what it measures",
+      "createdTime": "2026-06-03T06:17:11.938Z",
+      "id": "AAAB8tKRBxE",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the three OT-first views are now a table with a short name and 'What it measures' for each (OT Health Board, OT Event Log, T2 ATS Dash).",
+          "createdTime": "2026-06-06T04:13:21.013Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "add placeholder for me to add the MRS level effort to drive each component level ATS dash",
+      "createdTime": "2026-06-03T06:16:22.014Z",
+      "id": "AAAB8tKRBxA",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] The T2 ATS Dash row's steps now include 'Publish per-model SLOs anchored on T2' and 'Add alerting on regressions'. Placeholder for your MRS-level effort to drive each component-level ATS dash: please add it here \u2014 flagged for you.",
+          "createdTime": "2026-06-06T04:13:19.566Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Reorg this part into:\n1. what metrics/signal/data we should be measuring\n2. what we current have and what are their gaps\n3. what are we planning to do, and each has its own sub bullets point about what it covers and what steps (highlevel) needed to implement them",
+      "createdTime": "2026-06-03T06:12:58.274Z",
+      "id": "AAAB8tKRBw8",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 this part is reorganized into the three blocks you asked for: (1) what we should measure, (2) what we have today and the gaps, (3) what we plan to build (with each planned view carrying its own sub-bullets on coverage + high-level steps).",
+          "createdTime": "2026-06-06T04:12:58.620Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "We have SLICK:\u00a0Discovery Online Models: https://fburl.com/monitoring/rkhcqpuj\nInstagram Online Models: https://fburl.com/monitoring/gmdu02yq, but they have their own issues, not realtime, and lack of standard\u00a0procedure to align pg team on the SLICK SLOs",
+      "createdTime": "2026-06-03T06:11:16.116Z",
+      "id": "AAAB8tKRBw4",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 SLICK (with the Discovery and Instagram Online Models links) is now in the 'What we have today, and the gaps' list, with its gaps called out: not realtime (lags ~1 DS), multiple clicks to reach the SLO, and no standard process to align PGs on SLICK SLOs.",
+          "createdTime": "2026-06-06T04:12:57.177Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Each bullet should map to each section below, do not add more",
+      "createdTime": "2026-06-03T06:08:10.032Z",
+      "id": "AAAB8tKRBw0",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the three H2 goals (reliable / efficient / self-service) now map one-to-one to the sections below, with no extra bullets added.",
+          "createdTime": "2026-06-06T04:12:55.703Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Make in a little concise, and refer the TLDR of\u00a0[MRS OT Reliability] Cross-Team Follow-ups, do not need to list too many details, try to stay at high level.",
+      "createdTime": "2026-06-03T06:07:02.458Z",
+      "id": "AAAB8tKRBww",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the \u00a72.2 intro is now concise and points to the TL;DR of the MRS OT Reliability cross-team follow-ups for full scope, rather than listing the GPU-hour / 974-hr details inline.",
+          "createdTime": "2026-06-06T04:13:15.995Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "remove\u00a0this, if certain content is good for reference section, go for it",
+      "createdTime": "2026-06-03T05:43:21.029Z",
+      "id": "AAAB8tKRBwo",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 this inline references blob was removed; the useful links now live in the dedicated References section at the end.",
+          "createdTime": "2026-06-06T04:13:11.687Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "can you find more from https://docs.google.com/document/d/1mpy7J9r-GCkUTNjQzzdWsJDWbFC9iJ3ctZsFdvyX-qs/edit?usp=sharing?\n\nAnd we also need examples",
+      "createdTime": "2026-06-03T05:42:46.125Z",
+      "id": "AAAB8tKRBwk",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the dependency table (\u00a72.2 item 4) now pulls concrete component asks + SEV examples from the cross-team follow-ups doc: SJD, Checkpointing, NCCL, NaN, PyTorch lowering, TMS, Hedwig, IPNext, DPP, MAST, each with a specific ask and SEV (e.g. S665454, S665214, S668033, S652049, S644248, S667572, S667544, S628346).",
+          "createdTime": "2026-06-06T04:13:08.789Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "needs weight manager onboarding if the delta snapshots are blocked by full snapshot transition",
+      "createdTime": "2026-06-03T05:42:32.301Z",
+      "id": "AAAB8tKRBwg",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the IPNext dependency ask now includes 'weight-manager support so deltas aren't blocked during a full-snapshot transition' (with auto-rollback on calibration/NE regressions, S667572).",
+          "createdTime": "2026-06-06T04:13:05.996Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "mention about flow control\u00a0as a requirement steps",
+      "createdTime": "2026-06-03T05:41:49.745Z",
+      "id": "AAAB8tKRBwc",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the Hedwig ask now includes 'flow control as a required' step, alongside the universal streaming_success_rate metric + alerting and the multicast subscriber-count/fan-out cap (S644248). Flow-control-as-a-requirement also appears in the backpressure P2 publisher row.",
+          "createdTime": "2026-06-06T04:13:01.927Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "can you find more from https://docs.google.com/document/d/1mpy7J9r-GCkUTNjQzzdWsJDWbFC9iJ3ctZsFdvyX-qs/edit?usp=sharing?\n\nAnd we also need examples",
+      "createdTime": "2026-06-03T05:39:11.202Z",
+      "id": "AAAB8tKRBwY",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the dependency table now has 10 components with concrete asks + SEV examples pulled from the cross-team doc (SJD, Checkpointing, NCCL, NaN, PyTorch lowering, TMS, Hedwig, IPNext, DPP, MAST).",
+          "createdTime": "2026-06-06T04:13:17.284Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "can you find more from\u00a0https://docs.google.com/document/d/1mpy7J9r-GCkUTNjQzzdWsJDWbFC9iJ3ctZsFdvyX-qs/edit?usp=sharing?",
+      "createdTime": "2026-06-03T05:38:57.547Z",
+      "id": "AAAB8tKRBwU",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the publisher hardening section is now a severity-ranked table of 7 failure themes, each with real SEV examples and a measurable goal, drawn from the cross-team publisher SEV catalog.",
+          "createdTime": "2026-06-06T04:13:14.583Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "needs to work with MVAI component POCs",
+      "createdTime": "2026-06-03T05:38:49.458Z",
+      "id": "AAAB8tKRBwQ",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the dependency table's Owner column now names the MVAI component POCs / partner-team escalation POCs for each component.",
+          "createdTime": "2026-06-06T04:13:13.137Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "try to help distinguish between error and stuckness in these two bullet points better",
+      "createdTime": "2026-06-03T05:37:41.957Z",
+      "id": "AAAB8tKRBwM",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 error vs stuckness are now distinct rows in the publisher table: 'Publish hangs, no timeout/retry' and 'Subprocess crash hangs the parent' (stuckness = alive but blocked on a rendezvous/queue; error = the subprocess died), with different fixes for each.",
+          "createdTime": "2026-06-06T04:13:10.352Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "add a new section in the end as reference with all mentioned docs and links",
+      "createdTime": "2026-06-03T05:35:54.175Z",
+      "id": "AAAB8tKRBwI",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 a References section now exists at the end of the doc with all mentioned docs and links: MRS OT Reliability cross-team follow-ups, H1 enablement tracker, MVAI OT Roadmap 2026, RES/Fast Delta status, IG OT SLO dashboard, the mvai-ot and T2 ATS Workplace posts, and D106903984.",
+          "createdTime": "2026-06-06T04:13:07.273Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "each bullet point needs some concrete examples, SEVs or followups, if you can't find it from\u00a0https://docs.google.com/document/d/1mpy7J9r-GCkUTNjQzzdWsJDWbFC9iJ3ctZsFdvyX-qs/edit?usp=sharing, add a place holder for me to add later",
+      "createdTime": "2026-06-03T05:35:16.932Z",
+      "id": "AAAB8tKRBwE",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 each delta-publisher failure theme is now a table row with concrete SEVs (e.g. S651873, S658165, S662705, S627484, S622829, S658565, S547931) and a measurable goal. Where you may want more detail, the row links the cross-team publisher SEV catalog.",
+          "createdTime": "2026-06-06T04:13:04.471Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "no need this",
+      "createdTime": "2026-06-03T05:34:03.314Z",
+      "id": "AAAB8tKRBwA",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Recommend removing 'Conveyor': change 'TGIF / GMPP / Conveyor and the trainer-side publish loop' to 'TGIF / GMPP and the trainer-side publish loop'. I left the text in place rather than edit it directly, since this span has your comment anchored to it and a substring delete risks orphaning the anchor \u2014 flagging for you to apply.",
+          "createdTime": "2026-06-06T04:13:00.244Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Basically, we need to set up a rollout plan, and for this section, you need help explain the different between the other dash and logger, what value it can add",
+      "createdTime": "2026-06-03T05:33:32.646Z",
+      "id": "AAAB8tKRBv8",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the T2 ATS Dash row now has an explicit rollout plan (which models first \u2192 fleet-wide \u2192 per-model SLOs \u2192 alerting) and distinguishes it from the other views: the Health Board says 'healthy now', the Event Log says 'how it got there', the T2 Dash says 'how much delay comes from training'.",
+          "createdTime": "2026-06-06T04:12:38.681Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "For each bullet point, we need add 3~4 sub-bulletpoints to roughly list what steps are needed",
+      "createdTime": "2026-06-03T05:31:32.397Z",
+      "id": "AAAB8tKRBv4",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 each of the three views now has high-level implementation steps as sub-bullets in the build table (pick data sources \u2192 define signal \u2192 instrument \u2192 build \u2192 wire alerting, etc.).",
+          "createdTime": "2026-06-06T04:12:37.459Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "do you mean MAST job status and or TMS status?",
+      "createdTime": "2026-06-03T05:30:42.385Z",
+      "id": "AAAB8tKRBv0",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Clarified \u2014 'job liveness' is now 'MAST job run status and TMS state (to catch zombie or stuck jobs)' in the 'What we measure' list.",
+          "createdTime": "2026-06-06T04:12:36.242Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "be more specific, what status about publish? full snapshot or delta snapshot or all",
+      "createdTime": "2026-06-03T05:30:22.999Z",
+      "id": "AAAB8tKRBvw",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 Publish status is now specific: 'full snapshots and delta snapshots (are both current, or is one stalled)' in the 'What we measure' list.",
+          "createdTime": "2026-06-06T04:12:54.322Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Yes, this we could mimic IG's dash:\u00a0https://ig-data-apps.internalmeta.com/ig/relevance-foundations/online-training-slo",
+      "createdTime": "2026-06-03T05:29:31.458Z",
+      "id": "AAAB8tKRBvs",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the OT Health Board is explicitly modeled on IG's OT SLO dashboard, with that dashboard linked as the reference example.",
+          "createdTime": "2026-06-06T04:12:51.597Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "what does this mean, simpler words?",
+      "createdTime": "2026-06-03T05:27:10.969Z",
+      "id": "AAAB8tKRBvo",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Reworded \u2014 the phrase is gone; the section now plainly says component dashboards were built for their own component, not for OT, so none gives an end-to-end OT-model health view.",
+          "createdTime": "2026-06-06T04:12:48.718Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "maybe merge into 1 as a bullet point",
+      "createdTime": "2026-06-03T05:26:19.830Z",
+      "id": "AAAB8tKRBvk",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 T2 measurement and dashboard are no longer split; T2 ATS Dash is a single row in the build table.",
+          "createdTime": "2026-06-06T04:12:45.869Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "rephrase it into simpler words",
+      "createdTime": "2026-06-03T05:25:37.784Z",
+      "id": "AAAB8tKRBvg",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Reworded into plain language \u2014 the GPU-waste 'pays for itself' phrasing was removed; the section now just points to the cross-team TL;DR for the concrete impact numbers.",
+          "createdTime": "2026-06-06T04:12:43.297Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "we do not have this aligned i guess",
+      "createdTime": "2026-06-03T05:25:02.874Z",
+      "id": "AAAB8tKRBvc",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the unaligned 'Threads ~3 min' target was removed; the doc now only states IG's aligned \u226410 min target and notes the Threads target is still being aligned.",
+          "createdTime": "2026-06-06T04:12:40.429Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "add that we will also onboard more models to streaming to improve model\u00a0freshness (prev related\u00a0doc:\u00a0https://docs.google.com/document/d/1QtteVg21nVhM-g6LdV9Ers7LuNXM5YT3ZxGmEYA7f2M/edit?usp=sharing)",
+      "createdTime": "2026-06-03T05:23:37.653Z",
+      "id": "AAAB8tKRBvU",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 \u00a72.1 now includes 'Expand streaming coverage to improve freshness' (onboard more models to sparse streaming), referencing the MRS OT Status & Next Steps \u2014 RES/Fast Delta doc (now in References).",
+          "createdTime": "2026-06-06T04:12:52.825Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "we need to soften the tone here. Maybe break down the first bullet point into different bullet points",
+      "createdTime": "2026-06-03T05:21:05.686Z",
+      "id": "AAAB8tKRBvQ",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the self-service/agent framing is softened and broken into separate bullets (oncall/SEV time reduction; one-command triage routine; ~80% auto-diagnosis target), rather than one dense claim.",
+          "createdTime": "2026-06-06T04:12:50.217Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "do not use this word, emphasize on urgency and essential",
+      "createdTime": "2026-06-03T05:16:42.004Z",
+      "id": "AAAB8tKRBvM",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 'unglamorous-but-essential' was removed; the framing now emphasizes urgency and that reliability is essential as load grows.",
+          "createdTime": "2026-06-06T04:12:47.514Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "rephrase\u00a0this to make it easy to understand",
+      "createdTime": "2026-06-03T05:15:38.210Z",
+      "id": "AAAB8tKRBvI",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Reworded plainly \u2014 production support is now described as serving as mrs_online_training oncall across every surface, triaging ATS spikes and SEVs and driving or routing fixes.",
+          "createdTime": "2026-06-06T04:12:44.589Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "add that (driven by PE partners\u00a0- Denny Zhang and Paul Lu",
+      "createdTime": "2026-06-03T05:14:16.734Z",
+      "id": "AAAB8tKRBvE",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Done \u2014 the mvai-ot agent is now attributed '(Built with our Production Engineering partners, Denny Zhang and Paul Lu)' in section 4 of the H1 reliability summary.",
+          "createdTime": "2026-06-06T04:12:41.712Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Could you elaborate on this a bit?\nAnd another factor that might contribute to more sevs are models are becoming more complext/bigger/larger footprint, thus requires more infra or network support, but it might be that the current infra\u00a0 or network needs some improvement to accommodate\u00a0the changes (help\u00a0me rephrase and polish)",
+      "createdTime": "2026-06-03T04:05:58.413Z",
+      "id": "AAAB8tOXkZE",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Elaborated \u2014 the scale story now explains the inherited infra was built for batch tolerance (hours-to-days retry, fine for batch, fragile under OT's minutes-level freshness), and adds your second factor as its own bullet: 'Bigger, more complex models stress training/networking/serving infra, several parts of which now need upgrades to keep up.'",
+          "createdTime": "2026-06-06T04:13:35.879Z"
+        }
+      ],
+      "resolved": false
+    },
+    {
+      "author": {
+        "displayName": "Li Lu"
+      },
+      "content": "Not flat, we lost 2 engs in the mid of this half",
+      "createdTime": "2026-06-03T03:07:54.129Z",
+      "id": "AAAB8tOXkVc",
+      "replies": [
+        {
+          "author": {
+            "displayName": "Denny Zhang"
+          },
+          "content": "[Claude] Corrected \u2014 the doc now says 'the team actually got smaller (we lost 2 engineers mid-half)', not flat headcount, in the opening frame and the scale story.",
+          "createdTime": "2026-06-06T04:13:34.705Z"
+        }
+      ],
+      "resolved": false
+    }
+  ]
+}

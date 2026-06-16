@@ -265,8 +265,10 @@ Every impact claim should have these 4 elements:
 | Level-specific signals (does this match IC5/6/7?) | Vague scope ("worked on reliability") | Specific scope ("OT pipeline for 6 retrieval models") |
 | Growth areas (self-aware or defensive?) | "I have no growth areas" | Honest weakness + what you learned |
 
-For impact quantification anti-patterns (vague scope, missing confidence, effort justification), see `cheatsheet-impact-quantifier.md`.
+For impact quantification anti-patterns (vague scope, missing confidence, effort justification), see `career/impact-quantifier.md`.
 
 ## See Also
 
-`oncall/sev.md` (SEV impact framing), `career/impact-quantifier.md` (quantifying impact), `career/communication.md` (collaboration framing), `references/level-expectations.md`, `references/four-axes.md`
+`oncall/sev.md` (SEV impact framing), `career/impact-quantifier.md` (quantifying impact), `career/communication.md` (collaboration framing), `career/level-expectations.md`, `career/four-axes.md`
+
+_Last updated: 2026-05-12. Maintainer: dennyzhang._

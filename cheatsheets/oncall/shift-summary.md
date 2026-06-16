@@ -25,6 +25,8 @@
 - Alert auto-resolved in 30 min → don't mention at all
 - Same SEV appears in carryover AND timeline → put it in the day you engaged, cross-ref from FYI
 
+**Carryovers are the #1 recall miss** (imoc shift-summary-workflow: *"50% of missed SEVs in validation were carryovers"*). Run an explicit carryover pass: SEVs **created before** the shift but **mitigated/updated during** it. Two cheapest recovery sources — (1) **load the previous shift's summary** and diff its open items against now (most reliable for broad domains); (2) **linked-SEV traversal** — grep found-SEV comments for `S\d{6}` references and follow them (typically surfaces 2-5 more).
+
 **Generic linking rules:**
 - ALL SEVs must be clickable: `https://www.internalfb.com/sevmanager/view/<number>`
 - ALL WP posts must be clickable: `https://fb.workplace.com/groups/mrs.ot/permalink/<id>/`
@@ -91,6 +93,13 @@ Per day, include:
 - WP posts and user reports
 - Key actions taken (diffs, analysis, broadcasts)
 - Alerts that needed investigation
+
+**Add a "who to ask" context line to every notable SEV** (imoc
+highlights-workflow). One line naming who holds the most context — the
+owner plus the top 1-2 chat/comment contributors (bots excluded) — so the
+incoming oncall can ping without re-reading the whole thread:
+`Context: @owner (owner), @a, @b`. Cheap, removes the manual "who was
+active here?" step at handoff.
 
 **Example:**
 ```
@@ -170,6 +179,22 @@ Track across shifts — when the same pain point appears 5+ times, escalate.
   DPP restart investigation, L3 zombie backlog
 ```
 
+**Derive difficulty deterministically, don't eyeball it** (imoc
+shift-summary-workflow). One-word label from counts: **LIGHT** (<3 new
+SEVs), **NORMAL** (≥3 new), **BUSY** (≥2 high-priority or ≥6 total),
+**INTENSE** (≥3 high-priority or ≥10 total). Put the label in the Overview
+header (`Difficulty: BUSY (7 new SEVs, 2 high-priority)`); keep the 4/5
+self-rating only as a secondary subjective signal.
+
+**Order the notable list by interest score** (severity × effort) — an axis
+orthogonal to HIGH-TOUCH (which measures *your* contribution):
+- Level base: SEV1=100, SEV2=75, SEV3=25, SEV4=10
+- Still IN_PROGRESS: +50
+- Long TTM: >24h +40, >12h +30, >4h +20, >2h +10
+
+Use it to sort which SEVs lead the list; HIGH-TOUCH still decides which get
+full narrative vs. an FYI line.
+
 ---
 
 ## 8. Hand-off — sorted by urgency, no duplicates
@@ -230,4 +255,4 @@ If a cross-incident pattern needs more than 2 sentences, it belongs in Pain Poin
 
 ---
 
-_Last updated: 2026-05-25. Maintainer: dennyzhang. Sibling: [handoff.md](handoff.md) · [issue-report.md](issue-report.md)._
+_Last updated: 2026-06-10 (cherry-picked carryover-recall, interest-score/difficulty, context-line from imoc skill). Maintainer: dennyzhang. Sibling: [handoff.md](handoff.md) · [issue-report.md](issue-report.md)._

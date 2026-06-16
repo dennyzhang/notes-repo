@@ -24,3 +24,5 @@ The #1 differentiator: **"try it now" links**. Posts with a clickable link to tr
 | MAST on Fluent2 | 43 | "One more line of code" — trivial adoption framing |
 | EYS Tooling | 33 | Lead with adoption numbers (2770 projects, 1126 EYS) |
 | Spares Optimization | 4 | Anti-pattern: no problem framing, no metrics, no visuals |
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

@@ -59,3 +59,5 @@ TL;DR for Leadership:
 - Missing telemetry
 - Optimistic assumptions
 - Testing gaps
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

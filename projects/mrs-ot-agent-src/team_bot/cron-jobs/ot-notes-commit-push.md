@@ -28,9 +28,13 @@ Time budget: ~30s on no-drift, ~1 min when there's a commit to land.
    b. **Drift detected** — at least one file changed. Stage and commit:
       ```
       cd ~/notes
-      sl add  users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ 2>&1
-      sl forget $(sl status users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ | awk '/^! / {print $2}')
-      sl commit users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ \
+      # Notes write-lock (Option B, 2026-06-14): serialize tree-mutating sl ops so
+      # concurrent sessions/crons can't clobber the shared notes tree. Read-only sl
+      # (status/log/diff) needs no lock; wrap add/forget/commit (+ cloud sync/pull below).
+      LK="$HOME/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/scripts/notes-sl-lock.sh"
+      bash "$LK" sl add  users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ 2>&1
+      bash "$LK" sl forget $(sl status users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ | awk '/^! / {print $2}')
+      bash "$LK" sl commit users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ \
         -m "[OT bot] notes auto-sync $(date -u +%Y-%m-%dT%H:%MZ)
 
 Hourly auto-commit of bot-owned changes:

@@ -1,0 +1,53 @@
+{
+ "date": "2026-06-14",
+ "status": "ACCRUING \u2014 3 overlapping day(s), need 7",
+ "accruing": true,
+ "overlapping_days": 3,
+ "need_points": 7,
+ "online_snapshot": {
+  "date": "2026-06-14",
+  "models_scanned": 59,
+  "models_total": 61,
+  "no_data": 2,
+  "errors": 0,
+  "breaching": 16,
+  "breach_min": 10,
+  "breach_rate": 0.2712,
+  "p50_age_min": 1.58,
+  "p90_age_min": 27.14,
+  "max_age_min": 103.29
+ },
+ "offline_points": 14,
+ "incident_days": 57,
+ "correlation": {
+  "composite_vs_breach_rate": 0.206,
+  "composite_vs_p90_age_min": 0.553,
+  "composite_vs_fresh_sev": null
+ },
+ "joined": [
+  {
+   "date": "2026-06-12",
+   "composite": 0.646,
+   "breach_rate": 0.2105,
+   "p90_age_min": 17.32,
+   "fresh_sev": null,
+   "triaged": 44
+  },
+  {
+   "date": "2026-06-13",
+   "composite": 0.634,
+   "breach_rate": 0.2909,
+   "p90_age_min": 25.65,
+   "fresh_sev": null,
+   "triaged": 25
+  },
+  {
+   "date": "2026-06-14",
+   "composite": 0.772,
+   "breach_rate": 0.2712,
+   "p90_age_min": 27.14,
+   "fresh_sev": null,
+   "triaged": 3
+  }
+ ]
+}

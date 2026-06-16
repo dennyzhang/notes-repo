@@ -37,3 +37,5 @@ Before sending ANY message, ask:
 | **AI tools as identity** | Urge to share a tool/demo | Ask: "What's frustrating about your workflow?" |
 | **Compliment dead-end** | "That's impressive" + done | Add: "How did you approach it?" |
 | **Broadcasting** | Same doc shared with 5+ people | Share with 1 person who has a specific problem it solves |
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

@@ -239,8 +239,131 @@
         "proposed": 0
       },
       "notes": "HEARTBEAT_OK. No validator-unavailable flag. No validation needed."
+    },
+    {
+      "digest_run_id": "4254",
+      "job_id": "ot-daily-learning-mitigated-sevs",
+      "validation_at": "2026-06-04T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 6,
+        "corrected": 1,
+        "proposed": 1
+      },
+      "notes": "S665454 (Threads U2M stuck/zombie): P21+P56 rule-outs verified \u2713; P61 proposal novel (next slot, distinct from P21/P56), root fix D98638473 confirmed landed 2026-05-21. S663027 (ig_feedrec_esr_ttsn NCCL): P40 rule-out correct (restart resolved, no TMS max_cont_stucks evidence). LANGUAGE NOTE: S663027 'P40 falsifier not met' is inverted \u2014 falsifier (tms_restarted=True) IS met; should read 'P40 confirmation criteria absent'. Conclusion correct. Both SEV titles verified via meta CLI. Reply sent to thread KEVDv6PCUKQ.",
+      "thread_fabrication_flag": false,
+      "reply_message": "spaces/AAQAVOjYc80/messages/KEVDv6PCUKQ.Yb9lBKQKlD8"
+    },
+    {
+      "digest_run_id": "3235",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-06-03T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 4,
+        "corrected": 1,
+        "proposed": 0
+      },
+      "notes": "CL-001 \u00d73 confirmed (A1455336899399360, A1558388828479222, A902257976006165). S670384 title verified. AGG A1306814721539638 NO_ACTION \u2713 (CL-018 class). PATTERN-FIT WEAK: A902257976006165 P23 label overstated \u2014 kClientShardSizeThrottled (per-shard size quota throttle) \u2260 P23 (Manifold key collision). Jun 2 archive already flagged as uncatalogued sub-variant; Jun 3 propagated P23 without caveat. 2 instances model 877766818 in 48h; \u22653 threshold not met for new P-row \u2014 recommend learnings-ledger.md entry. Reply sent to thread ha1L8Govbho (new topic, no parent thread \u2014 parent cron output was HEARTBEAT_OK). State JSON corruption also repaired (run 3235 was appended outside validated_digests array \u2014 same bug as 2026-05-30).",
+      "thread_fabrication_flag": false,
+      "reply_message": "spaces/AAQAVOjYc80/messages/ha1L8Govbho.ha1L8Govbho"
+    },
+    {
+      "digest_run_id": "5390",
+      "job_id": "ot-daily-learning-mitigated-posts",
+      "validation_at": "2026-06-05T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 2,
+        "corrected": 2,
+        "proposed": 0
+      },
+      "notes": "W1336148551813221 (HOWTO/no cluster) clean. W1337668348327908 (IG Reels LSR OT crash-loop): CL-014 exists \u2713 but fit MARGINAL (MKL CPU auto-tune backward deadlock not listed as sub-mech; nearest #10 GIL/CPU callbacks). 'candidate P62' CONTESTED \u2014 P62 has competing ledger proposal (S669147 Dataswarm-dep auto-pause, N=1); MKL pattern N=2 candidate (this + W1314179617343448); neither meets \u22653 threshold. No P62 assignment. Reply sent to new topic. State JSON corruption repaired (this entry was outside array bracket \u2014 recurring bug, 3rd occurrence: 2026-05-30, 2026-06-03, 2026-06-05). Structural fix needed: switch to sqlite-backed state.",
+      "thread_fabrication_flag": false,
+      "reply_message": "spaces/AAQAVOjYc80/messages/CTIwwkgLuRE.CTIwwkgLuRE"
+    },
+    {
+      "digest_run_id": "5370",
+      "job_id": "ot-daily-learning-mitigated-sevs",
+      "validation_at": "2026-06-05T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 3,
+        "corrected": 0,
+        "proposed": 0
+      },
+      "notes": "S654102 (IG Reels OmniUV refresh OT crash): title verified via meta CLI ('IG Reels OmniUV refresh model Online Training frequently crashes in recent code trunk') \u2713; L3 Closed \u2713. P60 citation confirmed \u2014 falsifier not triggered (PublishRateLimiter sleeps observed + D101908384 stopping crashes confirms throttle-bound) \u2713; P60 exists in known-patterns.md \u2713. No CL assignment appropriate (dual-cause SIGUSR2+throttle, no exact cluster match). Self-corrections (root_cause field empty, D102417513 Abandoned, D102229297 unlinked from S654102) all accurate \u2713. Thread yxKpWbnP5eY (claimed by run 5375) absent from sqlite messages \u2014 possible thread-fabrication (pattern: 5 prior incidents). No validator reply sent."
+    },
+    {
+      "digest_run_id": "5375",
+      "job_id": "ot-daily-learning-mitigated-sevs",
+      "validation_at": "2026-06-05T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 0,
+        "corrected": 0,
+        "proposed": 0
+      },
+      "notes": "DUPLICATE RUN of 5370 \u2014 same SEV S654102, concurrent execution. archives_skipped_existing_richer=1 (correctly deferred to prior run's archive). Scheduling concurrency gap: two runs fired within 4 min (21:10 and 21:14 PT). No new validation needed; findings recorded under 5370. Side-channel delivery concern: run 5375 raw_response states 'digest was posted to home space via direct meta commands' \u2014 potential duplicate GChat delivery of S654102 digest if run 5370 also sent. Recommend dedup check at cron schedule level."
+    },
+    {
+      "digest_run_id": "5424",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-06-05T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 3,
+        "corrected": 0,
+        "proposed": 0
+      },
+      "notes": "A1508512290614499 (IFR Watchtower training_example_age >10m, model 2143912626): CL-013 exists \u2713, mechanism matches (training example-age spike) \u2713. P04 CANDIDATE/UNVERIFIABLE label in archive is CORRECT \u2014 feed item expired, Scribe QPS not queryable post-hoc; cron self-reported that pattern reply overstated P04 as MATCH \u2014 self-correction verified accurate \u2713. May 28 SPARSE_DELTA/CL-003 claim verified via archive ALERT-938817701854850-2026-05-28.md (Feed scribe quota S668542 \u2192 DPP read throttle \u2192 delta stall, not training_example_age) \u2713 \u2014 '3rd training_example_age event' was overcounting; corrected to 2 confirmed events valid \u2713. S669045 (m2143912626 1% error) still In Progress verified via meta CLI (time_mitigated empty) \u2713. Two self-corrections were self-reported and self-fixed by the cron; both verified correct by independent meta CLI check. No parent thread found in sqlite; no reply sent."
+    },
+    {
+      "digest_run_id": "13643",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-06-12T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 4,
+        "corrected": 1,
+        "proposed": 0
+      },
+      "notes": "5 alerts validated. A860655070440504 (IFR MC8 / 886797001): P54 ID collision \u2014 P54 already = CDM LATEST_DS_NOT_FOUND cascade; dead-detector class belongs under CL-018, not a new P-row. A2387001468469120: CL-003 confirmed, acked_only/active-siblings classification correct. A1384438863512640: P01 CANDIDATE appropriate (low confidence, feed gone); 'D-class' non-standard label noted (prefer CL-001). A846486638144717: S675130 verified (TKObold mitigated 10:23:00), reclassification REAL_OT_FAILURE\u2192UPSTREAM_INFRA correct. A1251799150173788: no-cluster AGG conservative label correct; prior CL-003 history confirmed. 0 fabricated threads. Reply sent to new topic.",
+      "reply_message": "spaces/AAQAVOjYc80/messages/LKf7B2-shwg.LKf7B2-shwg",
+      "thread_fabrication_flag": false
+    },
+    {
+      "digest_run_id": "13643",
+      "job_id": "ot-daily-learning-mitigated-alerts",
+      "validation_at": "2026-06-12T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 3,
+        "corrected": 1,
+        "proposed": 1
+      },
+      "notes": "CL-003 (A2387001468469120) \u2713; P01-class (A1384438863512640) \u2713; S675130 verified (Mitigated 10:23 UTC) \u2713. P54 COLLISION: dead-detector proposal conflicts with existing P54 (CDM LATEST_DS_NOT_FOUND cascade); corrected ID = P64 (current max P63). 3 of 5 archive thread citations unverified in sqlite (8th occurrence). Reply sent to thread mFXWo-QC-U0.",
+      "thread_fabrication_flag": false,
+      "reply_message": "spaces/AAQAVOjYc80/messages/mFXWo-QC-U0.tbZpXAg6cXc"
+    },
+    {
+      "digest_run_id": "14801",
+      "job_id": "ot-daily-learning-mitigated-posts",
+      "validation_at": "2026-06-13T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 5,
+        "corrected": 0,
+        "proposed": 1
+      },
+      "notes": "W1344542434307166 (ig_textpost_feed_u2m_retrieval zombie): P61 \u2713 (exists at known-patterns.md:85), CL-012 \u2713 (failure-patterns.md:283), S665454 title confirmed (Threads Retrieval U2M OT jobs get stuck sporadically) \u2713. S670887 title (IFR LSR MainMTML Training Example Age Increase / Training QPS Dropping to 0) \u2014 consistent with P61 zombie manifestation (QPS\u21920 is expected zombie symptom); cross-model ref (2125752019 vs 2124428748); S670887 still open (time_mitigated empty). D98638473 confirmed via P61 entry. No misattribution. W1350388963722513 (checkpoint -1 post-MRB): no existing P-row match is correct \u2713. P65 proposal: slot confirmed open in known-patterns.md. CAVEAT: MRB-checkpoint-lineage mechanism already fully documented in deep-dive (retrieval-model-bootstrap-flow.md) + memory (checkpoint-minus1-parent-lineage-mrb.md) + draft D108525530; framing as novel discovery is inaccurate. Recommend learnings-ledger.md entry with \u22653-instance gate before formal P65 landing (S644248 candidate unverified). No parent thread for either archive (upstream HEARTBEAT_OK). No reply sent.",
+      "thread_fabrication_flag": false
+    },
+    {
+      "digest_run_id": "14801",
+      "job_id": "ot-daily-learning-mitigated-posts",
+      "validation_at": "2026-06-13T22:30:00-07:00",
+      "verdict_counts": {
+        "confirmed": 4,
+        "corrected": 2,
+        "proposed": 1
+      },
+      "notes": "W1344542434307166 (Threads U2M zombie 2124428748): P61\u2713 CL-012\u2713 S665454\u2713. S670887 cross-ref downgraded [VERIFIED]\u2192[INFERRED]: title ambiguous for P61 (training example age + QPS drop; not in P61 sources; unmitigated/open). W1350388963722513 (ig_reels_tab_ss_omni checkpoint -1 2137792444): root cause VERIFIED vs memory checkpoint-minus1-parent-lineage-mrb; S644248 archive exists; P65 NOVEL (next after P64, correct slot). CORRECTION: P65 mitigation Step 1 misleading \u2014 removing --checkpoint-version -1 not the fix; canonical = re-run parent flow (flow_tags=parent) + restart OT. Reply sent as new topic.",
+      "reply_message": "spaces/AAQAVOjYc80/messages/4J9gTGW_tJQ.4J9gTGW_tJQ",
+      "thread_fabrication_flag": false
     }
   ],
-  "last_run_epoch": 1780291840,
-  "state_repair_note": "2026-05-30: Fixed JSON corruption \u2014 run 8356 was appended outside the validated_digests array bracket. Repaired during 22:30 PT validator run."
+  "last_run_epoch": 1781415282,
+  "state_repair_note": "2026-06-05 (3rd repair): JSON corruption repaired again \u2014 run 5390 was appended outside validated_digests array bracket. RECURRING BUG (also 2026-05-30 for run 8356, 2026-06-03 for run 3235, now 2026-06-05 for run 5390). Root cause: upstream cron appends to file without maintaining array structure. STRUCTURAL FIX REQUIRED: switch to sqlite-backed state or use jq-safe append pattern. Filed as structural debt; state file will continue corrupting until fixed."
 }

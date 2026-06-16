@@ -1,0 +1,483 @@
+export const meta = {
+  name: 'ot-agent-eval-flow',
+  description: 'Eval flow for the OT master agent: curate a gold set from resolved-incident archives, replay each case through a fresh triage subagent, grade independently against ground truth, and report a baseline fitness score.',
+  phases: [
+    { title: 'Curate', detail: 'classify 270 archives into an eval-usable gold set (input vs ground-truth)' },
+    { title: 'Evaluate', detail: 'per gold case: fresh triage replay -> independent grade' },
+    { title: 'Aggregate', detail: 'compute fitness vector + ranked failure list' },
+  ],
+}
+
+// ---- knowledge the replayed agent is allowed to load (the real agent context) ----
+const SKILL = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/SKILL.md'
+const KP = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md'
+const TD = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/human-input/triage-discipline.md'
+// Phase-0 A/B (2026-06-13): ot-implementation.md = distilled OT-mechanism corpus. Loaded into the
+// replayed agent ONLY when args.with_impl=true, so we can measure its lift on the de-noised
+// composite (treatment) vs without (baseline). NOT wired into live SKILL until proven.
+const IMPL = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/ot-implementation.md'
+const WITH_IMPL = (typeof args !== 'undefined' && args && args.with_impl) || false
+const INVENTORY = '/tmp/eval-files.txt'
+// De-noise (2026-06-13): default to the FULL 77-case corpus (was 60-case stratified sample — the
+// different-subset-each-run was the biggest variance source, ±0.06). Override via args.cap.
+const EVAL_CAP = (typeof args !== 'undefined' && args && args.cap) || 77
+// Per-case isolation is the high-quality mode (1 fresh agent per incident, no cross-case
+// contamination, mirrors production). But each triage agent Reads SKILL+KP+TD (~141KB); the
+// Workflow cap on this 192-core box is 16, so 16 agents reading 141KB at once starve the
+// daemon's headless path -> every slot hits the ~3min timeout and the run STALLS (2026-06-12
+// iter5). Fix: keep per-case but run in WAVES of EVAL_CONCURRENCY so only a few heavy agents
+// run at once. Lower to 2-3 if the daemon still times out; raise for fast interactive runs.
+const EVAL_CONCURRENCY = (typeof args !== 'undefined' && args && args.concurrency) || 4
+const GOLD_SET_PATH = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/eval/gold-set.json'
+// ---- run-context provenance (gap #1: daemon ticks never produced a verifiable graded marker) ----
+// The Workflow sandbox cannot write files, so this harness CANNOT append to eval-flow-history.jsonl
+// itself — it EMITS a structured `run_marker` in the returned result and the CALLER persists it via
+// `tools/eval-stats.sh append <result.json>`. `source` distinguishes daemon vs interactive runs (the
+// thing that was unknowable from logs); caller threads args.source:"daemon" from the cron. Default
+// "interactive" keeps older Workflow runs (which pass no source) recording correctly. `wf` carries the
+// Workflow run id ONLY if the caller passes args.wf — we never fabricate one from inside the sandbox.
+const RUN_SOURCE = (typeof args !== 'undefined' && args && args.source) || 'interactive'
+const RUN_WF = (typeof args !== 'undefined' && args && args.wf) || null
+const RUN_TS = (typeof args !== 'undefined' && args && args.ts) || null
+// ---- sharding (gap #1: the full ~57-case eval cannot complete in one daemon tick — each triage
+// agent reads ~141KB then reasons, blowing the 180s/agent cap; iter5/12/13 stalled at conc 4/2/1).
+// A shard grades only cases [shard*shard_size, shard*shard_size+shard_size). A shard is PARTIAL —
+// NOT a full composite — so its marker carries partial:true and eval-stats.sh EXCLUDES it from the
+// baseline + noise band. When all shards for a gold_version are present, --rollup combines them into
+// one full-corpus partial:false row. args.shard absent => whole-corpus run (interactive default).
+let RUN_SHARD = (typeof args !== 'undefined' && args && args.shard != null) ? (args.shard | 0) : null
+let RUN_SHARD_SIZE = (typeof args !== 'undefined' && args && args.shard_size) ? (args.shard_size | 0) : 5
+
+// ---------- schemas ----------
+const CASE = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    type: { type: 'string', enum: ['sev', 'alert', 'post'] },
+    date: { type: 'string' },
+    level: { type: 'string' },
+    eligible: { type: 'boolean' },
+    ineligible_reason: { type: 'string' },
+    input: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        signal_class: { type: 'string' },
+        body: { type: 'string' },
+      },
+      required: ['title', 'body'],
+    },
+    ground_truth: {
+      type: 'object',
+      properties: {
+        root_cause: { type: 'string' },
+        p_row: { type: 'string' },
+        owner: { type: 'string' },
+        verdict: { type: 'string' },
+        confidence: { type: 'string' },
+      },
+      required: ['root_cause'],
+    },
+  },
+  required: ['id', 'type', 'eligible', 'ineligible_reason', 'input', 'ground_truth'],
+}
+const BATCH_SCHEMA = { type: 'object', properties: { cases: { type: 'array', items: CASE } }, required: ['cases'] }
+const FILES_SCHEMA = { type: 'object', properties: { files: { type: 'array', items: { type: 'string' } } }, required: ['files'] }
+const DIAGNOSIS = {
+  type: 'object',
+  properties: {
+    root_cause: { type: 'string' },
+    p_row: { type: 'string' },
+    owner: { type: 'string' },
+    verdict: { type: 'string' },
+    confidence: { type: 'number' },
+  },
+  required: ['root_cause', 'p_row', 'owner', 'verdict', 'confidence'],
+}
+const GRADE = {
+  type: 'object',
+  properties: {
+    root_cause_match: { type: 'number', description: '1 full, 0.5 partial, 0 wrong' },
+    p_row_match: { type: 'number', description: '1 correct/none-needed, 0.5 related, 0 wrong/missing' },
+    owner_match: { type: 'number', description: '1 correct, 0 wrong' },
+    verdict_calibrated: { type: 'number', description: '1 calibrated, 0 mis-calibrated' },
+    next_action_quality: { type: 'number', description: '1 if diagnosis names a specific actionable entity (CLI command with actual IDs, file:line reference, specific unixname to page, SEV/task ID), OR if verdict is NOISE/OUT_OF_SCOPE/TRANSIENT (appropriate silence — do NOT penalize); 0.5 if a named investigation step is given (specific metric/log to check) but no concrete entity; 0 if generic ("please investigate"), empty, or missing despite an actionable verdict — judge from root_cause + verdict + p_row combined' },
+    hallucination: { type: 'number', description: '1 if any unsupported claim present, else 0' },
+    leak_suspect: { type: 'boolean', description: 'true if cited p_row plausibly derived from THIS incident (coverage, not generalization)' },
+    component: { type: 'string', description: 'attribute the GROUND-TRUTH root cause to a component (for divide-and-conquer): T1-ingestion / T2-training / T3-publishing / T4-serving / lifecycle / infra-cascade / scope-detector / other' },
+    rationale: { type: 'string' },
+  },
+  required: ['root_cause_match', 'p_row_match', 'owner_match', 'verdict_calibrated', 'next_action_quality', 'hallucination', 'leak_suspect', 'component', 'rationale'],
+}
+
+// deterministic stratified cap: group by type, even-spaced selection within sorted group
+function strat(cases, cap) {
+  if (cases.length <= cap) return cases
+  // BUGFIX: allocate a per-type quota and fill each type independently. The old loop filled types
+  // sequentially against a shared cap, so sev+alert consumed the whole cap and posts got 0.
+  const byType = {}
+  for (const c of cases) (byType[c.type] || (byType[c.type] = [])).push(c)
+  const out = []
+  for (const t of Object.keys(byType)) {
+    const arr = byType[t].slice().sort((a, b) => (a.id < b.id ? -1 : 1))
+    const quota = Math.max(1, Math.round((cap * arr.length) / cases.length)) // proportional, guaranteed >=1 per type
+    const step = Math.max(1, Math.floor(arr.length / quota))
+    for (let i = 0, taken = 0; i < arr.length && taken < quota; i += step, taken++) out.push(arr[i])
+  }
+  return out.slice(0, cap)
+}
+
+// ---------- Phase 1: Curate ----------
+// Sharded daemon path: two lightweight agents replace the old monolithic gold-set-check.
+//   gold-set-meta: reads gold-set.json → returns {version, total_eligible} (~100 bytes output, no stall)
+//   shard-loader:N: reads gold-set.json → returns ONLY the N shard's cases (~5KB output, no stall)
+// The old gold-set-check returned all 77 cases verbatim (74KB output) → stalled every daemon tick.
+// Interactive/archive path unchanged (gold-set-check + archive curate fallback).
+phase('Curate')
+
+// Daemon-path fallback: args.shard is null when the daemon framework drops the args global
+// (confirmed iter14/15: typeof args === 'undefined' in headless Workflow invocation).
+// Cron writes /tmp/eval-daemon-shard.json before each Workflow call; this agent reads it.
+// Small output (<100 bytes) — does NOT stall like the 77KB gold-set-check did.
+// Only consult the daemon shard file on a REAL daemon run — i.e. args was dropped entirely
+// (typeof undefined, the iter14/15 case) OR the caller explicitly threaded source:"daemon".
+// An interactive run that passes args (e.g. source:"phase0-baseline-1") but simply omits
+// `shard` must NOT pick up a stale /tmp/eval-daemon-shard.json — that silently turned a
+// full-77 baseline into a 5-case shard 1 (2026-06-13). Interactive default = whole corpus.
+const DAEMON_RUN = (typeof args === 'undefined') || (typeof args !== 'undefined' && args && args.source === 'daemon')
+if (RUN_SHARD == null && DAEMON_RUN) {
+  const DS_SCHEMA = { type: 'object', properties: { shard: { type: 'number' }, shard_size: { type: 'number' } }, required: ['shard'] }
+  const daemonState = await agent(
+    'Read /tmp/eval-daemon-shard.json. Return the JSON content as-is (fields: shard, shard_size).',
+    { label: 'daemon-shard-state', phase: 'Curate', schema: DS_SCHEMA }
+  )
+  if (daemonState?.shard != null) {
+    RUN_SHARD = daemonState.shard | 0
+    if (daemonState.shard_size) RUN_SHARD_SIZE = daemonState.shard_size | 0
+    log(`daemon-shard-state: shard=${RUN_SHARD} shard_size=${RUN_SHARD_SIZE} (args.shard was null — daemon dropped args)`)
+  }
+}
+
+let goldRun
+let files = []
+let allCases = []
+let eligible = []
+let shardInfo = null
+let goldVersion = null
+
+if (RUN_SHARD != null) {
+  // --- Sharded daemon path: load only what this shard needs (two lightweight agents) ---
+  const GS_META_SCHEMA = { type: 'object', properties: { version: { type: 'string' }, total_eligible: { type: 'number' } }, required: ['version', 'total_eligible'] }
+  const gsMeta = await agent(
+    `Read ${GOLD_SET_PATH}. Return ONLY two fields: "version" (the top-level version string) and "total_eligible" (count of cases where eligible===true). Do NOT return case bodies, inputs, ground_truth, or any other data.`,
+    { label: 'gold-set-meta', phase: 'Curate', schema: GS_META_SCHEMA }
+  )
+  goldVersion = gsMeta?.version || null
+  const corpusTotal = gsMeta?.total_eligible || 0
+  log(`Gold-set version: ${goldVersion}, total eligible: ${corpusTotal}`)
+
+  const num_shards = Math.ceil(corpusTotal / RUN_SHARD_SIZE)
+  const start = RUN_SHARD * RUN_SHARD_SIZE
+  shardInfo = { shard: RUN_SHARD, shard_size: RUN_SHARD_SIZE, num_shards, corpus_total: corpusTotal, is_last: RUN_SHARD >= num_shards - 1 }
+
+  const SHARD_CASES_SCHEMA = { type: 'object', properties: { cases: { type: 'array', items: CASE } }, required: ['cases'] }
+  const shardLoad = await agent(
+    `Read ${GOLD_SET_PATH}. Among the cases where eligible===true, sort them alphabetically by id (ascending). Return ONLY the cases at 0-indexed positions ${start} through ${start + RUN_SHARD_SIZE - 1} (inclusive) in that sorted list, as the "cases" array. Return at most ${RUN_SHARD_SIZE} cases. Do NOT return cases outside that range.`,
+    { label: `shard-loader:${RUN_SHARD}`, phase: 'Curate', schema: SHARD_CASES_SCHEMA }
+  )
+  goldRun = (shardLoad?.cases || []).filter(Boolean)
+  eligible = goldRun
+  allCases = goldRun
+  log(`SHARD ${RUN_SHARD}/${num_shards - 1} (size ${RUN_SHARD_SIZE}): loaded ${goldRun.length} cases at positions ${start}..${start + goldRun.length - 1} of ${corpusTotal} — PARTIAL, not a full composite`)
+  if (goldRun.length === 0) log(`SHARD ${RUN_SHARD} is EMPTY (start ${start} >= corpus ${corpusTotal}) — out-of-range shard, nothing to grade`)
+} else {
+  // --- Interactive / whole-corpus path: existing logic unchanged ---
+  const GS_SCHEMA = { type: 'object', properties: { version: { type: 'string' }, cases: { type: 'array' } }, required: ['cases'] }
+  const gsLoad = await agent(`Read ${GOLD_SET_PATH} and return its JSON content verbatim.`, { label: 'gold-set-check', phase: 'Curate', schema: GS_SCHEMA })
+  goldVersion = gsLoad?.version || null
+  const prebuilt = (gsLoad?.cases || []).filter(c => c.eligible === true && c.input?.title && c.input?.body)
+  log(`Gold-set: ${prebuilt.length} pre-populated eligible cases`)
+
+  if (prebuilt.length >= EVAL_CAP) {
+    log(`Short-circuit: ${prebuilt.length} stable inputs loaded — archive Curate skipped`)
+    goldRun = prebuilt.slice(0, EVAL_CAP)
+    allCases = gsLoad?.cases || []
+    eligible = prebuilt
+  } else {
+    // Fallback: re-curate from archives (gold-set has fewer than EVAL_CAP pre-populated cases)
+    log(`Gold-set insufficient (${prebuilt.length} < ${EVAL_CAP}) — falling back to archive Curate`)
+    const fileList = await agent(
+      `Read the file ${INVENTORY} (one absolute path per line). Return the array of paths verbatim.`,
+      { label: 'load-inventory', phase: 'Curate', schema: FILES_SCHEMA },
+    )
+    files = (fileList && fileList.files) || []
+    log(`Inventory: ${files.length} archive files`)
+
+    // batch into chunks of 15
+    const BATCH = 15
+    const batches = []
+    for (let i = 0; i < files.length; i += BATCH) batches.push(files.slice(i, i + BATCH))
+    log(`Curating in ${batches.length} batches of ${BATCH}`)
+
+    const curated = await parallel(batches.map((b, bi) => () =>
+      agent(
+        `You are building an EVAL gold set from OT incident triage-summary archives. For EACH file path below, use Read to open it, then emit one case object.
+
+Files (${b.length}):
+${b.map((f) => '- ' + f).join('\n')}
+
+For each file extract:
+- id (S###, ALERT-<num>, or POST-<num> from filename/title), type (sev|alert|post from path), date (from filename), level (L2/L3/L4 or "unknown").
+- input: ONLY what the agent saw at triage time -> { title, signal_class (e.g. mrs_online_training or ""), body (the problem statement / symptom text, NOT the resolution) }.
+- ground_truth: { root_cause, p_row (cluster/P-row cited or ""), owner, verdict, confidence }.
+
+ELIGIBILITY (critical): set eligible=true ONLY if the file states a CONCRETE, CONFIRMED root cause/mechanism. Set eligible=false with ineligible_reason when the root cause is empty, "unconfirmed", "not established", "postmortem field empty", "backfill stub", "[SKIPPED]", or confidence <0.4. A case with no real answer cannot be graded.
+
+Be terse. Return {cases:[...]} for all ${b.length} files.`,
+        { label: `curate:b${bi}`, phase: 'Curate', schema: BATCH_SCHEMA },
+      ),
+    ))
+
+    allCases = curated.filter(Boolean).flatMap((r) => r.cases || [])
+    eligible = allCases.filter((c) => c && c.eligible)
+    log(`Curated ${allCases.length} cases; ${eligible.length} eval-eligible (have confirmed ground truth)`)
+
+    goldRun = strat(eligible, EVAL_CAP)
+    if (goldRun.length < eligible.length)
+      log(`CAP: replaying ${goldRun.length} of ${eligible.length} eligible (stratified by type; raise EVAL_CAP for full run)`)
+  }
+}
+
+// ---------- Phase 2: Evaluate (replay -> independent grade) ----------
+phase('Evaluate')
+// harness-bug guard: tool-call/XML markup leaking into a structured field is a HARNESS failure, not an
+// agent hallucination. Detect it, retry once with a stricter prompt, and flag if still bad so aggregate excludes it.
+const isMalformed = (d) => !d || /<\/?invoke|<\/?parameter|<\/?root_cause|&lt;|&gt;/i.test(JSON.stringify(d))
+const triagePrompt = (c, attempt) =>
+  `You are the OT master agent performing FRESH triage on a single incident. First Read these knowledge files (this is your real working context):
+${[SKILL, KP, TD, ...(WITH_IMPL ? [IMPL] : [])].map((f) => '- ' + f).join('\n')}
+
+Then triage this incident from ONLY the input below. DO NOT look up the resolution; DO NOT search for the answer. Reason from the input + your loaded knowledge.
+
+INCIDENT ${c.id} (${c.type}, level ${c.level || 'unknown'})
+Title: ${c.input.title}
+Signal class: ${c.input.signal_class || '(unstated)'}
+Body / symptom: ${c.input.body}
+
+Output ONLY the structured diagnosis fields as PLAIN TEXT — no XML/HTML tags, no tool-call syntax inside any field. root_cause (best mechanism hypothesis), p_row (known-patterns P-row/cluster or "none"), owner (team/role), verdict (NEEDS_INVESTIGATION / KNOWN_PATTERN / OUT_OF_SCOPE / NOISE / DETECTOR_BROKEN), confidence (0-1).${args && args.inject_rule ? '\n\nADDITIONAL RULE UNDER TEST (apply it):\n"' + args.inject_rule + '"' : ''}${attempt ? '\n\n[RETRY: your previous output leaked markup into a field. Return clean plain-text values only.]' : ''}`
+const triageOnce = (c, attempt) =>
+  agent(triagePrompt(c, attempt), { label: `triage:${c.id}${attempt ? '#r' + attempt : ''}`, phase: 'Evaluate', schema: DIAGNOSIS })
+// stage 1: fresh triage replay (sees ONLY input); retry once on malformed output, then flag
+const triageStage = (c) =>
+  triageOnce(c, 0).then((d) =>
+    isMalformed(d)
+      ? triageOnce(c, 1).then((d2) => ({ ...d2, _malformed: isMalformed(d2) }))
+      : { ...d, _malformed: false },
+  )
+// stage 2: independent grader — sees the diagnosis + ground truth, NOT the triage reasoning
+const gradeStage = (diag, c) =>
+    agent(
+      `You are an INDEPENDENT eval grader. Score the agent's diagnosis against ground truth. Do not see or assume the agent's reasoning — judge only the published diagnosis vs the known answer.
+
+INCIDENT ${c.id} (${c.type})
+Title: ${c.input.title}
+
+GROUND TRUTH:
+- root_cause: ${c.ground_truth.root_cause}
+- p_row: ${c.ground_truth.p_row || '(none cited)'}
+- owner: ${c.ground_truth.owner || '(unknown)'}
+- verdict: ${c.ground_truth.verdict || '(unknown)'}
+
+AGENT DIAGNOSIS:
+- root_cause: ${diag.root_cause}
+- p_row: ${diag.p_row}
+- owner: ${diag.owner}
+- verdict: ${diag.verdict}
+- confidence: ${diag.confidence}
+
+Score each dimension per its schema description. root_cause_match is SEMANTIC (same mechanism = 1 even if worded differently). leak_suspect=true if the cited p_row looks derived from THIS very incident (so the win is coverage/memorization, not generalization). Also attribute \`component\` — the GROUND-TRUTH root cause's pipeline stage/family (T1-ingestion / T2-training / T3-publishing / T4-serving / lifecycle / infra-cascade / scope-detector / other) so per-component bottlenecks surface. Score \`next_action_quality\`: 1 if the diagnosis names a specific actionable entity (a CLI command with actual IDs, a file:line reference, a specific unixname to page, or a specific SEV/task ID); 0.5 if a named investigation step is given (specific metric or log to check) but no concrete entity; 0 if the root_cause is generic ("please investigate", "check logs", or empty), OR if the verdict is NOISE/OUT_OF_SCOPE where no action is expected (those are correct — score 1 to avoid penalizing appropriate silence). Judge from the combined root_cause + verdict + p_row fields. Give a 1-line rationale.`,
+      { label: `grade:${c.id}`, phase: 'Evaluate', schema: GRADE },
+    ).then((g) => ({ id: c.id, type: c.type, level: c.level, ground_truth: c.ground_truth, diagnosis: diag, grade: g }))
+
+// Per-case isolation (1 fresh agent per incident — no cross-case contamination), THROTTLED
+// into waves of EVAL_CONCURRENCY so the daemon's headless path doesn't time out under a
+// 16-wide storm of 141KB-reading triage agents (the 2026-06-12 iter5 stall). Grader stays
+// per-case. Trades wall-clock for reliability; lower EVAL_CONCURRENCY if the daemon still stalls.
+const evaluated = []
+for (let i = 0; i < goldRun.length; i += EVAL_CONCURRENCY) {
+  const wave = goldRun.slice(i, i + EVAL_CONCURRENCY)
+  const waveRes = await pipeline(wave, triageStage, gradeStage)
+  evaluated.push(...waveRes)
+  log(`triage wave ${Math.floor(i / EVAL_CONCURRENCY) + 1}: ${Math.min(i + EVAL_CONCURRENCY, goldRun.length)}/${goldRun.length} done (conc=${EVAL_CONCURRENCY})`)
+}
+
+// ---------- Phase 3: Aggregate ----------
+phase('Aggregate')
+const allEval = evaluated.filter(Boolean)
+const harnessExcluded = allEval.filter((r) => r.diagnosis && r.diagnosis._malformed)
+const rows = allEval.filter((r) => !(r.diagnosis && r.diagnosis._malformed)) // harness failures don't count against the agent
+if (harnessExcluded.length) log(`Excluded ${harnessExcluded.length} malformed-output cases (harness bug, retried+still bad) from fitness`)
+function avg(sel) { return rows.length ? rows.reduce((s, r) => s + sel(r), 0) / rows.length : 0 }
+// ---- Tier-2 diagnostic dimensions (target fixes; NOT optimized directly) ----
+const diagnostics = {
+  n_evaluated: rows.length,
+  root_cause_accuracy: +avg((r) => r.grade.root_cause_match).toFixed(3),
+  p_row_accuracy: +avg((r) => r.grade.p_row_match).toFixed(3), // demoted: instrumental + gameable
+  owner_accuracy: +avg((r) => r.grade.owner_match).toFixed(3),
+  verdict_calibration: +avg((r) => r.grade.verdict_calibrated).toFixed(3),
+  hallucination_rate: +avg((r) => r.grade.hallucination).toFixed(3),
+  leak_suspect_rate: +avg((r) => (r.grade.leak_suspect ? 1 : 0)).toFixed(3),
+}
+
+// ---- Tier-1 FITNESS FUNCTION (what evolution optimizes) ----
+// Principle: no human in the loop -> reward CALIBRATED competence; confident-wrong is the worst outcome.
+//   calibration .35  detection_recall .20  scoping_precision .15  owner .15  decisiveness .15
+// Hard gate: any hallucination caps that case's contribution to 0.
+// detection_recall / scoping_precision need a negative+noise corpus (not built yet) -> null: EXCLUDED and
+//   flagged in missing_terms (composite renormalized over present weight); never silently faked.
+// Generalization reported SEPARATELY (leak-adjusted proxy until temporal hold-out) — never folded in.
+const W = { calibration: 0.35, detection_recall: 0.20, scoping_precision: 0.15, owner: 0.15, decisiveness: 0.15 }
+const sumW = (keys) => keys.reduce((s, k) => s + W[k], 0)
+const isActionable = (v) => !!v && !/needs[_ ]?investigation|unknown|unclassified|insufficient|undetermined/i.test(v)
+
+function fitnessOver(subset, opts = {}) {
+  const n = subset.length
+  if (!n) return { composite: 0, dims: {}, missing: Object.keys(W), n: 0, gated: 0 }
+  let calib = 0, owner = 0, dec = 0, gated = 0
+  // detection_recall / scoping_precision (2026-06-14): computed from the EXISTING gold-set verdict
+  // labels — the "negative+noise corpus not built yet" note was stale. The gold set already carries
+  // both real-failure cases (the agent can MISS) and noise/no-action cases (the agent can FALSE-POSITIVE).
+  //   detection_recall  = verdict-correctness on REAL-failure ground-truth cases (catch the real ones)
+  //   scoping_precision = verdict-correctness on NOISE/no-action ground-truth cases (drop the fake ones)
+  // Hallucination-gated cases count as a MISS (0) in their class denominator — a hallucinated call is
+  // not a correct detection/scoping. Unknown/unclassifiable verdicts are excluded from both.
+  const NOISE_RE = /no.?action|noise|transient|detector.?broken|threshold.?misfit|out.?of.?scope|duplicate|wont.?fix|benign/i
+  const REAL_RE = /real|recurring|failure|confirmed/i
+  let realN = 0, realHit = 0, noiseN = 0, noiseHit = 0
+  for (const r of subset) {
+    const gv = (r.ground_truth && r.ground_truth.verdict) || ''
+    const isNoise = NOISE_RE.test(gv)
+    const isReal = !isNoise && REAL_RE.test(gv)
+    const gateMiss = r.grade.hallucination >= 1
+    if (isReal) { realN++; if (!gateMiss) realHit += (r.grade.verdict_calibrated || 0) }
+    else if (isNoise) { noiseN++; if (!gateMiss) noiseHit += (r.grade.verdict_calibrated || 0) }
+    if (gateMiss) { gated++; continue } // hard gate: 0 contribution to every per-case term
+    const rc = r.grade.root_cause_match
+    const conf = Math.max(0, Math.min(1, Number(r.diagnosis.confidence) || 0))
+    calib += 1 - Math.pow(rc - conf, 2) // proper scoring: right+confident best; wrong+confident worst; honest-uncertain unpunished
+    owner += r.grade.owner_match
+    // decisiveness: prefer next_action_quality (v2) when present; fall back to isActionable verdict check (v1)
+    dec += (r.grade.next_action_quality != null) ? r.grade.next_action_quality : (isActionable(r.diagnosis.verdict) ? 1 : 0)
+  }
+  const dims = {
+    calibration: +(calib / n).toFixed(3), // gated cases sit in denominator -> hallucination drags every dim down
+    owner: +(owner / n).toFixed(3),
+    decisiveness: +(dec / n).toFixed(3),
+    detection_recall: realN ? +(realHit / realN).toFixed(3) : (opts.detection_recall ?? null),
+    scoping_precision: noiseN ? +(noiseHit / noiseN).toFixed(3) : (opts.scoping_precision ?? null),
+  }
+  let num = 0, den = 0; const missing = []
+  for (const k of Object.keys(W)) {
+    if (dims[k] == null) { missing.push(k); continue }
+    num += W[k] * dims[k]; den += W[k]
+  }
+  return { composite: den ? +(num / den).toFixed(3) : 0, dims, missing, n, gated, recall_n: realN, precision_n: noiseN }
+}
+
+const coverage = fitnessOver(rows) // all cases (memorization allowed)
+const generalization = fitnessOver(rows.filter((r) => !r.grade.leak_suspect)) // leak-adjusted proxy
+const fitness = {
+  ...diagnostics,
+  composite: coverage.composite, // headline; renormalized over present weight
+  dimensions: coverage.dims,
+  weight_covered: +(sumW(Object.keys(W)) - sumW(coverage.missing)).toFixed(2),
+  missing_terms: coverage.missing, // flagged, not dropped (needs negative+noise corpus)
+  cases_gated_by_hallucination: coverage.gated,
+  generalization_composite: generalization.composite,
+  generalization_gap: +(coverage.composite - generalization.composite).toFixed(3), // coverage - held-out proxy
+}
+
+const byType = {}
+for (const r of rows) {
+  const t = r.type
+  byType[t] = byType[t] || { n: 0, rc: 0 }
+  byType[t].n++
+  byType[t].rc += r.grade.root_cause_match
+}
+for (const t of Object.keys(byType)) byType[t].root_cause_accuracy = +(byType[t].rc / byType[t].n).toFixed(3)
+
+// per-component fitness — divide-and-conquer: which component drags the score / hallucinates most?
+const byComponent = {}
+for (const r of rows) {
+  const k = r.grade.component || 'other'
+  byComponent[k] = byComponent[k] || { n: 0, rc: 0, halluc: 0 }
+  byComponent[k].n++
+  byComponent[k].rc += r.grade.root_cause_match
+  byComponent[k].halluc += r.grade.hallucination
+}
+for (const k of Object.keys(byComponent)) {
+  byComponent[k].root_cause_accuracy = +(byComponent[k].rc / byComponent[k].n).toFixed(3)
+  byComponent[k].hallucination_rate = +(byComponent[k].halluc / byComponent[k].n).toFixed(3)
+}
+const weakest = Object.entries(byComponent)
+  .filter(([, v]) => v.n >= 2)
+  .sort((a, b) => a[1].root_cause_accuracy - b[1].root_cause_accuracy)[0]
+const weakest_component = weakest ? { component: weakest[0], ...weakest[1] } : null
+
+// failures = evolve targets: low root-cause match, sorted worst-first
+const failures = rows
+  .filter((r) => r.grade.root_cause_match < 1 || r.grade.hallucination >= 1)
+  .sort((a, b) => a.grade.root_cause_match - b.grade.root_cause_match)
+  .map((r) => ({
+    id: r.id, type: r.type,
+    rc_match: r.grade.root_cause_match,
+    hallucination: r.grade.hallucination,
+    leak_suspect: r.grade.leak_suspect,
+    ground_truth_root_cause: r.ground_truth.root_cause,
+    agent_root_cause: r.diagnosis.root_cause,
+    why: r.grade.rationale,
+  }))
+
+log(`Fitness = ${fitness.composite} over ${(fitness.weight_covered * 100).toFixed(0)}% weight (missing: ${fitness.missing_terms.join(', ') || 'none'}); generalization ${fitness.generalization_composite} (gap ${fitness.generalization_gap}); ${fitness.cases_gated_by_hallucination} cases hallucination-gated; n=${rows.length}`)
+
+// machine-checkable outcome marker — the verifiable record gap #1 was missing. The caller appends
+// this (plus the fitness dims) to eval-flow-history.jsonl via `eval-stats.sh append`. A graded daemon
+// run is now PROVABLE from the history file: source=="daemon" && composite!=null && n>0.
+const run_marker = {
+  source: RUN_SOURCE,          // "daemon" | "interactive" — caller-threaded; default interactive
+  wf: RUN_WF,                  // Workflow run id if the caller passed args.wf, else null (never faked)
+  timestamp: RUN_TS,          // ISO-8601, run start
+  composite: fitness.composite,
+  n: fitness.n_evaluated,
+  gold_version: goldVersion,
+  inject_rule: (typeof args !== 'undefined' && args && args.inject_rule) || null,
+  // sharding provenance (gap #1): a shard is a PARTIAL batch — eval-stats.sh MUST exclude partial
+  // rows from the baseline/noise-band so a small/degenerate shard can never masquerade as a full
+  // composite (the 0.209/n=5 data-integrity hole). A whole-corpus run is partial:false.
+  partial: shardInfo != null,
+  shard: shardInfo ? shardInfo.shard : null,
+  shard_size: shardInfo ? shardInfo.shard_size : null,
+  num_shards: shardInfo ? shardInfo.num_shards : null,
+}
+log(`run_marker: source=${run_marker.source} partial=${run_marker.partial}${shardInfo ? ' shard=' + run_marker.shard + '/' + (run_marker.num_shards - 1) : ''} composite=${run_marker.composite} n=${run_marker.n} wf=${run_marker.wf || '-'} ts=${run_marker.timestamp}`)
+
+return {
+  run_marker,
+  // top-level mirrors so `eval-stats.sh append` (and any jsonl reader) finds them without nesting:
+  source: RUN_SOURCE,
+  wf: RUN_WF,
+  timestamp: RUN_TS,
+  partial: shardInfo != null,
+  shard: shardInfo ? shardInfo.shard : null,
+  shard_size: shardInfo ? shardInfo.shard_size : null,
+  num_shards: shardInfo ? shardInfo.num_shards : null,
+  gold_version: goldVersion,
+  corpus: { total_files: files.length, curated: allCases.length, eligible: eligible.length, evaluated: rows.length, harness_excluded: harnessExcluded.length },
+  fitness,
+  by_type: byType,
+  by_component: byComponent,
+  weakest_component,
+  failures,
+  harness_excluded: harnessExcluded.map((r) => r.id),
+  all_rows: rows,
+}

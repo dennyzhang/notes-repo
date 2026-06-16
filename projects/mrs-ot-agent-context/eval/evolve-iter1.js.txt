@@ -1,0 +1,102 @@
+export const meta = {
+  name: 'ot-evolve-iter1',
+  description: 'First real evolve iteration: grader-trust (codex co-grader) -> generate detection_recall candidate rules from the 15 misses -> A/B each against the 50-case scoping corpus -> keep winners that raise recall with precision held at 1.0.',
+  phases: [
+    { title: 'GraderTrust', detail: 'codex vs claude grader agreement on a sample' },
+    { title: 'Candidates', detail: 'propose detection-engage rules from the misses' },
+    { title: 'ABtest', detail: 'replay scoping with each candidate vs baseline 0.42/1.0' },
+    { title: 'Select', detail: 'keep winners; rank' },
+  ],
+}
+
+const CLAUDE = '/home/dennyzhang/.myclaw-ot-bot/CLAUDE.md'
+const KP = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md'
+const TD = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/human-input/triage-discipline.md'
+const GOLD = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/eval/gold-set.json'
+const SCOPING = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/eval/scoping-corpus.json'
+const BASE_RECALL = 0.423
+const BASE_PRECISION = 1.0
+
+const DECISION = { type: 'object', properties: { decision: { type: 'string', enum: ['engage', 'drop'] }, reason: { type: 'string' } }, required: ['decision', 'reason'] }
+
+// ---------- Phase 1: grader trust (codex co-grader) ----------
+phase('GraderTrust')
+const trust = await agent(
+  `Validate the eval GRADER's trustworthiness with an independent cross-model check.
+1. Read ${GOLD}; pick 8 diverse cases (mix of types).
+2. For each, do a quick fresh triage of its input (you may consult ${KP} / ${TD}) to produce a 1-2 sentence root_cause.
+3. Grade your root_cause vs the case's ground_truth.root_cause TWO ways: (a) your own judgment (claude_match in {0,0.5,1}); (b) run codex headless as an independent grader:
+   cd /tmp && codex exec --skip-git-repo-check "Grade if these describe the SAME root-cause mechanism. GROUND TRUTH: <gt>. CANDIDATE: <cand>. Reply ONLY one of: MATCH / PARTIAL / MISS." < /dev/null
+   Map MATCH=1, PARTIAL=0.5, MISS=0 -> codex_match. (otel-cert warning is non-fatal.)
+4. If codex is unavailable/errors, set codex_available=false and explain.
+Return: { codex_available, n, agreement_rate (fraction of the 8 where |claude_match-codex_match| <= 0.25), mean_claude, mean_codex, note }.`,
+  { label: 'grader-trust', phase: 'GraderTrust', schema: { type: 'object', properties: { codex_available: { type: 'boolean' }, n: { type: 'number' }, agreement_rate: { type: ['number', 'null'] }, mean_claude: { type: 'number' }, mean_codex: { type: ['number', 'null'] }, note: { type: 'string' } }, required: ['codex_available', 'n', 'agreement_rate', 'note'] } },
+)
+log(`Grader trust: codex_available=${trust.codex_available} agreement=${trust.agreement_rate} (${trust.note})`)
+
+// ---------- Phase 2: candidate detection-engage rules ----------
+phase('Candidates')
+const cand = await agent(
+  `Generate candidate DETECTION rules to fix the OT agent's detection_recall (currently ${BASE_RECALL} — it DROPS real OT incidents it should engage).
+Read ${SCOPING} -> the "missed_incidents" array lists real MRS online-training SEVs the agent wrongly decided to DROP. Cluster their symptom families (e.g. QPS->0, snapshot/staleness, OT-job hang/stuck, low sparse-streaming success rate, publish/SETUP failure).
+Propose 4 candidate rules, each a SHORT imperative rule (1-3 sentences) the agent could add to triage-discipline.md that makes it ENGAGE these signal classes WITHOUT engaging out-of-scope noise (must not break the sibling-org / non-OT hard-exclude). Vary specificity: from a broad "these symptom classes on an MRS online-training model = in-scope, engage" to narrower per-family rules.
+Return { candidates: [{ id, target_families, rule_text, rationale }] } (exactly 4).`,
+  { label: 'gen-candidates', phase: 'Candidates', schema: { type: 'object', properties: { candidates: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, target_families: { type: 'string' }, rule_text: { type: 'string' }, rationale: { type: 'string' } }, required: ['id', 'rule_text', 'rationale'] } } }, required: ['candidates'] } },
+)
+const candidates = cand.candidates || []
+log(`Generated ${candidates.length} candidate detection rules`)
+
+// load the scoping corpus items for A/B (id,label,source,title,baseline decision)
+const corpusItems = await agent(`Read ${SCOPING} and return its "corpus" array verbatim (each: id,label,source,title,decision).`,
+  { label: 'load-corpus', phase: 'Candidates', schema: { type: 'object', properties: { corpus: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' }, source: { type: 'string' }, title: { type: 'string' }, decision: { type: 'string' } }, required: ['id', 'label'] } } }, required: ['corpus'] } })
+const cases = corpusItems.corpus || []
+
+// ---------- Phase 3: A/B each candidate over the full scoping corpus ----------
+phase('ABtest')
+const scopeWithRule = (it, rule) =>
+  agent(
+    `You are the OT master agent making ONLY the engage/drop scoping decision. Read scope rules first: ${CLAUDE} (sections "Org boundary — MRS only", three-question gate). Apply sev_type allowlist + title hard-exclude + org boundary.
+
+ADDITIONAL PROPOSED RULE under test (apply it):
+"${rule}"
+
+SIGNAL ${it.id}
+Title: ${it.title}
+Source/class: ${it.source}
+
+Decide "engage" (in-scope MRS OT) or "drop" (out-of-org / non-OT / noise) + one-line reason.`,
+    { label: `ab:${it.id}`, phase: 'ABtest', schema: DECISION },
+  ).then((d) => ({ id: it.id, label: it.label, decision: d.decision }))
+
+const abResults = await parallel(
+  candidates.map((c) => async () => {
+    const decisions = await parallel(cases.map((it) => () => scopeWithRule(it, c.rule_text)))
+    const rows = decisions.filter(Boolean)
+    const pos = rows.filter((r) => r.label === 'engage')
+    const engaged = rows.filter((r) => r.decision === 'engage')
+    const recall = pos.length ? +(pos.filter((r) => r.decision === 'engage').length / pos.length).toFixed(3) : null
+    const precision = engaged.length ? +(engaged.filter((r) => r.label === 'engage').length / engaged.length).toFixed(3) : null
+    const new_leaks = rows.filter((r) => r.label === 'drop' && r.decision === 'engage').map((r) => r.id)
+    return { id: c.id, rule_text: c.rule_text, target_families: c.target_families, recall, precision, new_leaks }
+  }),
+)
+
+// ---------- Phase 4: select winners ----------
+phase('Select')
+const scored = abResults.filter(Boolean).map((r) => ({
+  ...r,
+  recall_delta: r.recall != null ? +(r.recall - BASE_RECALL).toFixed(3) : null,
+  precision_held: r.precision === BASE_PRECISION && r.new_leaks.length === 0,
+  winner: r.recall != null && r.recall > BASE_RECALL && r.precision === BASE_PRECISION && r.new_leaks.length === 0,
+})).sort((a, b) => (b.recall || 0) - (a.recall || 0))
+const winners = scored.filter((r) => r.winner)
+log(`Winners: ${winners.length}/${scored.length} | best recall ${scored[0] ? scored[0].recall : 'n/a'} (base ${BASE_RECALL})`)
+
+return {
+  grader_trust: trust,
+  baseline: { detection_recall: BASE_RECALL, scoping_precision: BASE_PRECISION },
+  candidates_tested: scored.length,
+  results: scored,
+  winners,
+  best: winners[0] || scored[0] || null,
+}

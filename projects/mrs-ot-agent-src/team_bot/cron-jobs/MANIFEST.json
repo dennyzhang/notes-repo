@@ -1,257 +1,356 @@
 {
-  "_comment": "Source of truth for ot-team MyClaw scheduled jobs. fbcode/pe_mrs_ml/mrs_ot_agent/team_bot/setup-cron-jobs.sh reads this and UPSERTs each entry into the ot-team sqlite. Prompts live in sibling .md files. Reinstall path: setup-claude.sh → bootstrap.sh (CLAUDE.md/yaml + invokes setup-cron-jobs.sh which re-asserts every job from this manifest).",
-  "jobs": [
-    {
-      "id": "daily-brief",
-      "prompt_file": "daily-brief.md",
-      "schedule_type": "cron",
-      "cron": "14 8 * * 1-5",
-      "purpose": "Weekday morning brief — OT GChat / diffs / Workplace / active incidents / followups."
-    },
-    {
-      "id": "ot-alert-monitor",
-      "prompt_file": "ot-alert-monitor.md",
-      "schedule_type": "interval",
-      "interval_seconds": 3600,
-      "purpose": "Hourly poll of mrs_online_training oncall alerts → cluster + deep-triage diagnosis + validator pass."
-    },
-    {
-      "id": "ot-daily-learning-debugging",
-      "prompt_file": "ot-daily-learning-debugging.md",
-      "schedule_type": "cron",
-      "cron": "7 8 * * *",
-      "purpose": "Daily 8:07 UTC. Distill 24h of real-time triage cron output (the bot's *debugging* corpus) into learnings ledger + propose pattern entries. Sibling of ot-daily-learning-mitigated-sevs (closed-SEV corpus). Renamed from ot-daily-learnings 2026-05-12; cadence flipped weekday→daily."
-    },
-    {
-      "id": "ot-myclaw-backup-nightly",
-      "prompt_file": "ot-myclaw-backup-nightly.md",
-      "schedule_type": "cron",
-      "cron": "37 2 * * *",
-      "purpose": "Nightly two-phase backup: (A) auto-commit + push local changes under ~/notes/users/dennyzhang/ to notes repo (captures the day's mitigated-* archive files + state files); (B) myclaw export of ~/.myclaw-ot-team/ for migration safety. Phases independent — failure of one does not abort the other."
-    },
-    {
-      "id": "ot-metrics-rollup",
-      "prompt_file": "ot-metrics-rollup.md",
-      "schedule_type": "cron",
-      "cron": "0 9 * * *",
-      "purpose": "Daily verify auto-tag stickiness + recall sweep over triage_events; Mondays post weekly OT-bot precision/recall summary (Phase B of T269501586)."
-    },
-    {
-      "id": "ot-post-monitor",
-      "prompt_file": "ot-post-monitor.md",
-      "schedule_type": "interval",
-      "interval_seconds": 900,
-      "purpose": "15-min poll of MRS Online Training Users Workplace group for OT-relevant posts."
-    },
-    {
-      "id": "ot-sev-monitor",
-      "prompt_file": "ot-sev-monitor.md",
-      "schedule_type": "interval",
-      "interval_seconds": 3600,
-      "purpose": "Hourly OT SEV identification (tag-OR-title-class) + cluster + deep-triage + auto-tag + validator pass."
-    },
-    {
-      "id": "ot-triage-auditor",
-      "prompt_file": "ot-triage-auditor.md",
-      "schedule_type": "interval",
-      "interval_seconds": 1800,
-      "purpose": "Every 30 min. Post-hoc audit of ot-alert-monitor / ot-sev-monitor / ot-post-monitor / ot-triage-summary triage outputs. 11 R-rules (cross-ref, evidence, verdict-calibration). 4-tier escalation ladder (silent / self-heal / nudge / page); pages only on verdict-changing misses. Default auto-correction-posting=OFF. Writes JSONL audit log; ot-human-attention-brief reads it for the morning rollup. Landed 2026-05-19 in thread 2w5Schmk83U."
-    },
-    {
-      "id": "ot-daily-learning-mitigated-sevs",
-      "prompt_file": "ot-daily-learning-mitigated-sevs.md",
-      "schedule_type": "cron",
-      "cron": "0 21 * * *",
-      "purpose": "Daily 21:00 UTC. Harvest postmortem signal from OT SEVs closed in last 24h (the *mitigated SEVs* corpus) → ONE consolidated digest (top-line + threaded digests + threaded pattern proposals + ONE validator pass), 4 messages per run regardless of SEV count, PLUS one durable archive file per SEV at ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/<YYYY-MM>/. Propose-only, no SEV mutations. Sibling of ot-daily-learning-debugging (real-time triage corpus). Renamed from ot-sev-postmortem 2026-05-12. Archive output added 2026-05-12 per OT Master Agent doc § Data model."
-    },
-    {
-      "id": "ot-daily-learning-mitigated-alerts",
-      "prompt_file": "ot-daily-learning-mitigated-alerts.md",
-      "schedule_type": "cron",
-      "cron": "5 22 * * *",
-      "purpose": "Daily 21:15 UTC (15-min stagger after mitigated-sevs). Harvest postmortem signal from OT alerts cleared in last 24h on mrs_online_training rotation → ONE consolidated digest + per-alert archive file at ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/. Resolution-signal verification: re-query underlying ods/scuba signal to confirm recovery (not just acked). Propose-only, no alert mutations. Sibling of ot-daily-learning-mitigated-sevs."
-    },
-    {
-      "id": "ot-daily-learning-mitigated-posts",
-      "prompt_file": "ot-daily-learning-mitigated-posts.md",
-      "schedule_type": "cron",
-      "cron": "30 21 * * *",
-      "purpose": "Daily 21:30 UTC (15-min stagger after mitigated-alerts). Harvest postmortem signal from MRS OT Workplace posts resolved in last 24h → ONE consolidated digest + per-post archive file at ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/<YYYY-MM>/. Resolution detected via #resolved comment, peer-agent #resolved + author reaction, native resolve marker, or linked SEV closure. Propose-only, no Workplace mutations. Sibling of ot-daily-learning-mitigated-sevs."
-    },
-    {
-      "id": "ot-sev-tag-review",
-      "prompt_file": "ot-sev-tag-review.md",
-      "schedule_type": "cron",
-      "cron": "9 8 * * 1-5",
-      "purpose": "Daily tag-hygiene sweep — auto-apply Cat-0-Sub-A/Cat-1, propose Cat-0-Sub-B/Cat-2."
-    },
-    {
-      "id": "ot-shift-summary",
-      "prompt_file": "ot-shift-summary.md",
-      "schedule_type": "cron",
-      "cron": "30 8 * * 2",
-      "purpose": "Weekly Tuesday shift handover — draft mrs_online_training oncall summary (SEVs/alerts/posts/diffs) for outgoing oncall to review/edit and post to mrs.ot."
-    },
-    {
-      "id": "ot-knowledge-distillation",
-      "prompt_file": "ot-knowledge-distillation.md",
-      "schedule_type": "cron",
-      "cron": "30 13 * * 1-5",
-      "purpose": "Daily 13:30 PT weekday — parse last 7d of mitigated-alerts and mitigated-sevs archives, detect cross-issue patterns (recurring root cause, false-alarm signature, bot self-correction), DRAFT (never auto-land) one Phabricator diff per run improving the OT master agent (new P-row, R-rule strengthening, cron prompt edit). Cap 1 diff per run. Out-of-org filter inherited from upstream cron."
-    },
-    {
-      "id": "ot-knowledge-curation",
-      "prompt_file": "ot-knowledge-curation.md",
-      "schedule_type": "cron",
-      "cron": "0 23 * * *",
-      "purpose": "Nightly curation of postmortem corpus (incidents/resolved-sevs/resolved-posts/resolved-alerts) → engineering diffs, auto-learnings/mega, monthly systemic-gap reports."
-    },
-    {
-      "id": "ot-postmortem-validator",
-      "prompt_file": "ot-postmortem-validator.md",
-      "schedule_type": "cron",
-      "cron": "30 22 * * *",
-      "purpose": "Daily 22:30 PT (15-min stagger after ot-daily-learning-mitigated-alerts 22:05). Validates postmortem digests from ot-daily-learning-mitigated-{sevs,posts,alerts} crons (which run in cron context WITHOUT Agent tool and self-flag 'Validator unavailable'). Verifies cluster IDs against failure-patterns.md, P-row IDs against known-patterns.md, SEV root causes via meta sevmanager.sev describe; flags misattributions (like today's S665135 case where digest said auto-start silent stall but actual was Shampoo NaN). Posts validation reply in same thread as the digest. Created 2026-05-16 after 2 Validator-unavailable flags in 1 hour (threads gMO2L7p9xaM + LqKW1jLtNeM)."
-    },
-    {
-      "id": "ot-human-attention-brief",
-      "prompt_file": "ot-human-attention-brief.md",
-      "schedule_type": "cron",
-      "cron": "0 8 * * *",
-      "purpose": "Daily 8:00 AM PT. ONE morning brief aggregating (1) bot triages from last 24h where confidence was low / verdict UNKNOWN / validator-flagged misattribution; (2) key daily learnings (new clusters, new P-rows, status escalations, recurrence/cross-workload patterns). Replaces operator's need to scan ~30 per-event cron posts daily. Concise (≤3500 chars), easy to trace (every bullet has link/ID). Created 2026-05-17 per operator instruction thread suPsRC2fGdc."
-    },
-    {
-      "id": "ot-prompt-change-validator",
-      "prompt_file": "ot-prompt-change-validator.md",
-      "schedule_type": "interval",
-      "interval_seconds": 600,
-      "purpose": "Every 10 min. Detect cron-prompt edits via sqlite-prompt-diff against snapshots. For each changed prompt, simulate the new prompt against a representative past triage to verify it still produces compliant output. Catches silent-failure prompt edits BEFORE the next live cron fire. Created 2026-05-17 per operator instruction thread Y3qbdh2hC20 after 5 silent failures in 2 hours from prompt-only edits with no execution verification."
-    },
-    {
-      "id": "ot-cron-health-watch",
-      "prompt_file": "ot-cron-health-watch.md",
-      "schedule_type": "interval",
-      "interval_seconds": 3600,
-      "purpose": "Hourly. Audit OT bot's own cron-job runs to surface SILENT FAILURES (failure-keyword in response without self-escalation), MISSING RUNS (daemon hangs / queue jams), and PERSISTENT FAILURES (≥3 consecutive). Posts to spaces/AAQAVOjYc80 only on state transitions (no spam). Self-heals on recovery. Mostly read-only; one narrow write: sqlite retrigger for missing-run auto-mitigation (step 7.5)."
-    },
-    {
-      "id": "ot-gdoc-context-sync",
-      "prompt_file": "ot-gdoc-context-sync.md",
-      "schedule_type": "cron",
-      "cron": "0 14 * * *",
-      "purpose": "Daily 14:00 UTC (07:00 PT, before standup). Mirror external Google Docs the OT team maintains (meeting notes, cross-team follow-ups) into mrs-ot-agent-context/references/gdocs/<slug>.md so every OT-agent bootstrap picks up current context. Config-driven via mrs-ot-agent-context/references/gdocs/sources.json. Idempotent on revisionId (silent on no-drift). Read-only — never writes back to gdocs."
-    },
-    {
-      "id": "ot-fbpkg-cap-watch",
-      "prompt_file": "ot-fbpkg-cap-watch.md",
-      "schedule_type": "cron",
-      "cron": "0 14 * * 1",
-      "purpose": "Weekly Mondays 14:00 UTC. Pre-emptively detect light_cli fbpkg version-cap pressure (P41 pattern, 800-cap recurrence ~7d). Audits in_use_by_model_<id> tags against live model registry to find ORPHAN tags (decommissioned model, tag still pinning a version). Reports orphan list + recommended deletions; DOES NOT auto-delete in v1 (operator confirms first). Created 2026-05-13 after fbpkg meta CLI rejected direct version-limit raise (ephemeral_limit validation blocker)."
-    },
-    {
-      "id": "ot-disk-watch",
-      "prompt_file": "ot-disk-watch.md",
-      "schedule_type": "interval",
-      "interval_seconds": 3600,
-      "purpose": "Hourly devserver filesystem disk-usage audit. Monitors /, /data/users/dennyzhang/notes, /data/users/dennyzhang/fbsource, /tmp. Posts on state transitions (ok↔warning↔critical); thresholds 85%/92% pct-used or 50GB/20GB free. Created 2026-05-16 — operator flagged missing disk-watch coverage. Distinct from ot-fbpkg-cap-watch (which monitors fbpkg version-cap, NOT filesystem)."
-    },
-    {
-      "id": "ot-notes-fbcode-commit",
-      "prompt_file": "ot-notes-fbcode-commit.md",
-      "schedule_type": "cron",
-      "cron": "15 */6 * * *",
-      "purpose": "4×/day. One-way mirror sync from notes (canonical, post-2026-05-15 migration) to fbcode/pe_mrs_ml/mrs_ot_agent/. Drafts a fbcode diff per drift batch via jf submit --draft --publish-when-ready; RADAR auto-stamps additive doc-only diffs. No-op when there's no drift. Created 2026-05-15 to eliminate manual reinstall step + abandoned D105276407 (auto-detect-path approach)."
-    },
-    {
-      "id": "ot-notes-commit-push",
-      "prompt_file": "ot-notes-commit-push.md",
-      "schedule_type": "interval",
-      "interval_seconds": 3600,
-      "purpose": "Hourly commit + push of bot-owned notes changes to fb:notes (mrs-ot-agent-src/, mrs-ot-agent-context/)."
-    },
-    {
-      "id": "ot-myclaw-weekly-restart",
-      "prompt_file": "ot-myclaw-weekly-restart.md",
-      "schedule_type": "cron",
-      "cron": "0 0 * * 6",
-      "purpose": "Weekly Saturday 00:00 local. Restart the myclaw daemon to clear accumulated session state and in-memory caches. Uses detached nohup+sleep+disown pattern so the cron run completes BEFORE the daemon restarts. Pre-flight check defers restart if any cron fires in next 2 min. Created 2026-05-16 after a session accumulated 4 distinct bot bugs (state wipes, format-cache staleness, working-copy desyncs) that a fresh start would have prevented — operator thread SkBrr503kOA."
-    },
-    {
-      "id": "ot-thread-summarizer",
-      "prompt_file": "ot-thread-summarizer.md",
-      "schedule_type": "interval",
-      "interval_seconds": 3600,
-      "purpose": "Hourly. Distill conversation threads from spaces/AAQAVOjYc80 that have gone quiet ≥4h into per-topic learning files at ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/bot-debugging-threads/<YYYY-MM>/. Closes the gap where interactive Q&A learnings only live in sqlite (lost on devserver reinstall). Read-only on gchat/sqlite; cap 5 threads/run; 7d hold-down on re-summarization. Created 2026-05-16 per operator thread 1lufURy61pM."
-    },
-    {
-      "id": "ot-triage-summary",
-      "prompt_file": "ot-triage-summary.md",
-      "schedule_type": "cron",
-      "cron": "30 9 * * 1-5",
-      "purpose": "Daily 9:30 PT weekday. For each issue resolved in last 48h AND triaged by bot, write a crisp 5-element summary in incidents/resolved-sevs/<YYYY-MM>/<TYPE>-<id>-<YYYY-MM-DD>.md. Consumed by ot-knowledge-distillation for cross-issue pattern detection. Re-registered in MANIFEST 2026-05-16 (prompt existed but was missing from manifest — only 2 files written manually since 2026-05-11)."
-    },
-    {
-      "id": "ot-debug-quality-weekly",
-      "prompt_file": "ot-debug-quality-weekly.md",
-      "schedule_type": "cron",
-      "cron": "0 9 * * 1,4",
-      "purpose": "Twice-weekly Mon+Thu 9:00 PT (initial cadence; collapse to weekly once stable per operator thread oPEdsLeKSi8). Score the bot's debug quality by comparing each mitigated-issue's INITIAL triage (bot's first gchat post when issue opened, from ot-{sev,alert,post}-monitor) vs ACTUAL root cause (authoritative postmortem in incidents/resolved-{sevs,posts,alerts}/). Per-dimension scoring (cluster / verdict / root_cause / owner / mitigation) + composite + 4-week trend + trust-breaking miss-class detection (MISSED_REAL_ISSUE, FALSE_PAGE). Created 2026-05-17 per operator thread DEltCr_w2yA: 'I want to see the delta' between initial triage and root cause."
-    },
-    {
-      "id": "ot-notes-deletion-watch",
-      "prompt_file": "ot-notes-deletion-watch.md",
-      "schedule_type": "interval",
-      "interval_seconds": 3600,
-      "purpose": "Hourly. Detect unexpected file deletions in ~/notes/users/dennyzhang/projects/mrs-ot-agent-{src,context}/ between recent commits. Catches the file-tracking casualty pattern (7+ instances 2026-05-16) where sl rebase / sl goto operations silently drop files from working tree + subsequent commits. Stages recovery via sl add (NEVER auto-commits/pushes — operator reviews). Created 2026-05-16 per operator thread iqRw-QgzYjM."
-    },
-    {
-      "id": "context-ingestor-gchat",
-      "prompt_file": "context-ingestor-gchat.md",
-      "schedule_type": "cron",
-      "cron": "0 9 * * 1",
-      "purpose": "Weekly Mondays 09:00 PT. Pull last 7 days of activity from a watch-list of external OT-adjacent gchat spaces (RT Infra WS2 AAQAR1xHaQU, MVAI OT Dev AAQAXSNWvcM, IG ATS Alerting AAQAtGhVkUw, MRS OT Oncall AAQATpEgSyk), distill new project context the OT Master Agent should integrate, and write one catch-up file per space to human-input-domain/<YYYY-MM-DD>-<space-slug>-catchup.md. Read-only on watched spaces; propose-only on cron-prompt changes. Created 2026-05-18 per operator thread Oe2XG0WVOMY after manual catch-up on AAQAR1xHaQU revealed ~10 items the bot was missing (SLO dashboard URL, Breathalyzer auto-kill, bad_sparse decomposition, SJD owner, refresh-launch detection gap)."
-    },
-    {
-      "id": "context-ingestor-posts",
-      "prompt_file": "context-ingestor-posts.md",
-      "schedule_type": "cron",
-      "cron": "15 9 * * 1",
-      "purpose": "Weekly Mondays 09:15 PT (staggered 15min after context-ingestor-gchat). Pull last 7 days of Workplace posts from a watch-list of OT experts (OT devs: dennyzhang, lupaul, llu6, yabinzh; IG OT POCs: dkotfis, prgzz, peiyangy) via `meta workplace.feed list --author=<unixname>`. Distill into a single weekly combined catch-up file at human-input-domain/<YYYY-MM-DD>-experts-posts-catchup.md with per-expert sub-sections + P0/P1 integration priority table. Sibling to context-ingestor-gchat (gchat spaces). Read-only on Workplace; propose-only on cron-prompt changes. Privacy guardrails: only OT-related groups (regex filter), no DM/1:1 content, no quoted private content. Created 2026-05-18 per operator thread Oe2XG0WVOMY: 'we should have another job to pull people's posts and enrich the project context'."
-    },
-    {
-      "id": "ot-oauth-refresher",
-      "prompt_file": "ot-oauth-refresher.md",
-      "schedule_type": "interval",
-      "interval_seconds": 600,
-      "purpose": "Every 10 min. Preemptive OAuth token refresh via buck2 run (side effect of buck preflight). Prevents periodic meta-CLI/gchat-read 403 expiry. Silent on success; escalates only on 3 consecutive failures. Created 2026-05-28 per operator thread 4BK7HJHkzB0 as Part 3 of L66 OAuth-403 fix plan."
-    },
-    {
-      "id": "ot-bot-volume-watch",
-      "prompt_file": "ot-bot-volume-watch.md",
-      "schedule_type": "cron",
-      "cron": "0 * * * *",
-      "purpose": "Hourly. Track BOT msg volume in 1:1 space, detect band transitions + hourly bursts, auto-attribute to top offending source-crons, auto-draft verbosity-reduction prompt edits (operator-approval gated). Silent on steady state; three-tier tuning policy. Created 2026-05-28 per operator thread AL3dqJevKm0 via parallel-agent design workflow."
-    },
-    {
-      "id": "ot-daily-learning-digest",
-      "prompt_file": "ot-daily-learning-digest.md",
-      "schedule_type": "cron",
-      "cron": "50 7 * * *",
-      "purpose": "Daily 7:50 AM PT. Consolidated learning digest delivered to 1:1 — aggregates memory deltas, notes commits, cron amendments, validator catches, P-rows, draft diffs from the prior 24h. Route chosen per operator spec 2026-05-28. Was sqlite-registered but missing from MANIFEST (drift); added 2026-05-29."
-    },
-    {
-      "id": "ot-notes-fbcode-sync-weekly",
-      "prompt_file": "ot-notes-fbcode-sync-weekly.md",
-      "schedule_type": "cron",
-      "cron": "0 16 * * 1",
-      "purpose": "Weekly Monday 09:00 PDT (16:00 UTC). Folds all accumulated [OT bot weekly sync] local commits in fbcode into ONE Phabricator diff + submits. Companion to ot-notes-fbcode-commit (4x/day commit-only). Created 2026-05-22; was sqlite-registered but missing from MANIFEST (drift); added 2026-05-29. Has WEEKLY-DIFF DEDUPE GATE (step 0)."
-    },
-    {
-      "id": "ot-notes-weekly-review-paste",
-      "prompt_file": "ot-notes-weekly-review-paste.md",
-      "schedule_type": "cron",
-      "cron": "0 14 * * 1",
-      "purpose": "Weekly Monday 07:00 PDT (14:00 UTC). Creates a Phabricator paste rendering the past 7 days of MEANINGFUL notes-repo changes (users/dennyzhang/, machine-churn excluded) as a colored diff, and posts one message with the URL for optional manual review. Created 2026-05-30 per operator thread xc_VJG_out4."
-    }
-  ]
+ "_comment": "Source of truth for ot-team MyClaw scheduled jobs. fbcode/pe_mrs_ml/mrs_ot_agent/team_bot/setup-cron-jobs.sh reads this and UPSERTs each entry into the ot-team sqlite. Prompts live in sibling .md files. Reinstall path: setup-claude.sh → bootstrap.sh (CLAUDE.md/yaml + invokes setup-cron-jobs.sh which re-asserts every job from this manifest).",
+ "jobs": [
+  {
+   "id": "daily-brief",
+   "prompt_file": "daily-brief.md",
+   "schedule_type": "cron",
+   "cron": "0 8 * * *",
+   "purpose": "Daily 08:00 AM PT morning brief (1:1) — needs-you worklist + where-AI-needs-help + AI learnings + resolved/tracked + GChat/Workplace/followups. Cadence weekday->daily 2026-06-09 absorbing the deprecated ot-human-attention-brief (daily-brief is a superset: its §4 + §6 already cover that brief's AI-needs-help + learnings)."
+  },
+  {
+   "id": "ot-team-chat-self-audit",
+   "prompt_file": "ot-team-chat-self-audit.md",
+   "schedule_type": "cron",
+   "cron": "0 1 * * *",
+   "purpose": "Daily ~18:00 PT (1:1 ONLY). The bot audits its OWN team-space outbound: classifies each msg team-worthy vs leak (plumbing/Q&A/meta-ack that should've been 1:1), tracks the leak-rate trend, surfaces recurring leak patterns to distillation. Self-monitoring half of the team-chat-noise fix so the operator stops policing it; pairs with the hard delivery-gate T275142534. Created 2026-06-09."
+  },
+  {
+   "id": "ot-alert-monitor",
+   "prompt_file": "ot-alert-monitor.md",
+   "schedule_type": "interval",
+   "interval_seconds": 900,
+   "purpose": "15-min poll of mrs_online_training oncall alerts → cluster + deep-triage diagnosis + validator pass. Tightened from 3600→900 (2026-06-04): hourly cadence saw a WARNING/MAJOR ~1h late (caught the 13:53 page only at 14:54), defeating shift-left WARNING auto-triage; 15-min poll catches the warning window before MAJOR pages."
+  },
+  {
+   "id": "ot-daily-learning-debugging",
+   "prompt_file": "ot-daily-learning-debugging.md",
+   "schedule_type": "cron",
+   "cron": "7 8 * * *",
+   "purpose": "Daily 8:07 UTC. Distill 24h of real-time triage cron output (the bot's *debugging* corpus) into learnings ledger + propose pattern entries. Sibling of ot-daily-learning-mitigated-sevs (closed-SEV corpus). Renamed from ot-daily-learnings 2026-05-12; cadence flipped weekday→daily."
+  },
+  {
+   "id": "ot-myclaw-backup-nightly",
+   "prompt_file": "ot-myclaw-backup-nightly.md",
+   "schedule_type": "cron",
+   "cron": "37 2 * * *",
+   "purpose": "Nightly two-phase backup: (A) auto-commit + push local changes under ~/notes/users/dennyzhang/ to notes repo (captures the day's mitigated-* archive files + state files); (B) myclaw export of ~/.myclaw-ot-team/ for migration safety. Phases independent — failure of one does not abort the other."
+  },
+  {
+   "id": "ot-metrics-rollup",
+   "prompt_file": "ot-metrics-rollup.md",
+   "schedule_type": "cron",
+   "cron": "0 9 * * *",
+   "purpose": "Daily verify auto-tag stickiness + recall sweep over triage_events; Mondays post weekly OT-bot precision/recall summary (Phase B of T269501586)."
+  },
+  {
+   "id": "ot-post-monitor",
+   "prompt_file": "ot-post-monitor.md",
+   "schedule_type": "interval",
+   "interval_seconds": 900,
+   "purpose": "15-min poll of MRS Online Training Users Workplace group for OT-relevant posts."
+  },
+  {
+   "id": "ot-sev-monitor",
+   "prompt_file": "ot-sev-monitor.md",
+   "schedule_type": "interval",
+   "interval_seconds": 900,
+   "purpose": "Every 15 min (was hourly; tightened 2026-06-07 for detection speed). OT SEV identification (tag-OR-title-class) + cluster + deep-triage + auto-tag + multi-lens adversarial validator PANEL (scope/depth/data-grounding + conditional codex)."
+  },
+  {
+   "id": "ot-triage-auditor",
+   "prompt_file": "ot-triage-auditor.md",
+   "schedule_type": "interval",
+   "interval_seconds": 1800,
+   "purpose": "Every 30 min. Post-hoc audit of ot-alert-monitor / ot-sev-monitor / ot-post-monitor / ot-triage-summary triage outputs. 11 R-rules (cross-ref, evidence, verdict-calibration). 4-tier escalation ladder (silent / self-heal / nudge / page); pages only on verdict-changing misses. Default auto-correction-posting=OFF. Writes JSONL audit log; ot-human-attention-brief reads it for the morning rollup. Landed 2026-05-19 in thread 2w5Schmk83U."
+  },
+  {
+   "id": "ot-daily-learning-mitigated-sevs",
+   "prompt_file": "ot-daily-learning-mitigated-sevs.md",
+   "schedule_type": "cron",
+   "cron": "0 21 * * *",
+   "purpose": "Daily 21:00 UTC. Harvest postmortem signal from OT SEVs closed in last 24h (the *mitigated SEVs* corpus) → ONE consolidated digest (top-line + threaded digests + threaded pattern proposals + ONE validator pass), 4 messages per run regardless of SEV count, PLUS one durable archive file per SEV at ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/<YYYY-MM>/. Propose-only, no SEV mutations. Sibling of ot-daily-learning-debugging (real-time triage corpus). Renamed from ot-sev-postmortem 2026-05-12. Archive output added 2026-05-12 per OT Master Agent doc § Data model."
+  },
+  {
+   "id": "ot-daily-learning-mitigated-alerts",
+   "prompt_file": "ot-daily-learning-mitigated-alerts.md",
+   "schedule_type": "cron",
+   "cron": "5 22 * * *",
+   "purpose": "Daily 21:15 UTC (15-min stagger after mitigated-sevs). Harvest postmortem signal from OT alerts cleared in last 24h on mrs_online_training rotation → ONE consolidated digest + per-alert archive file at ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/. Resolution-signal verification: re-query underlying ods/scuba signal to confirm recovery (not just acked). Propose-only, no alert mutations. Sibling of ot-daily-learning-mitigated-sevs."
+  },
+  {
+   "id": "ot-daily-learning-mitigated-posts",
+   "prompt_file": "ot-daily-learning-mitigated-posts.md",
+   "schedule_type": "cron",
+   "cron": "30 21 * * *",
+   "purpose": "Daily 21:30 UTC (15-min stagger after mitigated-alerts). Harvest postmortem signal from MRS OT Workplace posts resolved in last 24h → ONE consolidated digest + per-post archive file at ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/<YYYY-MM>/. Resolution detected via #resolved comment, peer-agent #resolved + author reaction, native resolve marker, or linked SEV closure. Propose-only, no Workplace mutations. Sibling of ot-daily-learning-mitigated-sevs."
+  },
+  {
+   "id": "ot-sev-tag-review",
+   "prompt_file": "ot-sev-tag-review.md",
+   "schedule_type": "cron",
+   "cron": "9 8 * * 1-5",
+   "purpose": "Daily tag-hygiene sweep — auto-apply Cat-0-Sub-A/Cat-1, propose Cat-0-Sub-B/Cat-2."
+  },
+  {
+   "id": "ot-shift-summary",
+   "prompt_file": "ot-shift-summary.md",
+   "schedule_type": "cron",
+   "cron": "30 8 * * *",
+   "purpose": "Daily 8:30 AM PT. Tuesday=shift close-out (new tab, full draft for mrs.ot); Wed-Mon=comment-safe mid-shift incremental refresh of the current tab (append the day + refresh header/day-count, targeted edits only, abort-on-flaky). Operator 2026-06-05 promoted weekly->daily-incremental."
+  },
+  {
+   "id": "ot-knowledge-distillation",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-knowledge-distillation.md",
+   "schedule_type": "cron",
+   "cron": "30 13 * * 1-5",
+   "purpose": "Daily 13:30 PT weekday — parse last 7d of mitigated-alerts and mitigated-sevs archives, detect cross-issue patterns (recurring root cause, false-alarm signature, bot self-correction), DRAFT (never auto-land) one Phabricator diff per run improving the OT master agent (new P-row, R-rule strengthening, cron prompt edit). Cap 1 diff per run. Out-of-org filter inherited from upstream cron."
+  },
+  {
+   "id": "ot-knowledge-curation",
+   "prompt_file": "ot-knowledge-curation.md",
+   "schedule_type": "cron",
+   "cron": "0 23 * * *",
+   "purpose": "Nightly curation of postmortem corpus (incidents/resolved-sevs/resolved-posts/resolved-alerts) → engineering diffs, auto-learnings/digests weekly mega-learnings, monthly systemic-gap reports."
+  },
+  {
+   "id": "ot-postmortem-validator",
+   "prompt_file": "ot-postmortem-validator.md",
+   "schedule_type": "cron",
+   "cron": "30 22 * * *",
+   "purpose": "Daily 22:30 PT (15-min stagger after ot-daily-learning-mitigated-alerts 22:05). Validates postmortem digests from ot-daily-learning-mitigated-{sevs,posts,alerts} crons (which run in cron context WITHOUT Agent tool and self-flag 'Validator unavailable'). Verifies cluster IDs against failure-patterns.md, P-row IDs against known-patterns.md, SEV root causes via meta sevmanager.sev describe; flags misattributions (like today's S665135 case where digest said auto-start silent stall but actual was Shampoo NaN). Posts validation reply in same thread as the digest. Created 2026-05-16 after 2 Validator-unavailable flags in 1 hour (threads gMO2L7p9xaM + LqKW1jLtNeM)."
+  },
+  {
+   "id": "ot-prompt-change-validator",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-prompt-change-validator.md",
+   "schedule_type": "interval",
+   "interval_seconds": 600,
+   "purpose": "Every 10 min. Detect cron-prompt edits via sqlite-prompt-diff against snapshots. For each changed prompt, simulate the new prompt against a representative past triage to verify it still produces compliant output. Catches silent-failure prompt edits BEFORE the next live cron fire. Created 2026-05-17 per operator instruction thread Y3qbdh2hC20 after 5 silent failures in 2 hours from prompt-only edits with no execution verification."
+  },
+  {
+   "id": "ot-cron-health-guard",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-cron-health-guard.md",
+   "schedule_type": "interval",
+   "interval_seconds": 3600,
+   "purpose": "Hourly. Audit OT bot's own cron-job runs to surface SILENT FAILURES (failure-keyword in response without self-escalation), MISSING RUNS (daemon hangs / queue jams), and PERSISTENT FAILURES (≥3 consecutive). Posts to spaces/AAQAVOjYc80 only on state transitions (no spam). Self-heals on recovery. Mostly read-only; one narrow write: sqlite retrigger for missing-run auto-mitigation (step 7.5)."
+  },
+  {
+   "id": "ot-ingest-gdocs",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-ingest-gdocs.md",
+   "schedule_type": "cron",
+   "cron": "0 14 * * *",
+   "purpose": "Daily 14:00 UTC (07:00 PT, before standup). Mirror external Google Docs the OT team maintains (meeting notes, cross-team follow-ups) into mrs-ot-agent-context/references/gdocs/<slug>.md so every OT-agent bootstrap picks up current context. Config-driven via mrs-ot-agent-context/references/gdocs/sources.json. Idempotent on revisionId (silent on no-drift). Read-only — never writes back to gdocs. ALSO mirrors fbsource OT skills (claude-templates/.../skills) into references/skills/<slug>.md via references/skills/skill-sources.json, idempotent on source sha256 (Part 2). Folded in 2026-06-05 instead of a separate cron. NOTE: Phabricator authored-diffs were Part 3 here (folded in 2026-06-12) but were split BACK OUT into the standalone ot-ingest-diffs cron 2026-06-13 at operator request — diff ingestion is a distinct source (live Phabricator query + oncall-roster resolution, not a doc/file mirror)."
+  },
+  {
+   "id": "ot-ingest-diffs",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-ingest-diffs.md",
+   "schedule_type": "cron",
+   "cron": "30 14 * * *",
+   "purpose": "Daily 14:30 UTC (07:30 PT, 30 min after ot-ingest-gdocs). Mirror Phabricator diffs authored by the OT dev group into mrs-ot-agent-context/references/diffs/<unixname>.md (change-metadata ONLY — no bodies, no reviewers) via tools/ingest-ot-diffs.sh + references/diffs/diff-sources.json. The recent-authored-diffs corpus the change-delta-first ('what changed?') triage step consults. Roster resolved LIVE each run from the mrs_online_training oncall rotation (self-maintains; falls back to authors_cache on lookup failure). Idempotent on diff-id+status (silent on no-drift). Read-only on Phabricator (search only). Fix-don't-report: tracks consecutive-failure count, escalates obviously + drives an auto-fix task on recurrence. Split out of ot-ingest-gdocs Part 3 on 2026-06-13 at operator request (reverses the 2026-06-12 fold-in)."
+  },
+  {
+   "id": "server-disk-guard",
+   "prompt_file": "server-disk-guard.md",
+   "schedule_type": "interval",
+   "interval_seconds": 900,
+   "purpose": "Every 15 min: devserver filesystem disk-usage audit + active auto-mitigation. Monitors /, /data/users/dennyzhang/notes, /data/users/dennyzhang/fbsource, /tmp. Posts on state transitions (ok↔warning↔critical); thresholds 85%/92% pct-used or 50GB/20GB free. Tier-1 safe auto-mitigation on entering warning/critical; Tier-2 aggressive warm-dotslash reclaim when still critical (2026-06-02 fast-fill fix). Cadence tightened 3600s→900s 2026-06-02 to catch fast fills (saw 31GB/14min) before catastrophic. Created 2026-05-16. Distinct from ot-fbpkg-cap-watch (fbpkg version-cap, NOT filesystem)."
+  },
+  {
+   "id": "ot-notes-fbcode-commit",
+   "prompt_file": "ot-notes-fbcode-commit.md",
+   "schedule_type": "cron",
+   "cron": "15 */6 * * *",
+   "purpose": "4×/day. One-way mirror sync from notes (canonical, post-2026-05-15 migration) to fbcode/pe_mrs_ml/mrs_ot_agent/. Drafts a fbcode diff per drift batch via jf submit --draft --publish-when-ready; RADAR auto-stamps additive doc-only diffs. No-op when there's no drift. Created 2026-05-15 to eliminate manual reinstall step + abandoned D105276407 (auto-detect-path approach)."
+  },
+  {
+   "id": "ot-notes-commit-push",
+   "prompt_file": "ot-notes-commit-push.md",
+   "schedule_type": "interval",
+   "interval_seconds": 3600,
+   "purpose": "Hourly commit + push of bot-owned notes changes to fb:notes (mrs-ot-agent-src/, mrs-ot-agent-context/)."
+  },
+  {
+   "id": "ot-myclaw-weekly-restart",
+   "prompt_file": "ot-myclaw-weekly-restart.md",
+   "schedule_type": "cron",
+   "cron": "0 0 * * 6",
+   "purpose": "Weekly Saturday 00:00 local. Restart the myclaw daemon to clear accumulated session state and in-memory caches. Uses detached nohup+sleep+disown pattern so the cron run completes BEFORE the daemon restarts. Pre-flight check defers restart if any cron fires in next 2 min. Created 2026-05-16 after a session accumulated 4 distinct bot bugs (state wipes, format-cache staleness, working-copy desyncs) that a fresh start would have prevented — operator thread SkBrr503kOA."
+  },
+  {
+   "id": "ot-thread-summarizer",
+   "prompt_file": "ot-thread-summarizer.md",
+   "schedule_type": "interval",
+   "interval_seconds": 3600,
+   "purpose": "Hourly. Distill conversation threads from spaces/AAQAVOjYc80 that have gone quiet ≥4h into per-topic learning files at ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/debug-threads/<YYYY-MM>/. Closes the gap where interactive Q&A learnings only live in sqlite (lost on devserver reinstall). Read-only on gchat/sqlite; cap 5 threads/run; 7d hold-down on re-summarization. Created 2026-05-16 per operator thread 1lufURy61pM."
+  },
+  {
+   "id": "ot-triage-summary",
+   "prompt_file": "ot-triage-summary.md",
+   "schedule_type": "cron",
+   "cron": "30 9 * * 1-5",
+   "purpose": "Daily 9:30 PT weekday. For each issue resolved in last 48h AND triaged by bot, write a crisp 5-element summary in incidents/resolved-sevs/<YYYY-MM>/<TYPE>-<id>-<YYYY-MM-DD>.md. Consumed by ot-knowledge-distillation for cross-issue pattern detection. Re-registered in MANIFEST 2026-05-16 (prompt existed but was missing from manifest — only 2 files written manually since 2026-05-11)."
+  },
+  {
+   "id": "ot-debug-quality-weekly",
+   "prompt_file": "ot-debug-quality-weekly.md",
+   "schedule_type": "cron",
+   "cron": "0 9 * * 1,4",
+   "purpose": "Twice-weekly Mon+Thu 9:00 PT (initial cadence; collapse to weekly once stable per operator thread oPEdsLeKSi8). Score the bot's debug quality by comparing each mitigated-issue's INITIAL triage (bot's first gchat post when issue opened, from ot-{sev,alert,post}-monitor) vs ACTUAL root cause (authoritative postmortem in incidents/resolved-{sevs,posts,alerts}/). Per-dimension scoring (cluster / verdict / root_cause / owner / mitigation) + composite + 4-week trend + trust-breaking miss-class detection (MISSED_REAL_ISSUE, FALSE_PAGE). Created 2026-05-17 per operator thread DEltCr_w2yA: 'I want to see the delta' between initial triage and root cause."
+  },
+  {
+   "id": "ot-notes-deletion-watch",
+   "prompt_file": "ot-notes-deletion-watch.md",
+   "schedule_type": "interval",
+   "interval_seconds": 3600,
+   "purpose": "Hourly. Detect unexpected file deletions in ~/notes/users/dennyzhang/projects/mrs-ot-agent-{src,context}/ between recent commits. Catches the file-tracking casualty pattern (7+ instances 2026-05-16) where sl rebase / sl goto operations silently drop files from working tree + subsequent commits. Stages recovery via sl add (NEVER auto-commits/pushes — operator reviews). Created 2026-05-16 per operator thread iqRw-QgzYjM."
+  },
+  {
+   "id": "ot-ingest-gchat",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-ingest-gchat.md",
+   "schedule_type": "cron",
+   "cron": "0 9 * * *",
+   "purpose": "Weekly Mondays 09:00 PT. Pull last 7 days of activity from a watch-list of external OT-adjacent gchat spaces (RT Infra WS2 AAQAR1xHaQU, MVAI OT Dev AAQAXSNWvcM, IG ATS Alerting AAQAtGhVkUw, MRS OT Oncall AAQATpEgSyk), distill new project context the OT Master Agent should integrate, and write one catch-up file per space to human-input-domain/<YYYY-MM-DD>-<space-slug>-catchup.md. Read-only on watched spaces; propose-only on cron-prompt changes. Created 2026-05-18 per operator thread Oe2XG0WVOMY after manual catch-up on AAQAR1xHaQU revealed ~10 items the bot was missing (SLO dashboard URL, Breathalyzer auto-kill, bad_sparse decomposition, SJD owner, refresh-launch detection gap).",
+   "schedule": "daily 09:00 PT"
+  },
+  {
+   "id": "ot-ingest-posts",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-ingest-posts.md",
+   "schedule_type": "cron",
+   "cron": "15 9 * * *",
+   "purpose": "Weekly Mondays 09:15 PT (staggered 15min after ot-ingest-gchat). Pull last 7 days of Workplace posts from a watch-list of OT experts (OT devs: dennyzhang, lupaul, llu6, yabinzh; IG OT POCs: dkotfis, prgzz, peiyangy) via `meta workplace.feed list --author=<unixname>`. Distill into a single weekly combined catch-up file at human-input-domain/<YYYY-MM-DD>-experts-posts-catchup.md with per-expert sub-sections + P0/P1 integration priority table. Sibling to ot-ingest-gchat (gchat spaces). Read-only on Workplace; propose-only on cron-prompt changes. Privacy guardrails: only OT-related groups (regex filter), no DM/1:1 content, no quoted private content. Created 2026-05-18 per operator thread Oe2XG0WVOMY: 'we should have another job to pull people's posts and enrich the project context'.",
+   "schedule": "daily 09:15 PT"
+  },
+  {
+   "id": "ot-oauth-refresher",
+   "prompt_file": "ot-oauth-refresher.md",
+   "schedule_type": "interval",
+   "interval_seconds": 600,
+   "purpose": "Every 10 min. Preemptive OAuth token refresh via buck2 run (side effect of buck preflight). Prevents periodic meta-CLI/gchat-read 403 expiry. Silent on success; escalates only on 3 consecutive failures. Created 2026-05-28 per operator thread 4BK7HJHkzB0 as Part 3 of L66 OAuth-403 fix plan."
+  },
+  {
+   "id": "ot-bot-volume-watch",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-bot-volume-watch.md",
+   "schedule_type": "cron",
+   "cron": "0 * * * *",
+   "purpose": "Hourly. Track BOT msg volume in 1:1 space, detect band transitions + hourly bursts, auto-attribute to top offending source-crons, auto-draft verbosity-reduction prompt edits (operator-approval gated). Silent on steady state; three-tier tuning policy. Created 2026-05-28 per operator thread AL3dqJevKm0 via parallel-agent design workflow."
+  },
+  {
+   "id": "ot-daily-learning-digest",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-daily-learning-digest.md",
+   "schedule_type": "cron",
+   "cron": "50 7 * * *",
+   "purpose": "Daily 7:50 AM PT. Consolidated learning digest delivered to 1:1 — aggregates memory deltas, notes commits, cron amendments, validator catches, P-rows, draft diffs from the prior 24h. Route chosen per operator spec 2026-05-28. Was sqlite-registered but missing from MANIFEST (drift); added 2026-05-29."
+  },
+  {
+   "id": "ot-notes-fbcode-sync-weekly",
+   "prompt_file": "ot-notes-fbcode-sync-weekly.md",
+   "schedule_type": "cron",
+   "cron": "0 16 * * 1",
+   "purpose": "Weekly Monday 09:00 PDT (16:00 UTC). Folds all accumulated [OT bot weekly sync] local commits in fbcode into ONE Phabricator diff + submits. Companion to ot-notes-fbcode-commit (4x/day commit-only). Created 2026-05-22; was sqlite-registered but missing from MANIFEST (drift); added 2026-05-29. Has WEEKLY-DIFF DEDUPE GATE (step 0)."
+  },
+  {
+   "id": "ot-notes-weekly-review-paste",
+   "prompt_file": "ot-notes-weekly-review-paste.md",
+   "schedule_type": "cron",
+   "cron": "0 14 * * 1",
+   "purpose": "Weekly Monday 07:00 PDT (14:00 UTC). Creates a Phabricator paste rendering the past 7 days of MEANINGFUL notes-repo changes (users/dennyzhang/, machine-churn excluded) as a colored diff, and posts one message with the URL for optional manual review. Created 2026-05-30 per operator thread xc_VJG_out4."
+  },
+  {
+   "id": "ot-fleet-health",
+   "prompt_file": "ot-fleet-health.md",
+   "schedule_type": "cron",
+   "cron": "0 2,14,20 * * *",
+   "purpose": "3x/day ~07:00 + 13:00 + 19:00 PT (14:00 + 20:00 + 02:00 UTC). OT fleet health sweep (zombie + training-age + perf-regression + pkg-expiry + dpp-starvation + ttfb/cold-start + dead-churn[TODO]) via tools/run-fleet-health.sh. Posts ONE actionable digest to the team space (spaces/AAQA2bZMw24) ONLY when unhealthy; HEARTBEAT_OK when clean. READ-ONLY (never mutates job state). CANONICAL fleet-health job (operator 2026-06-11 'it should be mine job') — re-instated after a mistaken deferral to Paul Lu's thinner job 2099999217602931 (which under-scanned T1-only, had dpp/ttfb dark, no model_type); that job must be stood down to avoid double-post. Created 2026-06-03; cadence 4h->daily->2x->3x."
+  },
+  {
+   "id": "ot-weekly-reliability-digest",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-weekly-reliability-digest.md",
+   "schedule_type": "cron",
+   "cron": "30 8 * * 1",
+   "purpose": "Weekly (Mon 08:30 PT). Per-PG OT reliability review digest — last-7d crashes + normalized error-pattern clusters + top challenges across all tracked prod OT models, via tools/scan-weekly-failures.sh (Scuba mast_hpc_job_run_status, DEAD/FAILED; enriched PG/tier/owner; aggregated in-script). DELIVERY = OPERATOR 1:1 (spaces/AAQAVOjYc80); operator can promote to team space. HEARTBEAT_OK when clean. READ-ONLY. Task T274590754 (parent T259215482). Created 2026-06-05."
+  },
+  {
+   "id": "feedback-coach",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "feedback-coach.md",
+   "schedule_type": "cron",
+   "cron": "0 9 * * 1",
+   "purpose": "Weekly 1:1 coaching on the operator's AI-feedback experience (recurring themes -> gate candidates). INDIVIDUAL-SCOPED, 1:1 (spaces/AAQAVOjYc80) ONLY."
+  },
+  {
+   "id": "ot-effect-monitor",
+   "prompt_file": "ot-effect-monitor.md",
+   "schedule_type": "cron",
+   "cron": "20 7 * * *",
+   "purpose": "Daily — catch green-but-empty organs (feeders that exit healthy but stopped writing); 1:1 only. Contract §5."
+  },
+  {
+   "id": "ot-diff-task-link-reconcile",
+   "prompt_file": "ot-diff-task-link-reconcile.md",
+   "schedule": "weekly Mon ~09:00 PT (cron 23 9 * * 1)",
+   "schedule_type": "cron",
+   "cron": "23 9 * * 1",
+   "purpose": "Reconciliation sweep: backfill missing diff<->task links (title asserts T### but tasks: empty). Heals the class create+verify misses. Created 2026-06-08."
+  },
+  {
+   "id": "ot-sev-detection-gap-audit",
+   "prompt_file": "ot-sev-detection-gap-audit.md",
+   "schedule": "weekly Mon ~09:47 PT (cron 47 9 * * 1)",
+   "schedule_type": "cron",
+   "cron": "47 9 * * 1",
+   "purpose": "INDEPENDENT detection-coverage audit: resolved OT SEVs with auto_detected=false (no automated detector) = detection/test gaps. OT analog of team lw-test-gap audit. Created 2026-06-08, thread S-j4aTzRKng."
+  },
+  {
+   "id": "ot-autofix-diff-drafter",
+   "prompt_file": "ot-autofix-diff-drafter.md",
+   "schedule_type": "cron",
+   "cron": "13 11 * * *",
+   "schedule": "daily ~11:13 PT",
+   "enabled": true,
+   "purpose": "Dedicated [OT auto-fix] task -> draft configerator detector diff loop. Higher-blast (auto-drafts detector config) so default-off; --draft only, cap 1/run, PROVE-no-mask backtest mandatory, dedup. Created 2026-06-08.",
+   "scope": "any fix the task requires (configerator detector / fbcode code / notes agent-repo), routed by task diagnosis"
+  },
+  {
+   "id": "ot-evolve-loop",
+   "channel": "spaces/AAQAVOjYc80",
+   "prompt_file": "ot-evolve-loop.md",
+   "schedule": "every 2h at :13",
+   "schedule_type": "cron",
+   "cron": "13 */2 * * *",
+   "enabled": false,
+   "purpose": "Self-evolve loop: runs the eval harness (eval-flow + eval-scoping), and once the fitness fn is complete+grader-trusted, batch-mutates the agent's knowledge (R-rules/P-rows), keeping ONLY eval-proven winners (composite up, zero regression on full 180, codex-checked) committed to notes. Operator-facing (1:1 + HEARTBEAT_OK only, never team space). Baseline composite 0.684 after R22 (detection_recall 0.42->0.96). Replaces the unreliable Claude-session CronCreate loop. Created 2026-06-11.",
+   "scope": "OT agent self-improvement: notes agent-repo knowledge files (known-patterns.md, triage-discipline.md, SKILL.md) + eval/ corpus/reports; NEVER Phabricator/external surfaces",
+   "_disabled_note": "DISABLED 2026-06-13 per operator (let's disable loop2). Eval harness still runs on-demand; no scheduled auto-eval/commit. Re-enable: set enabled true + setup-cron-jobs + restart."
+  },
+  {
+   "id": "ot-model-eval-monthly",
+   "prompt_file": "ot-model-eval-monthly.md",
+   "schedule": "monthly 1st ~10:00 PT (cron 0 10 1 * *)",
+   "schedule_type": "cron",
+   "cron": "0 10 1 * *",
+   "enabled": true,
+   "purpose": "Monthly re-evaluation of the cron-triage model choice so a stale one-off A/B doesn't outlive a new model release. GATED: only runs the full ~14M-token A/B (eval-model-ab.js via Workflow tool; frozen 60-case gold set, fixed Opus judge) when a NEW model alias has shipped since last run OR >=90 days (quarterly floor); otherwise HEARTBEAT_OK. PROPOSE-ONLY: never mutates jobs.model/config/MANIFEST -> posts a bump/stay recommendation to OPERATOR 1:1 only. Decision rule: recommend bump only if composite delta >= +0.03 on dimensions that matter (root_cause/owner/hallucination), cost-gated by cron volume. Baseline 2026-06-11: Opus does NOT beat Sonnet (-0.026, hallucination a tie) -> fleet stays Sonnet. Created 2026-06-11.",
+   "scope": "OT agent self-improvement: read-only eval over eval/ gold set; recommendation to operator 1:1; NEVER mutates model config or any external surface"
+  },
+  {
+   "id": "ot-eval-goldset-curator",
+   "prompt_file": "ot-eval-goldset-curator.md",
+   "schedule": "weekly Sundays 08:00 PT",
+   "schedule_type": "cron",
+   "cron": "0 8 * * 0",
+   "enabled": true,
+   "purpose": "AUTOMATED eval-corpus lifecycle (BOTH corpora, one cron): (1) gold-set.json (triage eval) — append newly-resolved confirmed-RC archive incidents so the agent is tested on FRESH non-memorized cases; tool gold-set-curate.sh (dedup/date-stamp/version-bump/180-cap/strata + SAFE-only prune). (2) scoping-corpus.json (engage/drop eval, detection_recall+scoping_precision) — sibling tool scoping-corpus-curate.sh adds new in-org OT archive SEVs as ENGAGE cases (cap 120, neg-frac floor 0.30, frozen-min 30 guarded, version-bump). HARD anti-gaming: both blind to eval scores (data-property add/prune only). HONEST LIMIT: archives are in-org OT only, so scoping curation grows ENGAGE only — DROP negatives can't be archive-derived (filtered pre-archive); curator surfaces a BALANCE WARN for operator hand-add when negatives hit the floor. Weekly (not daily) for within-week cross-run comparability. Operator-facing (1:1+HEARTBEAT_OK). Created 2026-06-12; scoping step added 2026-06-13.",
+   "scope": "OT agent eval / gold-set + scoping-corpus lifecycle"
+  }
+ ]
 }

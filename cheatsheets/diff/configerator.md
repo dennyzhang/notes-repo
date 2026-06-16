@@ -2,6 +2,12 @@
 
 Configerator-specific rules. **Read `cheatsheets/diff/common.md` first** for shared Sapling/JF patterns, submit workflows, gotchas, reviewer discovery, and test plan discovery.
 
+## ⛔ Rebasing a configerator diff — GO LOCAL, ONE COMMAND
+
+**`scripts/rebase-diff.sh D<n>` does the whole thing (~4 min) and verifies the version bumped.** It auto-detects repo (CFHG=configerator → conf flow; FBS=fbsource → jf flow): `fbclone` (if no checkout) → `jf get` → `sl pull` → `sl rebase -d remote/master` → `conf build` → `conf submit --verbatim` → FAILS LOUD unless the Phab version advances. Use it.
+
+**NEVER use `meta phabricator.diff rebase` (the remote Sandcastle rebase) for a configerator diff.** It is a NO-OP for a zero-delta diff: it runs ~16 min and **never mints a new version**, so the requester keeps seeing the stale version and thinks nothing happened. **Learned 2026-06-15 (D107966514):** a rebase that should take <10 min took 47 — the remote rebase ran 16 min, produced no V-bump, then time was lost on async re-checks and version-semantics confusion. The local flow (above) was the only thing that minted V3, in ~4 min. The version only bumps because the local rebase advances the *base*; a remote zero-delta rebase can't. A no-checkout box is fine — `fbclone configerator` takes ~5s.
+
 ## Creating a New Diff
 
 **HARD RULE — configerator diffs MUST be based on trunk, never on another diff (even a landed one).** `conf submit` does NOT support stacked commits (configerator.md rule line 185), and Phab's `depends_on` link survives the parent landing — a stacked configerator diff is unlandable even after its parent merges. Always create new diffs from trunk:
@@ -187,3 +193,5 @@ In addition to the common verification checklist:
 ## See Also
 
 `cheatsheets/diff/common.md` (shared patterns), `cheatsheets/diff/review.md` (reviewing)
+
+_Last updated: 2026-05-27. Maintainer: dennyzhang._

@@ -95,7 +95,7 @@ Procedure:
       - source_oncall (the rotation that owns the alert — `mrs_online_training` for v1's single-rotation scope; surfaces the operational owner without per-product guessing). Per 2026-05-13 design change (operator in spaces/AAQAVOjYc80 thread yO-CQRIsrlQ): drop the hardcoded "OT escalation" lookup; if triage is good, the escalation is clear from surfaced data.
       - degraded: true/false (true if resolution_signal=acked_only OR any required field missing)
 
-   f. **Pattern triage** — read `known-patterns.md` ONCE per run. For each non-degraded digest, classify:
+   f. **Pattern triage** — read `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md` ONCE per run. For each non-degraded digest, classify:
       - **PATTERN MATCH**: cause→symptom→fix triple already in Quick-Match Table → record `{kind: "match", existing_pid: "P<n>", short_id}`.
       - **PATTERN PROPOSAL**: novel triple → record `{kind: "propose", proposed_pid: "P<next>", short_id, name, stage, symptoms, fix, owner, time_to_apply, source: alert, falsifier}`.
       - **DEGRADED**: skip pattern emit, note `{kind: "skip_degraded", short_id}`.
@@ -136,7 +136,7 @@ Procedure:
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/ \
-          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/ \
+          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/ \
           2>/dev/null | \
           grep -v "$(basename "$current_archive_path")" | \
           grep -vE "/(INDEX|README)\.md$"
@@ -218,7 +218,7 @@ Procedure:
    - All clean: `✓ Validator confirmed (N/N alerts)`
    - Some discrepancies: `⚠ Validator found discrepancies:` followed by per-alert bullet list.
 
-9. Persist state: add all `to_persist` short_ids to `processed_ids`, update `last_run_epoch`, write state file. Respond HEARTBEAT_OK with summary `{alerts_processed: N, patterns_proposed: P, patterns_matched: M, validator_status: confirmed|discrepancies, archives_written: A, archive_root: ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/}`.
+9. Persist state: add all `to_persist` short_ids to `processed_ids`, update `last_run_epoch`, write state file. Respond HEARTBEAT_OK with summary `{alerts_processed: N, patterns_proposed: P, patterns_matched: M, validator_status: confirmed|discrepancies, archives_written: A, archive_root: ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/}`. **Final response = EXACTLY `HEARTBEAT_OK {…}` on the first token line — NO preceding text, preamble, or narration (e.g. no "State persisted." / "Archives written. Now responding…"). The daemon delivers any final response that is not exactly HEARTBEAT_OK verbatim to chat, so any leading sentence leaks as a post.**
 
 10. **Operational follow-ups (added 2026-05-17 thread `Uc-pVBEXNQ8`, scope narrowed thread `Uc-pVBEXNQ8` 10:25 PT critique).** AFTER digest + validator complete, scan per-alert records for OPERATIONAL asks that ot-knowledge-curation won't catch (curation is for cross-incident pattern detection; this step is for per-alert config issues). TWO categories only:
 
@@ -255,7 +255,7 @@ Procedure:
 
 11. **Chronic-noisy model surfacing (added 2026-05-17 thread `Uc-pVBEXNQ8`, threshold corrected thread `Uc-pVBEXNQ8` 10:25 PT critique).** Surface the Pareto: models generating disproportionate alert volume.
 
-   - **Source:** scan `incidents/resolved-alerts/*/*.md` filenames (NOT a sqlite table — there's no `<alert_archive_index>` table; 10:25 PT critique caught the placeholder bug). For each file, parse `A<short_id>` from filename and `model_id` from the first line (title regex `model (\d+)` or similar). Group by model_id, count per-model alerts in last 7d.
+   - **Source (2026-06-07 audit — compute in code, do NOT hand-count from the glob):** run `python3 tools/incident-pareto.py --kind alerts --days 7 --min 3` and render its output VERBATIM. Deterministic, **reconcile-asserted**, **coverage-honest** (~43/89 alert files carry a model id; a hand-count silently under-reports — §5). Shared helper with the sevs/posts siblings (§14c). `--min 3` keeps the alert floor (alerts are noisier than SEVs).
    - **Threshold (corrected):** flag models in the TOP 3 by alert-count in last 7d AND with ≥3 alerts (drop floor: low-volume noise filtered). Flat `≥5` was operator-flagged as baseline-blind; top-3 is percentile-aware.
    - **Pre-publish lint applies:** markdown links throughout (RULES.md § URL validity).
    - **Output format:**
@@ -267,7 +267,7 @@ Procedure:
      ```
    - **If <3 models have ≥3 alerts each:** post `(no chronic-noisy models this week)` — ONE line. No subsection header.
 
-   - **Persist to notes (added 2026-05-17 thread `EqcmJ7mZajk` after operator: "will you save this info in notes repo"):** ALSO prepend a row (newest first) under the `## Alerts` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/noisy-trends.md` for each entry surfaced this run. Insert after the table header row, before existing data rows. Format:
+   - **Persist to notes (added 2026-05-17 thread `EqcmJ7mZajk` after operator: "will you save this info in notes repo"):** ALSO prepend a row (newest first) under the `## Alerts` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/noisy-trends.md` for each entry surfaced this run. Insert after the table header row, before existing data rows. Format:
      ```
      | <run timestamp PT> | <rank> | <model_id> (<model_type_name>) | <alert_count> | <signal_class breakdown> | <one-line notes: top cluster/P-row, owner> |
      ```

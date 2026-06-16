@@ -1,6 +1,6 @@
 # Fbcode Diff Cheatsheet
 
-<!-- Last updated: 2026-03-19 -->
+<!-- Last updated: 2026-06-06 -->
 
 Fbcode-specific rules for diffs in the fbsource repo. **Read `cheatsheets/diff/common.md` first** for shared Sapling/JF patterns, submit workflows, gotchas, reviewer discovery, and test plan discovery.
 
@@ -42,6 +42,16 @@ buck2 test <test_target>           # run relevant tests
 
 **Always use `arc lint -a`, never bare `arc lint`.** Bare `arc lint` only reports AUTODEPS2 issues without applying the fix — diffs submit red. With `-a`, autodeps2 patches inline; re-amend the BUCK changes before submit. Both `arc lint` and `arc pyre` must pass — hook-enforced. Use `check-changed-targets` (faster than bare `arc pyre`). Always submit as `--draft` first (CLAUDE.md rule).
 
+### Running buck2 / arc under an agent (tool-timeout trap)
+`buck2 build`/`buck2 test` first build is routinely 5–15 min, but the agent's Bash tool default timeout is **120s** (kills the command → exit **143**). Do NOT run buck in the foreground and watch it die repeatedly. Either:
+```bash
+# (a) background + poll (preferred for long buck)
+nohup buck2 test //path:target -- --regex '<filter>' > /tmp/t.log 2>&1 &
+# then poll with an explicit short tool timeout: pgrep -f target; tail /tmp/t.log
+# (b) or set the Bash tool's own timeout high (max 600000ms) for arc lint -a / arc pyre
+```
+Same trap applies to `arc lint -a` (set timeout 300000). Trust `arc lint -a` autodeps for new-import BUCK deps — don't hand-spelunk target names (e.g. `*-python-types`); edit import → lint → verify the dep landed via `sl status`.
+
 ### Finding Test Targets
 ```bash
 # Find test files for your changed file
@@ -49,6 +59,33 @@ fbgs "test_<filename>" --limit 10
 # Or search by directory pattern
 buck2 targets //path/to/tests/: | grep test
 ```
+
+### Make the Script Importable So It CAN Have a Test
+
+A `python_binary` with `srcs=[...]` + `main_module` is **not importable** — no test target can `import` it, so it ships with zero unit coverage no matter how much logic it holds. "Why does this giant file have no unit test?" is almost always this. If a script is non-trivial, structure it as **library + thin binary + unittest** (mirror `get_mrs_tier1_models` / `get_ot_model_list` in `mvai-ot/BUCK`):
+
+```python
+python_library(
+    name = "foo_lib",
+    srcs = ["path/foo.py"],
+    base_module = "...",
+    typing = True,                 # library + unittest get typing=True (pyre-strict)
+)
+python_binary(
+    name = "foo",
+    main_module = "....path.foo",
+    deps = [":foo_lib"],           # binary is a thin wrapper, no srcs
+)
+python_unittest(
+    name = "test_foo",
+    srcs = ["path/tests/test_foo.py"],
+    base_module = "...",
+    typing = True,
+    deps = [":foo_lib"],
+)
+```
+
+Conventions: `typing = True` on the library and unittest targets; lazy-import deps on the **test target only** (§ Lazy Import BUCK Dep Check); no duplicate Starlark keys (§ Duplicate Keys in BUCK/Starlark). If the script already ships an offline `_self_test()`, wrap it in the unittest (`assertEqual(mod._self_test(), 0)`) so CI runs it, then add a focused test per new code path. (Learned 2026-06-05: D107672307 — `check_snapshot_freshness.py`, 1269 lines with a rich `_self_test()`, had no CI test purely because it was a bare `python_binary`; converting to lib+binary+unittest made 4 tests runnable.)
 
 ## Pre-Submit Validation
 
@@ -195,6 +232,16 @@ When two functions share identical structure (iterate files → strip frontmatte
 | Unnecessary escapes in char classes | `[_\-]` — hyphen doesn't need escaping at start/end of `[]` | `[_-]` or `[-_]` |
 | Incomplete alternation coverage | Date pattern missing `MM/DD/YYYY` or `2026H1` formats | Enumerate all real-world variants |
 
+### Deprecated thrift `.ttypes` imports (NoPyDeprecatedThriftImport FIXIT)
+`lint_root` + `ai_diff_reviewer` flag any new `from x.y.ttypes import Z` (or `.constants`) — thrift-py-deprecated, EOL May 4 2026. Fix: switch to the thrift-python module `.thrift_types` (struct/exception names are identical):
+```python
+# before:  from aiplatform.modelstore.metadata_service.ttypes import ModelStoreDBRecordNotFound
+# after:   from aiplatform.modelstore.metadata_service.thrift_types import (
+#              ModelStoreDBRecordNotFound,
+#          )
+```
+Requires the thrift target to generate `python` (check `languages=[...]` in the thrift `BUCK`; if missing `"python"`, you can't switch — the `.thrift_types` module won't exist). `arc lint -a` autodeps swaps the BUCK dep `:foo-py-deprecated` → `:foo-python-types`. For a bigger migration use the `migrate-thrift-py-deprecated` skill. NOTE: per the thrift rule, don't migrate `.ttypes` *proactively* — only when the user asks or a comment/FIXIT demands it.
+
 ### Missing Pyre Headers
 
 All Python files in fbcode need pyre strict headers. Add to every `.py` file:
@@ -281,4 +328,4 @@ Read existing Devmate findings on a prior version of the diff with `meta phabric
 
 ## See Also
 
-`cheatsheets/diff/common.md` (shared patterns), `cheatsheets/diff/review.md` (reviewing), `cheatsheets/references/fbcode-conventions.md`, `cheatsheets/references/verification-guide.md`
+`cheatsheets/diff/common.md` (shared patterns), `cheatsheets/diff/review.md` (reviewing), `cheatsheets/diff/fbcode-conventions.md`, `cheatsheets/diff/verification-guide.md`

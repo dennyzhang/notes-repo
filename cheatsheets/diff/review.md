@@ -341,4 +341,6 @@ These checklists are modeled after Jubin Chheda's Deep Review Agent (`fbcode/cla
 
 ## See Also
 
-`diff/common.md` (shared diff patterns), `oncall/design-review.md` (design doc review), `references/level-expectations.md`, `references/fbcode-conventions.md`
+`diff/common.md` (shared diff patterns), `oncall/design-review.md` (design doc review), `career/level-expectations.md`, `diff/fbcode-conventions.md`
+
+_Last updated: 2026-05-14. Maintainer: dennyzhang._

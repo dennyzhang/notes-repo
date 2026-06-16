@@ -160,4 +160,6 @@ All 7 must pass. Fix before posting.
 
 ## See Also
 
-`cheatsheet-workchat.md` (Work Chat messages), `cheatsheet-project-doc.md` (project proposals)
+`comms/gchat.md` (chat messages), `career/project-doc.md` (project proposals)
+
+_Last updated: 2026-05-12. Maintainer: dennyzhang._

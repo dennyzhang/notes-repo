@@ -32,14 +32,14 @@ Procedure:
 
 5. Classify each learning:
    - **operational**: behavioral rule that changes how a cron runs. → append to ledger AND amend relevant cron's prompt.
-   - **domain (pattern)**: NEW cause→symptom→fix triple suitable for `known-patterns.md`. → append to ledger AND propose appending to `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md` (see step 5b).
+   - **domain (pattern)**: NEW cause→symptom→fix triple suitable for `known-patterns.md`. → append to ledger AND propose appending to `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md` (see step 5b).
    - **domain (red herring)**: hypothesis that LOOKED right but wasn't, with non-trivial cost. → propose appending to Ruled-Out List in `known-patterns.md`.
    - **domain (other)**: observation about diagnosis style or one-off config issue. → ledger only.
 
 5b. **Pattern auto-learn proposals.** For each domain-pattern learning, draft one-row entry per SKILL.md "Auto-Learn" format. Include in daily digest under `🧠 PATTERN PROPOSALS` section. DO NOT auto-apply — pattern DB is operator-curated. Format requires:
    - **Next sequential ID** — MUST be computed at runtime from current `known-patterns.md`, not hardcoded. Run BEFORE drafting any P-row:
      ```bash
-     grep -oE '^\| P[0-9]+' ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md | grep -oE '[0-9]+' | sort -n | tail -1
+     grep -oE '^\| P[0-9]+' ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md | grep -oE '[0-9]+' | sort -n | tail -1
      ```
      Next P-ID = that number + 1. Hardcoding (e.g., "P56 proposed") causes collisions when multiple crons or operators propose the same day; 2026-05-17 thread `suPsRC2fGdc` had P56/P57/P58 collisions from yesterday's ledger vs today's operator-landed Shampoo NaN P56. **Always re-read `known-patterns.md` at proposal time. If proposing N rows in one run, assign sequential IDs starting from max+1, max+2, ..., max+N.** Same discipline for any cron drafting `known-patterns.md` entries (ot-knowledge-curation, ot-daily-learning-debugging, ot-knowledge-distillation, manual landings).
    - Short pattern name (≤40 chars).

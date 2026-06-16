@@ -1,0 +1,9 @@
+{
+  "workflow_id": "wf_2ba9008f-3fe",
+  "launched_at": "2026-06-12T05:24:05Z",
+  "iter": "iter12",
+  "status": "FAILED",
+  "failure": "agent stalled on all 6 attempts (no progress for 180000ms each) — daemon-path resource constraint on 141KB file reads + triage reasoning",
+  "note": "Eval cannot reliably run in daemon cron path. Must run interactively. iter13: skip eval, focus on interactive session or design a lighter eval variant.",
+  "noise_band": "still n=2, ±0.029 — NOT updated"
+}

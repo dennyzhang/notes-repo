@@ -59,6 +59,23 @@ For each tier, include:
 - If you can't fill a tier in Q2, write "N/A — <reason>" rather
   than skip it. Empty tier is a smell.
 
+### Mitigation-lever assessment (the Goldilocks gap)
+
+Cherry-picked from imoc `fb-default-sev-report.md` (2026-06-10). Beyond
+documenting what was done, assess the full lever landscape — especially
+when TTM was driven by mitigation speed, not diagnosis speed:
+
+- **What levers were available?** List every option the team considered,
+  not just the one used.
+- **Which were rejected, and why?** (too slow, too risky, unknown blast
+  radius, "not used in years", team advised against). Rejected levers
+  reveal gaps in the toolbox.
+- **Was there a Goldilocks gap?** The soft lever (config push, gradual
+  rollback) is too slow at SEV pace; the hard lever (force-restart, full
+  rollback) is too risky / poorly understood. If **no lever was both fast
+  enough AND safe enough**, that's a systemic mitigation gap → file a
+  prevention follow-up for the lever that *should* exist.
+
 ---
 
 ## Review Mode
@@ -94,6 +111,10 @@ knowledge_filtered_search(
 | **No error budget** | Budget impact not quantified | "How much error budget did this consume? Still within SLO?" |
 | **Manual mitigation** | Human intervention needed | "Can we automate this into a runbook action or self-healing?" |
 | **Single point of failure** | One component took down the path | "Why didn't failover work?" |
+| **Safety net passed but failure shipped** | Canary/test/alert existed and went green | "The canary passed — what did it measure vs. what broke? A canary that passes is *worse* than none (false confidence)." |
+| **Self-masking failure** | Failure corrupts the signal used to detect it | "Did high error volume lag the metric pipeline / crash floods overwhelm log ingestion / alert fatigue suppress the page? The detector was blinded by the thing it was supposed to catch." |
+
+**Safety-net classification (Review Mode, from imoc `fb-default-sev-report.md`):** a layer that *existed but didn't catch this* is **"Partial — existed but failed"**, NOT "No". That's often the more valuable finding — it reveals hidden fragility. For every "Yes/Partial" layer ask: did it actually work? was it self-masking? was it tested under load (steady-state validation can fail when pipelines are under incident pressure)?
 
 ### Question Format
 
@@ -150,7 +171,7 @@ in [timeframe] ([confidence], based on [evidence]).
 Estimated annual savings: $[X] ([confidence]).
 ```
 
-For impact quantification anti-patterns (credit without contribution, vague impact, missing baseline), see `cheatsheet-impact-quantifier.md` and `references/anti-patterns.md`.
+For impact quantification anti-patterns (credit without contribution, vague impact, missing baseline), see `career/impact-quantifier.md` and `career/anti-patterns.md`.
 
 ---
 
@@ -170,13 +191,82 @@ For impact quantification anti-patterns (credit without contribution, vague impa
 
 7. **Verify baseline before applying holdout-noise heuristic.** Any "holdout is noisy, ignore" classification is only valid when the corresponding baseline is clean. If baseline is ALSO firing, the signal is shared-infra, not holdout-specific noise. Check baseline state first, then decide. (Source: holdout E2E latency alerts — 36% noisy heuristic applied blindly without baseline check.)
 
+8. **Nudge ≠ progress (mechanical-stale vs truly-stale).** A SEV with a recent comment can still be effectively stale. Read the *content* of the last comment: substantive (findings, actions taken, data/links, next steps) → fresh; a nudge or admin noise ("any updates?", "looking", "noted", "will check", a bare attention-ping) → **report as effectively stale** and prioritize it as stale. The body content is the signal, not the timestamp. (This is the content-of-last-comment check; orthogonal to rule #6's cadence-based "0 in last N" check. From imoc `SKILL.md` staleness classification.)
+
+## Merged vs. Triggered SEV intelligence
+
+Cherry-picked from imoc `incident_report_guide.md` §1d-i (2026-06-10).
+Two structurally different relationships, two different analyses — only
+run when the SEV actually has merged/triggered relations.
+
+**Merged SEVs** (same incident, independently filed by different observers)
+amplify **breadth**:
+- **Symptom diversity** — each merged SEV captured a different user-visible
+  symptom; aggregate them for the *true* blast radius.
+- **Detection coverage** — count alert-detected vs. manually-filed. Manual
+  filings = alert-coverage gaps. Adopt the earliest-detecting merged SEV's
+  alert pattern for the other surfaces.
+- **Blast-radius undercount** — if the main SEV claims one surface but
+  merged SEVs show three, the main SEV's impact line is incomplete.
+
+**Triggered SEVs** (cascading failures caused by this SEV or its mitigation)
+amplify **depth**:
+- **Cascade depth** = root + triggered. Depth > 2 → mitigation playbooks
+  need review.
+- **Cascade duration** = sum of triggered-SEV durations (total damage beyond
+  the root).
+- **Mitigation safety** — for each triggered SEV, name the mitigation action
+  that caused it and the validation that was missing.
+- **Root-cause-sufficiency question (the falsifiable one):** *does fixing the
+  root cause alone prevent ALL triggered SEVs?* If not, each triggered SEV is
+  an **independent fragility** needing its own follow-up. (Maps onto R8
+  entity-multiplicity discipline.)
+
+Trap: don't misclassify *triggered* as *merged* — merged = same incident;
+triggered = caused by this one or its mitigation. A "merged" SEV that
+*started after mitigation began* is actually triggered.
+
 ## Common Mistakes
 
-| What happened | Correct approach |
+| Mistake | Correct approach |
 |---|---|
-| No second alert found in this scan — likely auto-recovered. Continue monitoring. | No second alert in 24h window. Current CHC rate: [link live Scuba query]. If ... |
-| Do NOT restart without clearing ALL 6 channels first — OOM guaranteed. Runboo... | Owner: serving_infra_oncall (Hedwig/publisher layer). Do NOT restart without ... |
+| "No second alert in the scan → auto-recovered, stop watching." | A quiet scan is not recovery. Confirm with a live 24h CHC / Scuba query (fburl-shortened); close only if the rate is actually healthy. |
+| Restart a Hedwig / publisher OOM job to clear it. | Never restart before clearing all 6 channels first — OOM is guaranteed otherwise. Owner: `serving_infra_oncall` (Hedwig/publisher layer); follow its runbook. |
+
+## Reporting to Different Audiences
+
+### SEV chat (debugging audience)
+- Reasoning chain: symptom → inference → code confirmation
+- Include Scuba links (fburl shortened) for every quantitative claim
+- Confirm before asserting — label unverified mechanisms as `[INFERRED]`
+- Reference specific code: revision, file, line number
+
+### Workplace post (model owner / XFN audience)
+- Title: action-oriented with model name, not bug mechanism
+  - Good: "[Action needed] OT job for ig_textpost_feed_u2m_retrieval become zombie - need manual kill and patch the diff"
+  - Bad: "[OT triage] S665454 (zombie) — elastic agent hung on error path"
+- Tone: professional, not commanding. "Suggested actions" not "What you need to do"
+- Content: what's broken → what to do (short-term + long-term) → context link
+- No stack traces, no revisions, no Scuba queries — those go in the paste link
+- cc the person who needs to act
+- Keep it under 15 lines
+
+### Zombie job debugging — lessons from S665454 / S670887
+
+1. **Check reply file vs MAST state first.** Reply file exists + no new attempt = task didn't exit. This one check routes the SEV correctly and would have saved 2 weeks of oncall bouncing in S665454.
+   - Script: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/tools/check-zombie-ki001.sh <job> [version]`
+   - Fleet scan: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/tools/scan-zombie-fleet.sh`
+
+2. **Reply files persist across attempts.** A recovered job still has old reply files. Always compare reply file timestamp against the current attempt's start time before flagging as zombie. (Source: fleet scan false-positive — flagged 6/7 prod models as zombies, all were old crashes already recovered.)
+
+3. **"Did the elastic agent exit?" — use indirect evidence.** Can't SSH from devserver. Proof chain: no new MAST attempt created despite N retries available → task never exited → elastic agent hung. VipInjector heartbeats prove container alive but not elastic agent specifically.
+
+4. **Diff creation date ≠ land date.** D98638473 created 2026-03-28, landed 2026-05-21. Using creation date led to wrong "fix included" verdict. Always use `meta phabricator.diff describe --number=D<N>` and check the `committed` field.
+
+5. **Verify tool output before extraordinary claims.** If a scan says >50% of fleet is affected, sanity-check a few before reporting.
 
 ## See Also
 
-`career/psc.md` (SEV contributions in PSC), `career/slo.md` (error budget), `career/impact-quantifier.md` (quantifying impact), `references/impact-metrics.md`
+`career/psc.md` (SEV contributions in PSC), `career/slo.md` (error budget), `career/impact-quantifier.md` (quantifying impact), `career/impact-metrics.md`
+
+_Last updated: 2026-06-10. Maintainer: dennyzhang._

@@ -28,3 +28,5 @@
 5. **Pair strategically** — New hires with experienced engineers
 
 "You can't be strategic if you're not present where the battles are being won and lost daily."
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

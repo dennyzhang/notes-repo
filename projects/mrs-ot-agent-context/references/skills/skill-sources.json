@@ -1,0 +1,9 @@
+{
+  "_comment": "Authoritative fbsource OT skills mirrored into references/skills/ by the ot-skill-context-sync cron. src = path under ~/fbsource/. Add entries as new OT skills appear.",
+  "skills": [
+    {
+      "src": "fbcode/claude-templates/components/skills/ot-reliability-health-check/SKILL.md",
+      "slug": "ot-reliability-health-check"
+    }
+  ]
+}

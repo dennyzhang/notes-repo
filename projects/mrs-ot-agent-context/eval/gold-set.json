@@ -1,0 +1,1706 @@
+{
+ "version": "2026-06-14-curated",
+ "note": "Stable input fields populated from archives 2026-06-11 (iter5). eval-flow uses these fixed inputs instead of re-curating from archives, enabling reliable cross-run comparison.",
+ "cases": [
+  {
+   "id": "A1703030847735006",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "P56 Shampoo NaN cascade (tainted-checkpoint propagation), CL-017 cluster. S664499 (CUDA NCCL misaligned address, Mitigated) → incomplete NCCL cleanup → gradient state corrupted in checkpoint → Shampoo preconditioner inherits NaN factor matrices → v96 crashes at step 263642. Resolved via MAST auto-restart; v97+ recovered, FULL_SNAPSHOT VALID by May 19.",
+    "p_row": "P56",
+    "owner": "yufengma / feed_ecosystem_core_modeling",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": "0.90"
+   },
+   "input": {
+    "title": "[PROD][CFR] MainPredictor baseline Online Training Tier-1 Train (2134801434) Model Training Checkpoints Verification Failure: metrics LOSS NaN / NE Violation",
+    "signal_class": "MVAI_METRICS",
+    "body": "Alert fired at 01:00 PDT May 17 for model 2134801434 (facebook_cfr_main_mtml baseline, MAST job mvai-training-online-2134801434 v96). All metric types NaN at step 263642: loss, NE, calibration across 5 sub-alerts. Trainer v96 died; MAST auto-started v97 at 01:02:57 PDT. Last FULL_SNAPSHOT was ~2.5h prior (22:23 PDT May 16 vs expected 45-min cadence)."
+   },
+   "eligible": true
+  },
+  {
+   "id": "A25209897055308328",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "P56 Shampoo NaN cascade (tainted-checkpoint propagation), CL-017 cluster. Same family as 2134801434: NCCL gradient corruption (S664499) → Shampoo preconditioner inherits NaN → v_N crashes → MAST restarts from tainted checkpoint → cascade. P56 cites this alert as 'v116+v117 tainted-checkpoint cascade.' Resolved: trainer v126 restarted, FULL_SNAPSHOT published 02:49 PT 05-18.",
+    "p_row": "P56",
+    "owner": "yufengma / feed_ecosystem_core_modeling",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": "0.70"
+   },
+   "input": {
+    "title": "[PROD][CFR] MainPredictor baseline Online Training Tier-1 Train (878858380) Model Training Checkpoints Verification Failure: metrics LOSS NaN / NE Violation",
+    "signal_class": "MVAI_METRICS",
+    "body": "Alert fired at 05:28 PDT May 17 for model 878858380 (facebook_cfr_main_mtml baseline). NaN metrics across loss, NE, and calibration at training step; 5 sub-alerts open. FULL_SNAPSHOT missing alerts (848590011404637, 913270201550407) fired at 08:20-08:26 PDT, indicating model no longer publishing. MAST versions v116+ involved."
+   },
+   "eligible": true
+  },
+  {
+   "id": "A878102693-413",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "P58 — ZippyDB RE-session throttling (SEV S665163) caused scribe_read_proxy.client_lag, triggering the centralized_alerting aggregation rule. In-trainer publish path remained healthy throughout (model 878102693 VALID instances confirmed); lag was in the DPP read path. Auto-resolved on ZippyDB recovery.",
+    "p_row": "P58",
+    "owner": "mrs_online_training",
+    "verdict": "NEEDS_INVESTIGATION",
+    "confidence": "0.75"
+   },
+   "input": {
+    "title": "[AGG] model 878102693 (ig_organic_feed_mtml holdout) aggregated alert instance :413",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "Aggregated alert for model 878102693 (ig_organic_feed_mtml holdout) first observed ~11:24 PDT May 16; duration ~21h. Multiple sub-alerts bundled for scribe_read_proxy client lag elevation. Model was intermittently publishing: DENSE_DELTA VALID 10:46 PDT May 17, SPARSE_DELTA VALID 10:36 PDT May 17."
+   },
+   "eligible": true
+  },
+  {
+   "id": "A977255094865118",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "P58 — ZippyDB RE throttling (SEV S665163) degraded ZippyDB metadata operations → Scribe read path slowed → DPP read-proxy lag exceeded threshold. In-trainer publish path (direct UMM model store) unaffected — model continued publishing VALID instances. Known false-action alert: lag in DPP ingestion read path, not training output. Self-resolved on ZippyDB recovery.",
+    "p_row": "P58",
+    "owner": "mrs_online_training (ZippyDB/infra oncall owns root)",
+    "verdict": "MONITOR",
+    "confidence": "0.85"
+   },
+   "input": {
+    "title": "Model 2134319967 (ig_organic_feed_mtml baseline) online training e2e latency sparse delta",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "Alert fired at 06:59 PDT May 17 for model 2134319967 (ig_organic_feed_mtml baseline); scribe_read_proxy.client_lag_in_seconds exceeded threshold. Duration ~1.3h. In-trainer SPARSE_DELTA and DENSE_DELTA publish path appeared unaffected throughout the alert window."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1002291152283272",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "DETECTOR_BROKEN + UPSTREAM_INFRA: SPARSE_DELTA detector is misconfigured for a retrieval model (no valid SPARSE_DELTA data source); fires on scribe_read_proxy client_lag elevated by S667358 (IG Relevance T20 H100 Scribe Over Quota, since 2026-05-22). 5th+ false-positive; OT pipeline healthy.",
+    "p_row": "P57",
+    "owner": "ig_producer_value / Scribe-ZippyDB (S667358)",
+    "verdict": "NO_ACTION",
+    "confidence": "0.90"
+   },
+   "input": {
+    "title": "ig_reels_starsearch_t2i_retrieval SPARSE_DELTA latency alert (retrieval model, detector misconfigured)",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "Alert fired for an ig_reels_starsearch_t2i_retrieval retrieval model; scribe_read_proxy client_lag elevated. This is at least the 5th fire of this detector on a retrieval model with no valid SPARSE_DELTA data source. Scribe pressure from S667358 (IG Relevance T20 H100 Scribe Over Quota, since 2026-05-22) active at fire time."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1009946182010606",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Upstream T2I embedding corpus collapsed (item-embedding count fell ~22K→1,315, below the 64,077-minimum threshold for STUS kmeans initialization).",
+    "p_row": "R14",
+    "owner": "ronghuang",
+    "verdict": "REAL_OT_FAILURE_RECURRING",
+    "confidence": "confirmed"
+   },
+   "input": {
+    "title": "ig_textpost_feed_m2m_retrieval [STUS 2130324780] missing FULL_SNAPSHOT — kmeans assertion failure",
+    "signal_class": "FULL_SNAPSHOT",
+    "body": "STUS job for ig_textpost_feed_m2m_retrieval (model 2130324780) stopped producing FULL_SNAPSHOTs. STUS v41 died with AssertionError: At least 64,077 embeddings needed for kmeans but got 1,315. STUS v42 attempt 0 ran 10h with 0 FULL_SNAPSHOTs published. Delta serving healthy throughout."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1011200521237714",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "THRESHOLD_MISFIT — Scuba formula bug: timezone mismatch (D75703936) + wrong scope for _resolve_ts_now() produces false-high staleness for OT jobs. Model healthy (MAST RUNNING 11+ days, publishing every 45 min).",
+    "p_row": "CL-013",
+    "owner": "",
+    "verdict": "NO_ACTION",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "checkpoint_training_data_age_mins alert: ~3000 min staleness for facebook_reels_vdd_hstu_v0 model 877766932",
+    "signal_class": "checkpoint_training_data_age_mins",
+    "body": "Alert fired showing approximately 3000 minute staleness for model 877766932 (facebook_reels_vdd_hstu_v0). MAST ODS actual data age was ~2.5 min. Model RUNNING for 11+ days, publishing FULL_SNAPSHOT every 45 min. Second recurrence of this alert on the same model (prior: 2026-05-09)."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1014037717816039",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "S668542 Feed Scribe quota exhaustion (12d In Progress) → admission control throttles IFR trainer reads; S670887 L3 actively tracking this model for 6d unmitigated. Alert auto-cleared; both SEVs still In Progress, recurrence expected.",
+    "p_row": "",
+    "owner": "Scribe/Feed infra (S668542); S670887 L3 tracks model",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "facebook_ifr_main_mtml_main 2125752019 scribe_age_mins CRITICAL — ONLINE_TRAINING_SCRIBE_USAGE admission throttled",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "Alert fired for facebook_ifr_main_mtml_main model 2125752019 showing CRITICAL scribe_age_mins; ONLINE_TRAINING_SCRIBE_USAGE admission control actively throttling IFR trainer reads. S670887 (L3 tracking this model) has been in progress for 6 days unmitigated. Alert auto-cleared."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1021144657237695",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "25 active ZippyDB SEVs (chief S665114 WS ZippyDB Flash Bandwidth Quota Low) elevated scribe_read_proxy client_lag for STUS model; siblings 878102693+2134319967 same pattern (fleet-wide). STUS publishing continuously — infra-lag alert, not a model stall. P50 falsified.",
+    "p_row": "CL-003 (P50 falsified)",
+    "owner": "igr_retrieval / ZippyDB (S665114)",
+    "verdict": "NO_ACTION",
+    "confidence": "0.85"
+   },
+   "input": {
+    "title": "STUS model scribe_read_proxy.client_lag_in_seconds spike during ZippyDB pressure (fleet-wide)",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "scribe_read_proxy client_lag elevated for a STUS model (igr_retrieval family) with siblings 878102693 and 2134319967 showing the same pattern fleet-wide. 25 active ZippyDB SEVs at fire time including S665114 WS ZippyDB Flash Bandwidth Quota Low. Model was publishing continuously — the lag was in the DPP read path."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1201406268614142",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "DETECTOR_BROKEN — observer fired on data absence during a transient publishing gap (correlated with ZippyDB SEV S665163 disrupting scribe_read_proxy read path); model self-recovered (SPARSE_DELTA + ITEM_EMB_DELTA VALID). Falsifier confirmed: observer enabled + model publishing VALID = not a persistent failure",
+    "p_row": "",
+    "owner": "none",
+    "verdict": "NO_ACTION",
+    "confidence": "0.65"
+   },
+   "input": {
+    "title": "[Invalid Detector - No Data] ig_reels_starsearch_t2i_retrieval 2126189932 publishing alert",
+    "signal_class": "SPARSE_DELTA",
+    "body": "OneDetection alert prefixed '[Invalid Detector - No Data]' fired for ig_reels_starsearch_t2i_retrieval (model 2126189932) at ~03:47 PT May 20. Detector data source was disconnected. Model was publishing SPARSE_DELTA every ~2 min and no actual OT failure was occurring."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1304408738257286",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "S667358 [Instagram][Relevance] T20 H100 Scribe Usage Over Quota (In Progress, SEV3) — IG Relevance scribe quota overage caused scribe_read_proxy lag spike. S662617 also in-progress. Both unmitigated.",
+    "p_row": "CL-003",
+    "owner": "igr_retrieval",
+    "verdict": "UPSTREAM_INFRA / MONITOR",
+    "confidence": "medium"
+   },
+   "input": {
+    "title": "ig_reels_tab_ss_omni_retrieval 2133539495 scribe_read_proxy.client_lag_in_seconds — 2nd fire in 3 days",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "scribe_read_proxy.client_lag_in_seconds alert fired for ig_reels_tab_ss_omni_retrieval (model 2133539495, STUS) at 21:13:30 PDT May 24. Alert detector 969840302247434 is the same detector that fired on 2026-05-21. Model self-recovered: SPARSE_DELTA publishing at 21:22 PDT (9 min post-fire)."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1421314379760011",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "P57 match — AGG rule bundling scribe_read_proxy.client_lag_in_seconds sub-firings during active Scribe quota SEV S668542 (Feed scribe quota exhaustion, 2.797 > 2.66 TB/s, In Progress since 2026-05-27). OT publish unaffected; alert auto-cleared when scribe pressure subsided.",
+    "p_row": "CL-003 / P57",
+    "owner": "Scribe oncall (S668542); primary_owner ig_feed_modeling",
+    "verdict": "MONITOR / UPSTREAM_INFRA (cleared)",
+    "confidence": "0.75"
+   },
+   "input": {
+    "title": "scribe_read_proxy AGG alert during Feed scribe quota SEV S668542 (ig_feed_modeling model)",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "AGG rule bundling scribe_read_proxy.client_lag_in_seconds sub-firings for an ig_feed_modeling model. S668542 (Feed scribe quota exhaustion, 2.797 vs 2.66 TB/s, In Progress since 2026-05-27) active at fire time. OT publish path unaffected; alert auto-cleared when scribe pressure subsided."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1427819186056622",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Upstream infra SEVs S660677 + S659877 active. ARM (Automatic Recovery Mechanism) disabled for this model family in igml::entrepot_cache_starsearch, preventing auto-recovery. No OT code defect — pure upstream infra dependency.",
+    "p_row": "CL-003",
+    "owner": "upstream infra owners",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": "confirmed"
+   },
+   "input": {
+    "title": "ig_reels_starsearch_t2i_retrieval holdout 2145491885 scribe lag + null score AGG (20+ sub-alerts)",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "ig_reels_tab_starsearch holdout (id 2145491885) fired an AGG alert with 20+ sub-alerts at 22:50 PDT May 19. Symptoms: scribe_read_proxy e2e latency elevated, null score rate elevated, streaming success rate degraded. SPARSE_DELTA stopped ~11h (last publish 13:58 May 19). Model is FBLearner-based with no MAST job."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1455336899399360",
+   "type": "alert",
+   "level": "high",
+   "ground_truth": {
+    "root_cause": "THRESHOLD_MISFIT — model is a STUS (SilverTorch Update Service) role model publishing FULL_SNAPSHOT on a long ~7.5h cadence; dai_modelstore alert rule expects ~1h standard-trainer cadence, so it fires whenever 13+ consecutive 15-min buckets show no FS (normal for STUS). R23 codifies the disambiguation.",
+    "p_row": "CL-008 / R23",
+    "owner": "ronghuang",
+    "verdict": "NO_ACTION",
+    "confidence": "0.85"
+   },
+   "input": {
+    "title": "Publishing Stability: ig_textpost_feed_m2m_retrieval model 2130324780 missing snapshot types FULL_SNAPSHOT",
+    "signal_class": "FULL_SNAPSHOT",
+    "body": "Alert fired at 02:20:58 UTC May 19 for model 2130324780 (ig_textpost_feed_m2m_retrieval): '13 out of 13 (100%) data points are more than 0.5' on FULL_SNAPSHOT publishing indicator. This is the second fire of the same detector in 2 days on this model. SPARSE_DELTA was publishing continuously."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1473457624222843",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "TMS auto-restart at 04:30:46 PDT caused ~30-min bootstrap stall; trainer produced 1–2 snapshots post-restart then stalled briefly; self-recovered. TRANSIENT_NOISE.",
+    "p_row": "",
+    "owner": "",
+    "verdict": "TRANSIENT_NOISE",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "facebook_reels_ifu_mtml_v0 883552231 SPARSE_DELTA+DENSE_DELTA gap ~75 min (baseline + holdout)",
+    "signal_class": "SPARSE_DELTA",
+    "body": "Two alerts fired (baseline + holdout) for model 883552231 (facebook_reels_ifu_mtml_v0) reporting missing SPARSE_DELTA and DENSE_DELTA snapshots. Gap window was approximately 04:30–05:47 PT May 26 (~75 min). mvai_metrics showed an 83% drop during the stall window."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1480195820275950",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "S667358 [IG Relevance] T20 H100 Scribe Over Quota (In Progress since 2026-05-22) → Scribe reader backpressure on T20 B200 trainer → client_lag elevated. R16: alert real but not actionable — no OT failure.",
+    "p_row": "CL-003",
+    "owner": "IG Relevance / S667358 owner",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": "confirmed"
+   },
+   "input": {
+    "title": "ig_reels_tab_ss_omni_retrieval holdout 2144816217 online training e2e SPARSE_DELTA latency elevated",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "ig_reels_tab_ss_omni_retrieval holdout (id 2144816217) online training e2e SPARSE_DELTA latency alert fired at 13:51 PDT May 18; scribe_read_proxy.client_lag_in_seconds exceeded MAJOR threshold. Snapshots continued flowing normally throughout the alert window; STUS job was healthy."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1533487445064477",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "P44/A1 Python GIL hang — trainer process alive but frozen; mvai_metrics telemetry gap ≥3h is diagnostic for GIL hang (R14 trainer-liveness positive); MAST v3 running >42h with no checkpoint progress is the confirming indicator. No recovery without manual kill. Resolved: PAGEd mingchao; trainer kill+restart resolved the hang; alert auto-closed.",
+    "p_row": "P44",
+    "owner": "mingchao (paged)",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "ig_feedrec_esr_ttsn baseline 2122112224 mvai_metrics stale 4h20min — MAST v3 running 42h no progress",
+    "signal_class": "MVAI_METRICS",
+    "body": "ig_feedrec_esr_ttsn baseline (ESR model 2122112224) mvai_metrics dropped at ~15:23–15:53 PDT May 31 and became stale by 4h20min. MAST RUNNING v3 since 2026-05-30 01:52 (>42h) with no checkpoint progress. SPARSE_DELTA pipeline blocked."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1600949354510906",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Transient scribe read-proxy spike (CL-003), no active scribe SEV at fire time; holdout category 36% chronically noisy (THRESHOLD_MISFIT). Model OT health unaffected.",
+    "p_row": "CL-003 / R22",
+    "owner": "Peiyang Yu",
+    "verdict": "THRESHOLD_MISFIT / transient",
+    "confidence": "medium"
+   },
+   "input": {
+    "title": "ig_reels_tab_mtml holdout 2132766001 scribe_read_proxy AGG alert — brief spike 04:09–04:12 PDT",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "ig_reels_tab_mtml holdout (id 2132766001) fired an AGG alert at 04:49 PDT May 20. Brief scribe_read_proxy.client_lag spike ~04:09–04:12 PDT; model publishing SPARSE_DELTA continuously (04:40:40 most recent at triage time)."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1621571482326635",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "CL-003 UPSTREAM_INFRA — ZippyDB S665114 (Flash Bandwidth Quota Low ATG0) depressed Scribe read proxy throughput, elevating the latency metric; STUS v4 kept publishing SPARSE_DELTA normally. Alert threshold overconfigured for upstream cascade (R16 false-alarm class).",
+    "p_row": "CL-003 / R16",
+    "owner": "ZippyDB oncall (S665114)",
+    "verdict": "NO_ACTION",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "ig_reels_tab_cs_omni_retrieval 2130305043 online training e2e sparse delta latency alert",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "ig_reels_tab_cs_omni_retrieval (STUS model 2130305043) online training e2e sparse delta latency alert fired ~19:34 PT May 18. ZippyDB S665114 (Flash Bandwidth Quota Low ATG0, in progress since 2026-05-16) was active. STUS v4 was publishing SPARSE_DELTA normally at 19:22 and 19:34 PT."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1670185680650606",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Upstream cascade — 26 active ZippyDB SEVs (S654082 chronic since 2026-04-23, S665114) plus 21 Scribe SEVs elevated scribe_example_age_ms; sibling S666788 IFR publish timeout also in progress. UPSTREAM_INFRA, no OT compute failure.",
+    "p_row": "CL-003",
+    "owner": "ZippyDB/Scribe oncall (S654082, S665114)",
+    "verdict": "NO_ACTION",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "facebook_ifr_main_mtml_main 886797001 DPP scribe_example_age_ms exceeded 10min at 08:56 PDT May 23",
+    "signal_class": "scribe_example_age_ms",
+    "body": "DPP scribe_example_age_ms exceeded 10 minutes for facebook_ifr_main_mtml_main (model 886797001) at 08:56 PDT May 23; alert duration ~1.5h. Trainer was alive (mvai_metrics fresh 09:49 PDT) but data-path staleness detected. 26 active ZippyDB SEVs and 21 Scribe SEVs in flight at the time."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1725584478808666",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Residual ZippyDB instability trailing S665163 mitigation (ZippyDB RE throttling, mitigated 2026-05-19 16:36 UTC, 20.5h prior). Scribe read-proxy delivery lag spiked transiently; snapshot production unaffected. CL-003 downstream-infra residual-recovery sub-pattern.",
+    "p_row": "CL-003 / P58",
+    "owner": "bsun (no action)",
+    "verdict": "NO_ACTION",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "ig_organic_feed_mtml baseline 2134319967 scribe_read_proxy.client_lag_in_seconds HIGH priority spike",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "scribe_read_proxy.client_lag_in_seconds alert fired at 06:06:29 PDT May 20 (HIGH priority) for ig_organic_feed_mtml baseline model 2134319967. SPARSE_DELTA was VALID at 06:05:39 PDT (50s pre-alert) and 06:10:45 PDT (4m post-alert) — no production gap. Assigned to bsun."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1840391773334834",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "THRESHOLD_MISFIT — alert threshold (~12 min) is miscalibrated for this model's natural publish cadence (~40 min is normal for a QA job); gap self-healed at 13:42 PT with no model degradation; trainer healthy throughout. Auto-fix task T275008531 filed to raise SPARSE_DELTA threshold to ≥40 min.",
+    "p_row": "",
+    "owner": "yichizhang/kangdu (threshold fix T275008531)",
+    "verdict": "THRESHOLD_MISFIT",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "Publishing Stability: ig_reels_tab_vm_esr model 2141728943 missing snapshot types sparse_delta",
+    "signal_class": "SPARSE_DELTA",
+    "body": "ig_reels_tab_vm_esr model 2141728943 (QA/test job) missed SPARSE_DELTA; alert fired twice in 4 days. Gap was approximately 40 minutes with the model self-healing at 13:42 PT. Normal publish cadence for this QA job is ~40 min but alert threshold is ~12 min."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1946819640036823",
+   "type": "alert",
+   "level": "",
+   "ground_truth": {
+    "root_cause": "Upstream ZippyDB/Scribe degradation driving scribe_read_proxy lag across multiple IG OT models simultaneously. S668542 (Feed Scribe quota exhausted, L4, unmitigated >12 days) is the verified root; this AGG is one of 3 models affected in the same shift (CL-003_scribe_read_proxy cluster confirmed). OT pipeline unaffected; auto-cleared on scribe recovery. No OT action.",
+    "p_row": "",
+    "owner": "igr_retrieval",
+    "verdict": "MONITOR",
+    "confidence": "0.85"
+   },
+   "input": {
+    "title": "igr_retrieval model scribe_read_proxy AGG during S668542 Feed Scribe quota exhaustion (fleet cluster)",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "AGG alert for an igr_retrieval model (one of 3 affected in same shift) with scribe_read_proxy.client_lag_in_seconds sub-firings. S668542 (Feed Scribe quota exhausted, L4, >12 days) active at fire time. OT pipeline publishing unaffected; alert auto-cleared on scribe pressure subsiding."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-1955974545038771",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "REAL_OT_FAILURE — STUS job (facebook_reels_ifu_i2i) stopped publishing; both FULL_SNAPSHOT and SPARSE_DELTA down while ITEM_EMB_DELTA survived; root trainer stopped FULL_SNAPSHOT publication / STUS job stalled",
+    "p_row": "P38",
+    "owner": "zihengqin",
+    "verdict": "MONITOR",
+    "confidence": "0.55"
+   },
+   "input": {
+    "title": "IFU I2I facebook_reels_ifu_i2i 2132070936 missing FULL_SNAPSHOT — 0 FULL_SNAPSHOT in last 500 instances",
+    "signal_class": "FULL_SNAPSHOT",
+    "body": "OneDetection 'missing FULL_SNAPSHOT' alert fired for model 2132070936 (facebook_reels_ifu_i2i) at 08:44 PDT May 23. Zero FULL_SNAPSHOT found in last 500 published instances. ITEM_EMB_DELTA was fresh at 09:24 PDT. SPARSE_DELTA was 5.5h stale."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-2032923427581795",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "S672163 ZippyDB 'IG Reels + Feed LSR' (75.5h In Progress) caused transient publishing disruption; publishing resumed independently (SPARSE_DELTA 22:41, DENSE_DELTA 22:33).",
+    "p_row": "",
+    "owner": "ZippyDB oncall (S672163)",
+    "verdict": "UPSTREAM_INFRA (auto-resolved)",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "ig_reels_tab_mtml baseline 2133008573 missing SPARSE_DELTA and DENSE_DELTA publishing gap",
+    "signal_class": "SPARSE_DELTA",
+    "body": "ig_reels_tab_mtml baseline 2133008573 missed both SPARSE_DELTA and DENSE_DELTA; publishing gap alert fired at ~22:48 PT June 8. ZippyDB S672163 'IG Reels + Feed LSR' was 75.5h In Progress at time of alert. Publishing resumed before triage completed: SPARSE_DELTA 22:41 PT, DENSE_DELTA 22:33 PT."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-2130305043-AGG",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "S654082 ZippyDB AI training flash write overload (In Progress since 2026-04-23) caused scribe read proxy lag chain; contributing S667071 Scribe IFR/Onefeed regression (D106006226 downsampling). UPSTREAM_INFRA, no OT code defect.",
+    "p_row": "UPSTREAM_INFRA",
+    "owner": "ZippyDB oncall (S654082); qianh25 for clips_plike OOR",
+    "verdict": "NO_ACTION",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "ig_reels_tab_cs_omni_retrieval 2130305043 AGG — elevated scribe_read_proxy + clips_plike OOR",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "Aggregation alert for ig_reels_tab_cs_omni_retrieval (model 2130305043, STUS) fired at ~22:15 PT May 21 on elevated scribe_read_proxy client lag. Secondary: clips_plike OOR Calibration CRITICAL sub-alert. STUS publish path healthy (ITEM_EMB_DELTA every ~2–3 min). S654082 ZippyDB AI training flash write overload active since 2026-04-23."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-2387001468469120",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "UPSTREAM_INFRA / P58 — ZippyDB S672569+S672163 throttling cascade → Scribe metadata ops slow → scribe_read_proxy client_lag_in_seconds spikes (DPP read path). In-trainer publish unaffected; verified healthy at triage (SPARSE_DELTA/DENSE_DELTA fresh throughout alert). No OT-side mitigation needed; route to ZippyDB/infra oncall",
+    "p_row": "P58",
+    "owner": "none (route to ZippyDB infra oncall)",
+    "verdict": "MONITOR",
+    "confidence": "0.85"
+   },
+   "input": {
+    "title": "ig_organic_feed_mtml holdout 878102693 scribe_read_proxy.client_lag_in_seconds spike — auto-cleared ~14min",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "scribe_read_proxy.client_lag_in_seconds spike on ig_organic_feed_mtml holdout (model 878102693) fired at 20:06 PDT June 6, auto-cleared ~14min later. ZippyDB S672569+S672163 throttling cascade active. OT trainer alive and publishing (SPARSE_DELTA/DENSE_DELTA fresh at 20:07) throughout the alert."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-2449443538836650",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "UPSTREAM_INFRA: scribe_read_proxy client_lag elevated during ongoing ZippyDB/Scribe pressure (S654082 ZippyDB AI training flash write overload since 2026-04-23; S665114 WS ZippyDB Flash Bandwidth Quota Low). OT publish path not gated on this lag path; 6th identical auto-resolved fire in 12 days; alert threshold misconfigured.",
+    "p_row": "P57",
+    "owner": "igr_retrieval / ZippyDB (S654082, S665114)",
+    "verdict": "NO_ACTION",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "igr_retrieval model scribe_read_proxy client_lag elevated — 6th identical auto-resolved fire in 12 days",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "scribe_read_proxy client_lag alert fired for an igr_retrieval model; this is the 6th identical auto-resolved fire in 12 days on this detector. S654082 ZippyDB AI training flash write overload (since 2026-04-23) and S665114 WS ZippyDB Flash Bandwidth Quota Low were both active at fire time. OT publish path not gated on this lag path."
+   },
+   "eligible": true
+  },
+  {
+   "id": "ALERT-25997363823253100",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "S668542 Feed Scribe quota exhaustion (>302h In Progress, 2.797 TB/s > 2.66 TB/s quota) + S667358 IG Relevance Scribe over quota; OT trainer unaffected, SPARSE_DELTA publishing normally.",
+    "p_row": "",
+    "owner": "upstream (S668542 Scribe quota, S667358 IG Relevance)",
+    "verdict": "UPSTREAM_INFRA (auto-cleared)",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "ig_reels_tab_mtml baseline 2133008573 scribe_read_proxy client_lag elevated — recurred Jun 7 and Jun 8",
+    "signal_class": "scribe_read_proxy.client_lag_in_seconds",
+    "body": "ig_reels_tab_mtml baseline 2133008573 scribe_read_proxy client_lag_in_seconds elevated; alert fired Jun 7 07:21 PT and recurred Jun 8 23:26 PT. S668542 Feed Scribe quota exhaustion (>302h In Progress) and S667358 IG Relevance Scribe over quota both active. OT trainer unaffected — SPARSE_DELTA publishing normally throughout."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1215710353808301",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "`skip_recurring: True` (default) in the online_train_publish step's workflow_input_override causes recurring_train.py (line ~591) to take an early-return path before TLS config diff generation, so the step returns SUCCEEDED but produces no OT registration diff.",
+    "p_row": "P36 (online_train_publish silent success via skip_recurring=True)",
+    "owner": "Jiahao Luo (MVAI Agents)",
+    "verdict": "Check 8 aged out (degraded); root cause clear but workaround failed (JOB_NOT_FOUND)",
+    "confidence": "0.5"
+   },
+   "input": {
+    "title": "[IG Reels LSR] online_train_publish Step Failing to Produce OT Diff",
+    "signal_class": "mrs_online_training",
+    "body": "Workplace post: FBLearner flow f1078311961 (online_train_publish step) succeeds but produces no OT registration diff for model 2124252069. Step reports SUCCEEDED but no diff is generated. SEV S656611 linked. Flow f1078183542 (MAAS TL) also linked."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1240817001297636",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Support/configuration question, not an OT failure: delta-only-publisher FQN = DELTA path; CPU-publish lag is a fixed cron decoupled from checkpoint completion.",
+    "p_row": "",
+    "owner": "zzhou01",
+    "verdict": "NO_ACTION",
+    "confidence": "medium"
+   },
+   "input": {
+    "title": "Delta vs full snapshot semantics and CPU-publish lag on two MAST OT jobs",
+    "signal_class": "",
+    "body": "Workplace post by zzhou01 asking about delta-vs-full-snapshot semantics and CPU-publish/checkpoint alignment for two MAST jobs. Question about whether delta-only-publisher FQN is the DELTA path and whether CPU-publish lag is decoupled from checkpoint completion. No active SEV or OT failure indicated."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1300389035389173",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "TMS registration TTL expired: the job's expiry is set based on the app-layer when using an ephemeral app-layer, so TMS intentionally stopped the version when the registration expired. Fix: re-register / use preserved app-layer.",
+    "p_row": "",
+    "owner": "Paul Lu",
+    "verdict": "resolved (#resolved)",
+    "confidence": "0.3 (file header; root cause confirmed in comments)"
+   },
+   "input": {
+    "title": "OT not restarted (model id = 2133379243)",
+    "signal_class": "mrs_online_training",
+    "body": "Workplace post: MC1 launch candidate model 2133379243 (facebook_reels_hstu_standalone_online) OT did not restart via tenant manager. This had occurred once before; both times required manually unexpiring and re-registering the model. Model OT in stopped/expired state."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1303277061767037",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Model's OT job hit its TMS TTL and expired (expired at 5pm UTC), putting it into TMSTrainingState.EXPIRED — a terminal state that blocks the MLHub UI restart button from transitioning to ONLINE. Skill lacked EXPIRED-state context since adhoc jobs began being registered. Workaround for QE: rerun the original fire cmd that started it. Skill update D101303813 added.",
+    "p_row": "",
+    "owner": "Li Lu",
+    "verdict": "resolved/accepted answer",
+    "confidence": "0.3"
+   },
+   "input": {
+    "title": "Can't restart online training — model 2129751166 in TMSTrainingState.EXPIRED",
+    "signal_class": "mrs_online_training",
+    "body": "Workplace post: OT job for model 2129751166 was killed by TMS bot, clicking 'Restart Online Training' in MLHub UI fails with GraphQL error: 'Model 2129751166 in an invalid state: TMSTrainingState.EXPIRED for transition to LogicalTrainingState.ONLINE.' Model is in QE."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1311247457636664",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "For ~2 hours the OneFeed data stream went thin (sampling rate 0.3 + weight gating made the per-task slice tiny), so the window had zero clicks for the onefeed tasks. NE divides loss by entropy(CTR); when CTR→0 the entropy denominator collapses and NE blows up (14B) — a numerical artifact of the windowed metric on a starved/zero-click slice, not a true model-performance regression (lifetime NE is smooth).",
+    "p_row": "",
+    "owner": "Denny Zhang",
+    "verdict": "resolved — explained as metric artifact (window starvation), not a real regression",
+    "confidence": "0.3"
+   },
+   "input": {
+    "title": "Multi-Scribe Training NE spike: onefeed tasks showing NE 14B during 2-hour window",
+    "signal_class": "mrs_online_training",
+    "body": "Training model 2125931050 with two scribes; onefeed tasks CTR spiked to 0 and NE reached 14B for 2 hours (7–9 PM), then returned to normal. Lifetime NE was smooth. Requesting guidance on whether this is a true regression or artifact of multi-scribe training."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1319356410159102",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "When adding a new embedding table (10→11 tables), the serving predictor's model_param_config in Manifold still reflects the old architecture. Delta updates require _get_model_param_config_for_sparse() (utils.py:641) to map all embedding FQNs to weight_ids; the new 11th table is missing from the predictor's config (written when it last loaded an old-model snapshot) → FQN→weight_id mapping fails → RuntimeError 'Expected 11, got 10'.",
+    "p_row": "",
+    "owner": "Denny Zhang",
+    "verdict": "Check 8 aged out; root cause articulated, mitigation proposed not confirmed",
+    "confidence": "0.5"
+   },
+   "input": {
+    "title": "Delta Update Failure — FB Reels I2I reranker 2124629126: RuntimeError Expected 11, got 10",
+    "signal_class": "mrs_online_training",
+    "body": "Online training job mvai-training-online-2124629126 (FB Reels I2I reranker with new unpooled UIH embedding table, 10→11 tables) failed first delta update with 'RuntimeError: Not all sparse embeddings are mapped. Expected 11, got 10.' Checkpoint in Manifold contains the new table correctly."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1321547686606641",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "False positive. ODS dpp_worker.scribe_example_age_ms.avg.60 (~2.5 min) is correct ground truth; the model is healthy. The Scuba-derived column checkpoint_training_data_age_mins has two formula bugs for OT jobs: (1) timezone mismatch — metric_value is UTC but train_end_ts is shifted -7h via TIME_ZONE_CONVERTER, injecting systematic error (known bug D75703936); (2) wrong scope — the detector was designed for recurring training, not OT, where train_end_ts is hour-aligned via _resolve_ts_now().",
+    "p_row": "CL-013 (training-age spike — this instance a false positive); novel pattern proposed",
+    "owner": "Denny Zhang",
+    "verdict": "HEURISTIC_RESOLVED (Check 8 aged 7d); authoritative self-answer",
+    "confidence": "0.5"
+   },
+   "input": {
+    "title": "Inconsistent training example age: Scuba shows 3000min, ODS shows 2.5min for facebook_reels_vdd_hstu_v0 model 877766932",
+    "signal_class": "checkpoint_training_data_age_mins",
+    "body": "Alert fired showing ~3000 min training example age for facebook_reels_vdd_hstu_v0 (model 877766932). MAST ODS shows actual data age of ~2.5 min. Two metrics contradictory: Scuba-derived checkpoint_training_data_age_mins vs ODS dpp_worker.scribe_example_age_ms."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1324845696276840",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "SilverTorch STUS models use the GMPP publisher path (Scribe -> ZippyDB for metadata), which was blocked during S660017/S660220. In-trainer MVAI models write directly to model store, bypassing GMPP/Scribe, so they were unaffected. Differential impact is a known architectural vulnerability (P50).",
+    "p_row": "P50",
+    "owner": "Siyuan Zhu / Denny Zhang",
+    "verdict": "HEURISTIC_RESOLVED",
+    "confidence": "0.5"
+   },
+   "input": {
+    "title": "STUS/SilverTorch models 2131554922, 877766818, 877767096 hit 0 QPS for ~7h during S660017/S660220 (May 6)",
+    "signal_class": "mrs_online_training",
+    "body": "During S660017 (ZippyDB) / S660220 (Scribe data loss) on May 6, several MVAI models had 0 QPS for ~7 hours with no new snapshots and freshness violations. Models 2131554922, 877766818, 877767096 (STUS/SilverTorch) affected; model 877546696 (in-trainer MVAI) was not affected."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1326387856122624",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Elastic agent error handling: when the job errored at 11pm, the elastic agent failed to propagate a non-zero exit code, so SJD did not detect the job as stuck and kill it. Job silently hung logging noise instead of cleaning up. Per Li Lu's analysis P2338625112 (related to P21).",
+    "p_row": "P21",
+    "owner": "Max Kaplan (SEV S665478, owner Xingjia Ma)",
+    "verdict": "HEURISTIC_RESOLVED",
+    "confidence": "0.4"
+   },
+   "input": {
+    "title": "OT Job mvai-training-online-2123154171 logged error at 11pm, hung 11 hours without cleanup",
+    "signal_class": "mrs_online_training",
+    "body": "Job mvai-training-online-2123154171 (v0, attempt 0) logged a failure at 11pm but did not clean up — it silently hung logging noise until manually killed 11 hours later. SJD did not detect the job as stuck. Same issue recurred on mvai-training-online-2123153585."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1332204528874290",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Expected RES behavior: enable_raw_embedding_streaming=True triggers SnapshotType.SPARSE_DELTA every res_streaming_interval_s=15s in training_ps_scheduler_process.py:447; RES and training publish paths are independent. False-alarm: monitoring conflated RES-path with training-path deltas.",
+    "p_row": "",
+    "owner": "joey.yang",
+    "verdict": "NO_ACTION (intentional design, D89197169)",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "ig_reels_tab_esr_ttsn OT test generating SPARSE_DELTAs at 3.3/min vs expected 1/6min for 1h17min",
+    "signal_class": "SPARSE_DELTA",
+    "body": "OT release test (model 2122065668) generating SPARSE_DELTAs at ~3.3/min — ~20x higher than expected rate of 1 per 6 min — during a 1h17min test run on 2026-05-21. Unexpected SPARSE_DELTA frequency raised concern about possible misconfiguration."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1332867342141342",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Elastic-agent hang caused by SIGSEGV on rank 7 (C++ ServiceRouter stats callback); D-state ranks blocked TorchElastic from exiting; checkpoint v609 frozen at CREATING/size=0. Same mechanism as S667567 (elastic-agent, not Python GIL P44). Resolved by manual kill of v4 + TMS restart from v608.",
+    "p_row": "S667567 / P58 (proposed)",
+    "owner": "mrs_relevance_retrieval_i2i (fengzhang1)",
+    "verdict": "RESOLVED",
+    "confidence": "high (confirmed)"
+   },
+   "input": {
+    "title": "FBR IFU I2I model 2132070936 missing FULL_SNAPSHOT 8+ hours — reranker 2125081901 hung since 04:27 PDT",
+    "signal_class": "FULL_SNAPSHOT",
+    "body": "Model 2132070936 (facebook_reels_ifu_i2i, PROD) has not published a FULL_SNAPSHOT for 8+ hours. Upstream reranker 2125081901 hung: MAST reports RUNNING but last mvai_metrics at 04:27 PDT, checkpoint v609 stuck in CREATING (size=0) since 04:29 PDT."
+   },
+   "eligible": true
+  },
+  {
+   "id": "POST-1337733828321360",
+   "type": "post",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "ACL access not provisioned for msgr_eng_product_intelligence_temp and videorecs_reels_private_sharing oncalls to commit in the relevant code path and preserve an ephemeral app-layer package. Resolved by creating + approving ACL tasks T273490223 and T273490053.",
+    "p_row": "",
+    "owner": "Adhi Ravichandran / Paul Lu",
+    "verdict": "RESOLVED",
+    "confidence": "0.5"
+   },
+   "input": {
+    "title": "ACL access needed to convert ephemeral app-layer package for msgr_eng_product_intelligence_temp and videorecs_reels_private_sharing",
+    "signal_class": "",
+    "body": "Two oncalls need ACL access to commit and preserve an ephemeral app-layer package. Attempting to follow the MVAI package preservation guide but blocked by missing permissions. Affects msgr_eng_product_intelligence_temp and videorecs_reels_private_sharing packages."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S607776",
+   "type": "sev",
+   "level": "L3",
+   "ground_truth": {
+    "root_cause": "Bias explosion in embedding_feature_modules.linear_modules.2 layer during training (sudden abnormal bias-parameter surge), driven by rare data conditions plus insufficient model-level safeguards (no gradient clipping). MSV was set to alert_only and did not block the bad snapshot.",
+    "p_row": "",
+    "owner": "Zichang Feng",
+    "verdict": "mitigated (revert to snapshot 347; gradient clipping prevents recurrence)",
+    "confidence": "medium"
+   },
+   "input": {
+    "title": "IG Stories Model 875799562 (ig_stories_tray_mtml baseline) — impacted recommendation metrics and training NEs",
+    "signal_class": "mrs_online_training",
+    "body": "L3 SEV. IG Stories MTML model 875799562 experienced sharp NE spike (training NEX) during publish of snapshot 349, causing recommendation metric degradation. Up to 5% drop on topline Stories metrics from 1/5 2:30PM ET to 1/6 2:00AM ET. MSV set to alert_only and did not block the bad snapshot."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S622829",
+   "type": "sev",
+   "level": "L3",
+   "ground_truth": {
+    "root_cause": "A change between light_cli v4535 -> 4539 triggered a py-spy process to enter a state where it consumes its core and stops responding to TERM signals. The trainer sends TERM to py-spy during shutdown and waits for graceful exit; py-spy's hang prevents the trainer from exiting. (py-spy hang itself not root-caused; tool being deprecated.)",
+    "p_row": "",
+    "owner": "Evan Borgstrom",
+    "verdict": "mitigated (disable py-spy JK for all MVAI; D94098324 adds TERM->KILL after 15s)",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "[Silvertorch][MVAI] Jobs not shutting down correctly — publish hangs for 9+ hours across IFR T2I, ESR, IGR T2I",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "L3 SEV. SilverTorch/MVAI publish jobs complete all steps but MAST job continues to idle/hang for several hours before timing out. Affects silvertorch/ifr_prospector, silvertorch/ifr_t2i, silvertorch/ifr_umia_v1, mvai/mvai_ig_ranking. Trunk broken for T2I and ESR conveyors."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S627484",
+   "type": "sev",
+   "level": "L3",
+   "ground_truth": {
+    "root_cause": "The publish subprocess crashed at dlopen time: two CUDA libraries (fbr/flash and ads_mkl) both register the same fbgemm::fmha_bwd operator (Blackwell FMHA backward defined in two .cu files both linked into the publish binary) - a build/packaging conflict. The parent process had no subprocess liveness detection, so it blocked on message_queue.get() until Gloo timeout.",
+    "p_row": "",
+    "owner": "Trevor Mathisen",
+    "verdict": "self-resolved; prevention D96387953 adds is_alive() liveness check",
+    "confidence": "medium"
+   },
+   "input": {
+    "title": "[mvai/video_udd_lsr] online_train_publish step fails w/ StuckJobException — conveyor blocked 6.5 days",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "L3 SEV. Conveyor mvai/video_udd_lsr blocked at cogwheel step for ~6.5 days. Online training publish subprocess crashing at dlopen time; parent process blocked on message_queue.get() until Gloo timeout triggers StuckJobException. 24 consecutive failures (R4473–R4571)."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S639956",
+   "type": "sev",
+   "level": "L1",
+   "ground_truth": {
+    "root_cause": "D96993922 (a fragment-migration distillery refactor) extracted ranking_logger creation from async_rank_media into helper _create_lsr_ranking_logger_and_log, but the helper did not return ranking_logger, so it stayed None in the main flow. The downstream _async_log_training_data call (guarded by 'if ranking_logger is not None') was silently skipped, halting training-data logging to Scribe/Muddler for Feed, TIXU, Search. No alert monitored training-data write volume during Django pushes.",
+    "p_row": "",
+    "owner": "Paskalino Spirollari",
+    "verdict": "mitigated (revert D98295929, blocklist corrupted window, ban snapshots, restart OT)",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "Threads Online Training Data Breakage — training data volume near zero for Feed, TIXU, Search ~9 hours",
+    "signal_class": "mrs_online_training",
+    "body": "L1 SEV. Threads Feed, TIXU, and Search ranking path training data volume dropped to near zero for ~9 hours after D96993922 landed at ~4:35 AM EST. ESR, LSR, and VM MTML models began showing NE/calibration drift. Engagement metric regressions: Likes ~6.5%, Impressions ~4.7%, Reshare ~9.5%."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S647168",
+   "type": "sev",
+   "level": "L3",
+   "ground_truth": {
+    "root_cause": "Known model problem where the optimizer state becomes worse over time, which triggers an NE explosion (bad optimizer status). See N10312608.",
+    "p_row": "",
+    "owner": "Yukun Ding",
+    "verdict": "Closed",
+    "confidence": ""
+   },
+   "input": {
+    "title": "Stories Secondary MTML model 877553271 NE spike — elevated for 4 hours during PB1 launch",
+    "signal_class": "mrs_online_training",
+    "body": "L3 SEV. Secondary MTML model 877553271 NE elevated for 4 hours; detected via model calibration alerts. Incident occurred during PB1 launch period. Expected holdout impact on time spent and impression mixshift. Model reached unstable state requiring snapshot revert."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S649277",
+   "type": "sev",
+   "level": "L3",
+   "ground_truth": {
+    "root_cause": "DPP rolled out D100836039, intended to apply training-data age capping only to models with QPS throttling, but by mistake it applied to all tier-3 and tier-4 models — so train examples older than 5 minutes were discarded for all QE models. The diff was rolled back and affected jobs restarted to pick up the fix.",
+    "p_row": "",
+    "owner": "Tianyi Chen",
+    "verdict": "Closed",
+    "confidence": ""
+   },
+   "input": {
+    "title": "Threads Retrieval Models OT Example Age Capped — examples older than 5 min discarded for tier-3/4",
+    "signal_class": "mrs_online_training",
+    "body": "L3 SEV. From April 13, Main and X-App U2M QE models (tier 3 and 4) had training examples capped by data age — examples older than 5 minutes were discarded if the job restarted. Caused unreliable QE metric readings for ~2 days."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S652481",
+   "type": "sev",
+   "level": "L3",
+   "ground_truth": {
+    "root_cause": "A single bad AMD task in SCU region (tsp_scu/ipnext_ip_prod/deployment.partition.default_amd_mi300xg1.m2143272283_slatest/2) throwing runtime errors. Infra failure; the bad task was automatically removed, resolving the issue.",
+    "p_row": "",
+    "owner": "Xiaoyu Cao",
+    "verdict": "Closed",
+    "confidence": ""
+   },
+   "input": {
+    "title": "Model 2143272283 (threads_feed_mtml experimental) inference error rate ~87% in SCU from a bad AMD task",
+    "signal_class": "mrs_online_training",
+    "body": "L3 SEV. Model 2143272283 experienced ~87% error rate in SCU region due to a single bad AMD task. Other regions remained healthy; overall error rate ~2.5%. Non-prod experimental model."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S657690",
+   "type": "sev",
+   "level": "L3",
+   "ground_truth": {
+    "root_cause": "Genuine capacity shortfall — entitlement fb_reels_prod_online_h100 oversubscribed (8+ OT jobs sharing quota), causing a preemption cascade (SCRIBE overload, fragmented capacity, high demand). Continued PENDING despite available quota aligned with S658149's GPU quota split. Scribe overquota hypothesis eliminated (not enforced at tenant level). Mitigated when Keehwan Park killed and re-queued the job May 1.",
+    "p_row": "P10 (preemption cascade via oversubscribed entitlement); P39 FALSIFIED; CL-006",
+    "owner": "lupaul (Paul Lu)",
+    "verdict": "MITIGATED_WITH_FOLLOWUP",
+    "confidence": "0.70"
+   },
+   "input": {
+    "title": "[MVAI] Online training job for model 883552231 (facebook_reels_ifu_mtml_v0) stuck in PENDING 6+ hours",
+    "signal_class": "mrs_online_training",
+    "body": "L3 SEV. Model 883552231 MAST training job stuck in PENDING; 23 failed attempts recorded with preemption errors (SCRIBE overload, fragmented capacity). No snapshots published for 6+ hours. Entitlement fb_reels_prod_online_h100 shared by 8+ OT jobs."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S661987",
+   "type": "sev",
+   "level": "L4",
+   "ground_truth": {
+    "root_cause": "ml_deps_graph retention leak holding 194 archived light_cli versions un-deletable, exhausting the fbpkg version cap; structural recurring failure (cap increases palliative, not curative)",
+    "p_row": "",
+    "owner": "akmahesh",
+    "verdict": "RESOLVED",
+    "confidence": "confirmed"
+   },
+   "input": {
+    "title": "light_cli fbpkg at 800/800 version cap — recurrence of S657811 blocking mvai_ifr_main, silvertorch/ifr_umia_v1",
+    "signal_class": "light_cli_fbpkg_cap",
+    "body": "L4 SEV. mvai/light_cli fbpkg hit 800/800 version cap at ~01:20 PT May 11 (~6.2h duration, detected 05:44 PT). 303 archived versions consuming cap. Blocked: mvai_ifr_main, silvertorch/ifr_umia_v1, fire-app-fbr-preranker, video_ifu_lsr. Second recurrence within 7 days."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S664494",
+   "type": "sev",
+   "level": "L4",
+   "ground_truth": {
+    "root_cause": "PyTorch upstream diff D104838289 introduced a TorchScript annotation mismatch in torch.unique_consecutive: torch/functional.py:_consecutive_return_inverse_and_counts annotated as returning Tuple[Tensor] but actually returns Tuple[Tensor,Tensor,Tensor]; caught at TorchScript packaging, failing publish_multi_forward. Call chain via li_cluster_selection_op.py:_select_clusters.",
+    "p_row": "P52",
+    "owner": "ezrak",
+    "verdict": "Mitigated (fix D105104984)",
+    "confidence": "0.75"
+   },
+   "input": {
+    "title": "[mvai/umia_v1_igr] IGR Tab T2I publish blocked by PyTorch unique_consecutive JIT annotation mismatch",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "L4 SEV. mvai/umia_v1_igr Conveyor blocked at publish_multi_forward step since 2026-05-13 19:42 UTC. TorchScript packaging step fails deterministically due to type annotation mismatch in torch.unique_consecutive. Releases R11393.2 and R11409.1 both failed."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S665454",
+   "type": "sev",
+   "level": "L3",
+   "ground_truth": {
+    "root_cause": "CUDACachingAllocator free_block assertion triggered rank 0 SIGABRT; elastic agent raised ChildFailedError to light.py main(), which had no try/except on the error path; Python shutdown attempted to join NCCL communicator threads stuck waiting on dead rank 0 → join blocks forever → process zombie; MAST never read reply file. Fixed by D98638473 (wraps main() try/except → os._exit()); base layer predated fix by 19 days",
+    "p_row": "P61 (proposed)",
+    "owner": "mlygao",
+    "verdict": "MITIGATED_WITH_FOLLOWUP",
+    "confidence": "0.90"
+   },
+   "input": {
+    "title": "Threads Retrieval U2M OT jobs get stuck sporadically — zombie process no self-recovery (model 2124793203)",
+    "signal_class": "mrs_online_training",
+    "body": "L3 SEV. Threads Retrieval U2M OT job mvai-training-online-2124793203 gets stuck sporadically; MAST reports RUNNING but process is a zombie — no new checkpoints, no mvai_metrics updates. Manual kill required for each occurrence. Affects feed_u2m model type."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S665707",
+   "type": "sev",
+   "level": "L4",
+   "ground_truth": {
+    "root_cause": "Sandcastle OOM on I7_XLARGE workers during buck2 x86 compilation of light_cli; oomd kills x86 builds while aarch64/amd64 complete fine. No code change triggered it — chronic capacity mismatch between light_cli build memory requirements and Sandcastle worker limits.",
+    "p_row": "",
+    "owner": "Trevor Mathisen",
+    "verdict": "UPSTREAM_INFRA (self-healed)",
+    "confidence": "medium"
+   },
+   "input": {
+    "title": "mvai/light_cli conveyor blocked: fbpkg Build Node failing ~11h — Sandcastle OOM on I7_XLARGE workers",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "L4 SEV. mvai/light_cli fbpkg Build Node failing since R39595.1 from 09:30–20:28 PT May 18 (~11h). Sandcastle OOM kills on I7_XLARGE workers during buck2 x86 compilation. No new trunk releases shipping during window. Chronic recurrence of S648404."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S667332",
+   "type": "sev",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "REAL_OT_FAILURE — recurring daily trainer crash on CFR main mtml recipe; crash correlated with the same scribe quota pressure cluster as S668542 (Feed scribe quota 2.797 TB/s vs 2.66 TB/s cap). QA-tier, low priority.",
+    "p_row": "",
+    "owner": "",
+    "verdict": "REAL_OT_FAILURE (mitigated)",
+    "confidence": "confirmed"
+   },
+   "input": {
+    "title": "CFR main mtml (m2122688235) daily trainer crash — QA-tier OT job crashing daily for 7 days",
+    "signal_class": "mrs_online_training",
+    "body": "cfr_main_feed_mtml_roo_hstu QA-tier OT job (m2122688235) crashing daily; SEV open 2026-05-22 to 2026-05-29 (7 days). QA-tier model freshness degraded throughout the incident window. Recurring daily crash pattern."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S667567",
+   "type": "sev",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "SIGSEGV on rank 7 (C++ ServiceRouter stats callback) → D-state workers blocked the elastic agent → zombie job with no self-recovery. (Initial triage misclassified as P44 GIL hang; corrected to elastic-agent hang.)",
+    "p_row": "",
+    "owner": "fengzhang1",
+    "verdict": "mitigated (manual kill, TMS restart from checkpoint v608)",
+    "confidence": "confirmed"
+   },
+   "input": {
+    "title": "FBR I2I reranker 2125081901 SIGSEGV hang — FULL_SNAPSHOT on downstream model 2132070936 stalled 28h",
+    "signal_class": "mrs_online_training",
+    "body": "Reranker model 2125081901 stopped training at 04:27 PDT May 23; MAST reports RUNNING but last mvai_metrics at that time, checkpoint v609 stuck in CREATING (size=0). Downstream ST model 2132070936 had no FULL_SNAPSHOT for ~28h. Elastic agent not recovering."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S668181",
+   "type": "sev",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "IPNext releases blocked by S668184 (TW Controller Timeouts). Both models (m2129445831 + m2144714031) are FBLearner batch models with no MAST OT job; serving-stage only, not OT pipeline (R18 T4 serving-stage drop). Resolved after S668184 cleared IPNext release blockage.",
+    "p_row": "R18",
+    "owner": "p92_relevance_growth",
+    "verdict": "NOT_OT (serving-stage, R18 correction)",
+    "confidence": "confirmed (after re-eval)"
+   },
+   "input": {
+    "title": "TIFU ESR Primary & Secondary models stuck loading snapshot — IPNext releases blocked",
+    "signal_class": "mrs_online_training",
+    "body": "Prod TIFU ESR Primary and Secondary models (ig_textpost_tifu_esr + ig_textpost_tifu_m2m_retrieval) stuck loading snapshot. IPNext releases blocked due to TW Controller Timeouts from S668184. Serving degradation during snapshot loading failures."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S668656",
+   "type": "sev",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "D106415488 removed -mavx2 compiler flags from deeplearning/fbgemm/fbgemm_gpu/fb/BUCK (128-line change), breaking fbpkg build at light_cli build node. Fix: D106415488 reverted or -mavx2 flag restored.",
+    "p_row": "",
+    "owner": "mrs_ml_release_oncall",
+    "verdict": "CONVEYOR_REGRESSION",
+    "confidence": "confirmed"
+   },
+   "input": {
+    "title": "mvai/light_cli conveyor blocked: fbpkg Build Node failing since R39595.1 — ~6h no trunk releases",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "mvai/light_cli fbpkg Build Node failing since R39595.1 (last green R39594.1, created 2026-05-27 11:00 PDT); ~6h conveyor block. No new trunk releases shipping; model freshness degrading across all downstream light_cli dependents."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S668996",
+   "type": "sev",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Transient infra noise (TRANSIENT_NOISE, auto-resolved); no persistent OT job failure; likely upstream publish delay self-cleared. Snapshot freshness restored by 10:29 PT.",
+    "p_row": "",
+    "owner": "",
+    "verdict": "TRANSIENT_NOISE",
+    "confidence": "confirmed"
+   },
+   "input": {
+    "title": "MC11 model 2143912626 snapshot stale — SEV opened 09:27 PT, mitigated within ~1h",
+    "signal_class": "mrs_online_training",
+    "body": "MC11 milestone snapshot for model 2143912626 went stale; SEV opened 09:27 PT May 28. Snapshot freshness alert triggered. SEV mitigated 10:29 PT and closed 11:16 PT."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S669751",
+   "type": "sev",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "TMS bot incorrectly blocked the streaming job; MAST OT job was RUNNING within 12 min and self-recovered (auto-resolved without operator intervention).",
+    "p_row": "",
+    "owner": "oncall",
+    "verdict": "RESOLVED (self-recovered)",
+    "confidence": "low"
+   },
+   "input": {
+    "title": "ESR Integrity TTSN streaming inference job blocked by TMS bot (igwb-relevance) ~38 min",
+    "signal_class": "mrs_online_training",
+    "body": "ESR Integrity TTSN streaming inference job (igwb-relevance) blocked by smart training platform bot at 13:15 PDT May 29. Kill message from smart__ai_infra__training_management_system.s3. Stale embeddings risked degraded IG content moderation quality during the ~38-min outage."
+   },
+   "eligible": true
+  },
+  {
+   "id": "S669980",
+   "type": "sev",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "Double downsampling regression introduced after R11789.2 caused publish_multi_forward to exceed memory in the publish step, blocking Conveyor. Fix: double downsampling corrected.",
+    "p_row": "",
+    "owner": "oncall",
+    "verdict": "RESOLVED",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "IGR Tab T2I Conveyor publish validation blocked ~5 days — publish_multi_forward OOM from R11789.2",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "mvai/umia_v1_igr Conveyor publish validation blocked for ~5 days starting 2026-05-30. publish_multi_forward step OOM'd from release R11789.2, preventing all new trunk releases from completing validation. All IGR Tab T2I new model releases blocked."
+   },
+   "eligible": true
+  },
+  {
+   "id": "W1348853410542735",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "generate-job-config-diff not work?",
+    "signal_class": "mrs_online_training",
+    "body": "mvai online-training-mgr generate-job-config-diff -m 2119446895 failed with 'Error message: Uncaught exception executing PREPARE'. Command failing continuously when trying to generate OT config for model 2119446895. Asking for help to mitigate."
+   },
+   "ground_truth": {
+    "root_cause": "Transient configerator write failure ('Uncaught exception executing PREPARE') in mvai online-training-mgr generate-job-config-diff code path; D108337795 adds automatic retries to prevent future CLI failures from the same cause.",
+    "owner": "Rong Huang / mrs_online_training",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.95
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-06/2026-06-11-W1348853410542735.md"
+  },
+  {
+   "id": "W1346326357462107",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "MLHub showing incorrect MAST job for model",
+    "signal_class": "mrs_online_training",
+    "body": "In MLHub for model 2123804366 (threads_feed_mtml), the Online Training section displays an incorrect MAST job (pni_mb4_fresh). GraphQL query confirms the wrong job is returned for this model. Is this a metadata issue?"
+   },
+   "ground_truth": {
+    "root_cause": "MLHub/AIM queries MAST job by model_type instead of model_id, returning the first entry matching that type. Model 2123804366 (threads_feed_mtml) returns pni_mb4_fresh — the first MAST job of that type — instead of the correct OT job. Fix: D107935047 corrects the query to filter by model_id.",
+    "owner": "Denny Zhang / mrs_online_training",
+    "p_row": "none",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": 0.85
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-06/2026-06-09-W1346326357462107.md"
+  },
+  {
+   "id": "W1347152497379493",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "[Online Training] Silent streaming publisher failure — root model snapshots frozen 22h+",
+    "signal_class": "mrs_online_training",
+    "body": "3 root models (2121054758, 2120474184, 2120929351) affected: OT MAST jobs show RUNNING but root_model_snapshot_id has been frozen for 18-22+ hours. ST publish continues but republishes stale root checkpoints. Production QE traffic GR source rate dropped ~50% across affected arms (v5_4 arm1: 9.28%→4.05%; arm2: 8.42%→3.45%; arm3: 8.48%→3.47%; v5_3 arm6: 9.29%→4.05%). One model (2121054758) partially self-recovered."
+   },
+   "ground_truth": {
+    "root_cause": "P61 zombie trainer: worker hit CUDACachingAllocator assertion error; pre-D98638473 base layer fails to exit cleanly after ChildFailedError; NCCL communicator threads block in threading._shutdown(); MAST never detects failure despite retries available. Same root cause as S665454 and S670887. Manual kill required; long-term fix: upgrade base layer to include D98638473.",
+    "owner": "Yubo Wang / mrs_online_training",
+    "p_row": "P61",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-06/2026-06-09-W1347152497379493.md"
+  },
+  {
+   "id": "W1342971631130913",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "Online train kept failing and delta track config not being populated",
+    "signal_class": "mrs_online_training",
+    "body": "OT model 2121486280 (ig_textpost_feed_esr) kept failing. Delta tracker config shows three embedding tables (media_embedding_cache, always_on_media_id, always_on_author_id) missing from skip_embedding_table_names in the mvai train config. Job fails with torch.cat() expecting a non-empty list of Tensors on restart."
+   },
+   "ground_truth": {
+    "root_cause": "Duplicate sparse streaming config specified in both trainer_config and delta_publish_config — a long-standing tech debt in the model config (model-side, not OT infra). Fix applied via D107578770.",
+    "owner": "xiaozang / ig_textpost_feed_esr",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.75
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-06/2026-06-08-W1342971631130913.md"
+  },
+  {
+   "id": "W1336024098492333",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "[Help Needed] MC12 arm3 OT — training example age over 1 hour",
+    "signal_class": "mrs_online_training",
+    "body": "MC12 arm3 OT job (mvai-training-online-2123944781) has training example age over 1 hour; target is below 2 minutes. DPP starvation check shows 0% starvation."
+   },
+   "ground_truth": {
+    "root_cause": "Peak-traffic capacity shortfall: trainer at 10x8 GPUs cannot keep up with peak scribe data rate. DPP-bound eliminated (0% starvation confirms trainer-bound). Scribe backlog causes example age to spike during peak periods. Mitigation: scale trainers from 10x8 to 16x8 or 20x8, or subsample data.",
+    "owner": "Hao Sha / mrs_online_training",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-06/2026-06-03-W1336024098492333.md"
+  },
+  {
+   "id": "W1342215704539839",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "[Action needed] OT job for ig_textpost_feed_u2m_retrieval become zombie - need manual kill and patch the diff",
+    "signal_class": "mrs_online_training",
+    "body": "OT job mvai-training-online-2124793203 stuck — training QPS has been at 0 since 09:39. Job shows RUNNING in MAST but is no longer training. A worker hit a CUDACachingAllocator assertion error; MAST shows no new attempt created despite 100 retries available."
+   },
+   "ground_truth": {
+    "root_cause": "P61: CUDACachingAllocator assertion error on one worker → ChildFailedError raised to light.py main() → pre-D98638473 base layer (light_cli:5308, upstream 2026-05-02) has no clean exit path → falls through to threading._shutdown() → NCCL communicator threads join-block forever → MAST never retries. Same root as S665454 and S670887.",
+    "owner": "Denny Zhang / mrs_online_training",
+    "p_row": "P61",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-06/2026-06-03-W1342215704539839.md"
+  },
+  {
+   "id": "W1337733828321360",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "ACL access to convert ephemeral app-layer package",
+    "signal_class": "mrs_online_training",
+    "body": "msgr_eng_product_intelligence_temp and videorecs_reels_private_sharing oncalls need ACL access to execute a command to commit in the relevant code path and preserve an ephemeral app-layer package. Currently blocked from completing this step."
+   },
+   "ground_truth": {
+    "root_cause": "ACL access not provisioned for the two oncalls to commit in the relevant code path and preserve an ephemeral app-layer package. Oncall (Paul Lu) created and approved ACL tasks T273490223 and T273490053 via MVAI within ~13 minutes.",
+    "owner": "Adhi Ravichandran / mrs_online_training",
+    "p_row": "none",
+    "verdict": "NO_ACTION",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-29-W1337733828321360.md"
+  },
+  {
+   "id": "W1332046782223398",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "Threads U2M retrieval trainer stuck 14 hours — no alert fired",
+    "signal_class": "mrs_online_training",
+    "body": "Model 2124122280 (ig_textpost_feed_u2m_retrieval) trainer hung May 16 04:01 PDT. MAST reported RUNNING, QPS was zero. No alert fired for 14h 9m (last metric sample 04:00:48, next 18:10:23). Manually killed 13 hours later. SJD checks if process is alive, not if it is training."
+   },
+   "ground_truth": {
+    "root_cause": "Bug in mvai/light_cli elastic agent: trainer process alive at OS level but Python interpreter stopped progressing; SJD-invisible because SJD checks liveness not training activity. Root cause: elastic agent failed to propagate a non-zero exit code, so SJD did not detect job as stuck. Fix: D98638473.",
+    "owner": "Denny Zhang / mrs_online_training",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-29-W1332046782223398.md"
+  },
+  {
+   "id": "W1332798372148239",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "~280 non-actionable example-age dips with UBN/SEV risk per half — planned DPP restarts",
+    "signal_class": "mrs_online_training",
+    "body": "Every ~20 days, DPP automatically restarts each OT job's data session. During the restart, training pauses for a few minutes and example age spikes — often enough to fire UBN/SEV alerts across all OT models. ~280 non-actionable dips per half across 50+ models. Log signature: 'Session <ID> has been running for <N> seconds which is higher than limit: 1728000 seconds. Triggering a new attempt. NOTE: This restart is necessary to prevent the session from running in bad state.'"
+   },
+   "ground_truth": {
+    "root_cause": "DPP data session TTL of 1728000 seconds (~20 days) expires; DPP automatically restarts each OT job's data session, causing training pause and example age spike. Session restart is necessary per DPP design (Zeus TTL renewal) but lacks a graceful handoff mechanism, generating ~280 non-actionable oncall events per half.",
+    "owner": "Denny Zhang / mrs_online_training",
+    "p_row": "none",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-28-W1332798372148239.md"
+  },
+  {
+   "id": "W1332867342141342",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "FBR IFU I2I model 2132070936 missing FULL_SNAPSHOT 8+ hours — reranker model 2125081901 hung since 04:27 PDT",
+    "signal_class": "mrs_online_training",
+    "body": "Model 2132070936 (facebook_reels_ifu_i2i, PROD) has not published a FULL_SNAPSHOT for 8+ hours. Upstream reranker model 2125081901 is hung: MAST reports RUNNING but last mvai_metrics sample was 04:27 PDT, checkpoint 609 stuck in CREATING (size=0) since 04:29 PDT. Process appears alive at OS level — will not self-recover. Downstream T2I update service blocked."
+   },
+   "ground_truth": {
+    "root_cause": "Rank 7 of reranker job mvai-training-online-2125081901 hit SIGSEGV in C++ (ServiceRouter stats callback). Elastic agent detected crash but entered D-state (disk sleep / uninterruptible wait) blocked waiting for other ranks to exit cleanly. Zombie job occupied MAST slot indefinitely; downstream 2132070936 FULL_SNAPSHOT blocked for ~28h. Elastic-agent hang (not Python GIL freeze). Mitigated by manual kill; SEV S667567 filed and mitigated.",
+    "owner": "Denny Zhang / mrs_online_training",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.85
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-25-W1332867342141342.md"
+  },
+  {
+   "id": "W1324845696276840",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "Need Help Understanding 0 QPS for Reels models during S660017/S660220 (May 6)",
+    "signal_class": "mrs_online_training",
+    "body": "During S660017 (ZippyDB) / S660220 (Scribe data loss) on May 6, STUS models 2131554922, 877766818, 877767096 had 0 QPS for ~7 hours despite training jobs continuing to run. No new snapshots published, freshness violations resulted. In-trainer MVAI model 877546696 was NOT affected. Asking why only STUS models were impacted."
+   },
+   "ground_truth": {
+    "root_cause": "P50: SilverTorch STUS models use the GMPP publisher path (Scribe → ZippyDB for metadata), which was blocked during S660017/S660220. In-trainer MVAI models write directly to model store, bypassing GMPP/Scribe, so they were unaffected. The differential impact is a known architectural vulnerability (P50).",
+    "owner": "Siyuan Zhu / mrs_online_training",
+    "p_row": "P50",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-23-W1324845696276840.md"
+  },
+  {
+   "id": "W1326387856122624",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "OT Job logged an error at 11pm, job did not clean up and hung for 11 hours",
+    "signal_class": "mrs_online_training",
+    "body": "MAST job mvai-training-online-2123154171 version 0 attempt 0 logged a failure at 11pm but did not clean up, stalling and logging noise until manually killed 11 hours later. SJD did not detect it as stuck. Issue recurred on mvai-training-online-2123153585. SEV S665478 filed."
+   },
+   "ground_truth": {
+    "root_cause": "Elastic agent error handling issue: when the job errored, the elastic agent failed to propagate a non-zero exit code, so SJD did not detect the job as stuck and kill it. Job silently hung logging noise rather than cleaning up. Root cause per Li Lu's analysis P2338625112 — related to P21 elastic agent exit handling.",
+    "owner": "Max Kaplan / mrs_online_training",
+    "p_row": "P21",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.4
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-23-W1326387856122624.md"
+  },
+  {
+   "id": "W1321547686606641",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "Run into two inconsistent metrics for training example age",
+    "signal_class": "mrs_online_training",
+    "body": "Oncall received UBN alert for high training example age on facebook_reels_vdd_hstu_v0 (model 877766932). Two metrics disagree: mvai Scuba shows ~3000 minutes, MAST ODS shows ~2.5 minutes. Alert link: fburl.com/monitoring/dharnxt7. Unclear which metric to trust and why the discrepancy exists."
+   },
+   "ground_truth": {
+    "root_cause": "checkpoint_training_data_age_mins derived column fires false positive for OT jobs due to two formula bugs: (1) timezone mismatch — metric_value (UTC) vs train_end_ts after -7h shift via TIME_ZONE_CONVERTER injects systematic error (known bug D75703936); (2) wrong scope — alert designed for recurring training workflows, not OT; train_end_ts is hour-aligned via _resolve_ts_now() for OT, making the derived column architecturally wrong. ODS dpp_worker.scribe_example_age_ms.avg.60 (~2.5 min) is the correct ground truth.",
+    "owner": "Denny Zhang / mrs_online_training",
+    "p_row": "none",
+    "verdict": "DETECTOR_BROKEN",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-17-W1321547686606641.md"
+  },
+  {
+   "id": "W1324864999608243",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "OT Not Creating New Checkpoints + OP Not Creating New Snapshots",
+    "signal_class": "mrs_online_training",
+    "body": "Two Threads M2M models with OT issues: (1) UserLCE reranker (2124038092): RUNNING but checkpoint age 121h+ (last checkpoint 2026-05-08). (2) VelV reranker (2124047632): RUNNING, checkpoint age ~13h. Consistent failure across 2 regions and 9 restart versions over 21h. GetDataTimeoutError after 6000s. Manually killing and restarting does not resolve."
+   },
+   "ground_truth": {
+    "root_cause": "_preload_item_pool() in ig_retrieval/trainer.py blocks the DPP consumer thread during checkpoint loading startup. DPP workers fill output queues while trainer blocks on item pool loading → GetDataTimeoutError after 6000s timeout → crash loop. Model code bug (not infra). Reproducible across 2 regions and 9 restart attempts over 21h.",
+    "owner": "Rudra Barua / mrs_online_training",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.4
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-17-W1324864999608243.md"
+  },
+  {
+   "id": "W1326836659411077",
+   "type": "post",
+   "level": "unknown",
+   "input": {
+    "title": "The starcart of the online training job did not automatically start the job",
+    "signal_class": "mrs_online_training",
+    "body": "OT job for model 2124118880 (ig_reels_tab_mtml) did not restart after starcart diff was landed. Job status shows online_ready. Model owner manually restarted as workaround; manual restart now shows RUNNING."
+   },
+   "ground_truth": {
+    "root_cause": "Model 2124118880 was in ADHOC tier; OT starcart automation only triggers auto-start for models promoted to PROD tier. When starcart diff landed, automation silently skipped OT job creation because ADHOC models are out of scope. Model status showing online_ready misled the owner.",
+    "owner": "Renqin Cai / ig_reels_tab_mtml",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.5
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-posts/2026-05/2026-05-16-W1326836659411077.md"
+  },
+  {
+   "id": "ALERT-1011200521237714-2026-05-18",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "THRESHOLD_MISFIT — Scuba formula bug: timezone mismatch (D75703936) + wrong scope for _resolve_ts_now() produces false-high staleness for OT jobs. Model healthy (MAST RUNNING 11+ days, publishing every 45 min). 2nd recurrence of CL-013 false spike on same model, D75703936 fix still open.",
+    "p_row": "CL-013",
+    "owner": "",
+    "verdict": "NO_ACTION",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "checkpoint_training_data_age_mins: ~3000 min staleness for facebook_reels_vdd_hstu_v0 877766932 (2nd recurrence 2026-05-18)",
+    "signal_class": "checkpoint_training_data_age_mins",
+    "body": "ALERT-1011200521237714 fired showing ~3000 min staleness for facebook_reels_vdd_hstu_v0 model 877766932. MAST ODS actual data age ~2.5 min. Model RUNNING 11+ days, publishing every 45 min. 2nd recurrence (prior: 2026-05-09 W1321547686606641). D75703936 formula fix not yet landed."
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-alerts/2026-05/ALERT-1011200521237714-2026-05-18.md"
+  },
+  {
+   "id": "ALERT-1011200521237714-2026-05-22",
+   "type": "alert",
+   "level": "unknown",
+   "ground_truth": {
+    "root_cause": "DETECTOR_BROKEN — formula bug D75703936 fires false-positive after OT trainer restart/hardware preemption. train_end_ts resets on restart, causing timezone mismatch + _resolve_ts_now() scoping to produce transient false-high staleness. Trainer alive and publishing normally post-restart. Model: facebook_reels_vdd_hstu_v0 877766932.",
+    "p_row": "CL-013",
+    "owner": "",
+    "verdict": "NO_ACTION",
+    "confidence": "high"
+   },
+   "input": {
+    "title": "checkpoint_training_data_age_mins: facebook_reels_vdd_hstu_v0 877766932 false spike after hardware maintenance preemption restart",
+    "signal_class": "checkpoint_training_data_age_mins",
+    "body": "OneDetection ALERT-1011200521237714 fired for facebook_reels_vdd_hstu_v0 (model 877766932). Trainer restarted at ~18:14 PDT due to hardware maintenance preemption. Trainer alive at 03:40 PT and publishing snapshots normally. Scuba checkpoint_training_data_age_mins shows abnormal staleness post-restart despite healthy ODS metrics."
+   },
+   "eligible": true,
+   "added": "2026-06-12",
+   "source": "incidents/resolved-alerts/2026-05/ALERT-1011200521237714-2026-05-22.md"
+  },
+  {
+   "id": "S674371",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S674371 — Reels snapshot MSV calibration regression",
+    "signal_class": "mrs_online_training",
+    "body": "MSV validation blocked and banned snapshot 41259 of ig_reels_tab_mtml model 2133008573; CLIPS_PPROFILE_VISIT calibration observed 1.1025 vs. upper bound 1.1000 (breach); snapshot blocked for ~21.5h (created 2026-06-10 14:16 PT). Concurrent incident S674251 (scribe lag, separate)."
+   },
+   "ground_truth": {
+    "root_cause": "Snapshot-specific NE regression in model 2133008573, isolated to snapshot 41259; transient model quality deviation not seen on prod_refresh; MSV async/blocking correctly quarantined the snapshot before serving impact",
+    "owner": "unknown",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.7
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/SEV-S674371-2026-06-11.md"
+  },
+  {
+   "id": "S674219",
+   "type": "sev",
+   "level": "L2",
+   "input": {
+    "title": "S674219 — DPP OT ingress 75% regression (EAG scribe drain)",
+    "signal_class": "mrs_online_training",
+    "body": "~638 DPP Online Training jobs impacted by 75% ingress regression; OT models fleet-wide starved of training data, jobs hung near-zero QPS for ~1h45m (11:52-13:46 PT). Paged jiaweihuang / haoyuwu. Sibling incident S674228 (IG Reels OT hang) also reported."
+   },
+   "ground_truth": {
+    "root_cause": "EAG/DR scribe drain depleted DPP ingress capacity; Online Training Scribe reads routing through drained EAG tier caused ~75% drop across all OT jobs sharing the infrastructure",
+    "owner": "jiaweihuang",
+    "p_row": "P16",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": 0.9
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/SEV-S674219-2026-06-10.md"
+  },
+  {
+   "id": "S674228",
+   "type": "sev",
+   "level": "L2",
+   "input": {
+    "title": "S674228 — All IG Reels OT job hang including LSR prod and MB9 launch candidate",
+    "signal_class": "mrs_online_training",
+    "body": "All IG Reels OT jobs hung (including LSR prod and MB9 launch candidate); QPS near zero; opened 2026-06-10 12:01 UTC; models mvai-training-online-2121411048 and mvai-training-online-2120795087 affected. Duration ~43 min before mitigation."
+   },
+   "ground_truth": {
+    "root_cause": "Upstream EAG/DR scribe drain (S674219) caused ~75% DPP ingress drop fleet-wide; IG Reels OT jobs lost data feed and stalled; P16 (DPP starvation via scribe drain); merged into parent S674219",
+    "owner": "jiaweihuang",
+    "p_row": "P16",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": 0.8
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/L2-2026-06-10-S674228.md"
+  },
+  {
+   "id": "S673727",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S673727 — HSTU m2133571457 snapshot transition delay 42h",
+    "signal_class": "mrs_online_training",
+    "body": "HSTU feed retrieval model m2133571457 (QE) experiencing ~42h snapshot gap during transition; SPARSE_DELTA publishing stalled; model freshness degraded for the transition window. Parent incident S668089 (feed retrieval HSTU QE model deployment) also tracked."
+   },
+   "ground_truth": {
+    "root_cause": "HSTU model deployment transition delay; checkpoint/snapshot publication flow stalled during model entity ID transition (tracked in parent incident S668089)",
+    "owner": "unknown",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.6
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/SEV-S673727-2026-06-10.md"
+  },
+  {
+   "id": "S673791",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S673791 — FBR UDD Preranker Cogwheel Test build failure",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "mvai/fire-app-fbr-preranker trunk conveyor blocked at Cogwheel Test for 14.1h (Jun 9 11:19 to Jun 10 01:26 PT); build failed on multiple revisions (R4007.2/R4015.1/R4018.1); no user-facing impact (conveyor gates code iteration only)."
+   },
+   "ground_truth": {
+    "root_cause": "Transient Sandcastle/fbpkg/Buck build-environment failure; could not build cogwheel_fbr_vdd_cape_v0_test_harness (Buck exit code 3, protoc-gen-mypy materialization); multisect inconclusive, no culprit diff found; self-resolved on R4022.1",
+    "owner": "trevormathisen",
+    "p_row": "none",
+    "verdict": "UPSTREAM_INFRA",
+    "confidence": 0.65
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/SEV-S673791-2026-06-10.md"
+  },
+  {
+   "id": "S673569",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S673569 — video_ifu_lsr OT pipeline double-blocked",
+    "signal_class": "mrs_online_training",
+    "body": "video_ifu_lsr online training/publish pipeline blocked by two simultaneous code failures: train unit test DynamicComputeWrapper.forward() missing creator_ids kwarg AND cogwheel online_train_publish KeyError on 'shorts_ifu_click_label_tmp'. Both failures hit concurrently, preventing OT runs from completing."
+   },
+   "ground_truth": {
+    "root_cause": "Dual code regression: (1) kwarg mismatch in DynamicComputeWrapper.forward() signature (creator_ids param absent); (2) missing key 'shorts_ifu_click_label_tmp' in cogwheel publish config; two unrelated breakages landing in the same window",
+    "owner": "vrahangdale",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.7
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/SEV-S673569-2026-06-10.md"
+  },
+  {
+   "id": "S674096",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S674096 — light_cli_amd fbpkg build blocked by FAISS clang21 Werror",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "mvai/light_cli conveyor blocked at fbpkg build step for light_cli_amd variant; no new trunk releases shipping; model freshness degrading across mrs_ml_release_oncall-owned models."
+   },
+   "ground_truth": {
+    "root_cause": "D107891160 set llvm-fb=21/mlir-fb=21 in fbcode/minimal_viable_ai/fire/PACKAGE, switching light_cli_amd to clang21; clang21 exposed FAISS hipGetLastError as unresolved symbol under -Werror, breaking the AMD build",
+    "owner": "unknown",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.85
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/SEV-S674096-2026-06-10.md"
+  },
+  {
+   "id": "S670344",
+   "type": "sev",
+   "level": "L3",
+   "input": {
+    "title": "S670344 — Reels LSR MB9 HH Publish timeouts and publish failures on OT job",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "Reels LSR MB9 (ig_reels_lsr_mb9, model 2122074057) OT/publish pipeline blocked by HH Publish timeouts on AMD OT jobs (C7, C8, C16, C17) and OOMs (C5, C7, C8); 9-day incident (2026-06-01 to 2026-06-10). NCCL timeouts also observed on 2026-06-08. Model snapshot DB failure reported: 'Cannot commit invalid transaction. Connection to SQL not yet established.'"
+   },
+   "ground_truth": {
+    "root_cause": "Multi-component failure: (1) HH Publish timeout on AMD OT jobs fixed via D107262558/D107287775; (2) TorchRec INT32 overflow causing publish failures; (3) UMM SQL connection failure on 2026-06-08 from AMS bad change, reverted by ai_metadata oncall (tracked in S673089)",
+    "owner": "rehmankhann",
+    "p_row": "P02",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.65
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/L3-2026-06-10-S670344.md"
+  },
+  {
+   "id": "S673102",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S673102 — LSR prod 4366 online training QPS drop to 0",
+    "signal_class": "mrs_online_training",
+    "body": "LSR prod model 4366 online training QPS fell to 0 across 2 consecutive MAST failures; model dark from ~09:00 to 11:07 PT (~1.5h total impact); two sequential MAST job failures before auto-restart at Attempt 2."
+   },
+   "ground_truth": {
+    "root_cause": "Attempt 0: Boxcar maintenance preemption (hardware); Attempt 1: NCCL watchdog collective timeout on REDUCE_SCATTER_BASE (timeout 3582s); MAST auto-restarted at Attempt 2 and training recovered",
+    "owner": "unknown",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.75
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/SEV-S673102-2026-06-08.md"
+  },
+  {
+   "id": "S654102",
+   "type": "sev",
+   "level": "L3",
+   "input": {
+    "title": "S654102 — IG Reels OmniUV refresh model Online Training frequently crashes in recent code trunk",
+    "signal_class": "mrs_online_training",
+    "body": "IG Reels OmniUV refresh OT job (model 2130806697, mvai-training-online-2130806697) experiencing frequent crashes starting ~2026-04-23; QUEUE_LAG dogpile pattern observed in logs; SIGTERM/SIGUSR2 signals causing job termination; sparse streaming active on model."
+   },
+   "ground_truth": {
+    "root_cause": "Dual cause: (1) PublishRateLimiter.max_publishing_rate=2097152 bytes/sec insufficient for 100% sparse embedding delta volume on high-cardinality model; QUEUE_LAG dogpile triggers Manifold teardown and crash (P60 match); (2) D100840142 disabled PyTorch Kineto SIGUSR2 handler fleet-wide (~2026-04-14), making SIGUSR2 signals fatal instead of soft-recovery (compounding S654768)",
+    "owner": "shuyaoli",
+    "p_row": "P60",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.65
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/L3-2026-06-05-S654102.md"
+  },
+  {
+   "id": "S672220",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S672220 — light_fire_qps_test cutlass PT2 codegen regression",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "mvai/light_cli conveyor blocked for ~79 min at cogwheel test step; every train-based cogwheel node crashing with ChildFailedError; no new trunk releases shipping, model freshness degrading across MVAI fleet during window."
+   },
+   "ground_truth": {
+    "root_cause": "D107387912 bumped nvidia-cutlass-dsl to 4.5.2 in the light_cli base layer; PT2/Inductor codegen emitted unresolvable symbol for the quack RMSNorm kernel (RuntimeError: cutlass__launch_...) causing every train-based cogwheel node to crash; fix: D107604964 reverted D107387912",
+    "owner": "unknown",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.9
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-06/SEV-S672220-2026-06-04.md"
+  },
+  {
+   "id": "S668293",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S668293 — cogwheel_ifr_mtml_trunk_metrics_test lowering failure (HSTU/triton_aot regression)",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "cogwheel pipeline for mvai_ifr_main BLOCKED: AttributeError during torch_package deserialization of hammer.v2.modules.hstu_cint (R10045) in online_train_publish; directly caused S669904 (IFR missing full snapshots ~9.3h) and blocked MC12 launch."
+   },
+   "ground_truth": {
+    "root_cause": "HSTU/triton_aot diffs rFBS79a759bb..rFBS22b84420 broke lowering packages (CONVEYOR_REGRESSION); NoneType __dict__ deserialization error = package version mismatch post-lowering diff land",
+    "owner": "andrewxmao",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.85
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-05/SEV-S668293-2026-05-30.md"
+  },
+  {
+   "id": "S669904",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S669904 — facebook_ifr_main_mtml_main missing full snapshots",
+    "signal_class": "mrs_online_training",
+    "body": "IFR T1 MTML prod model 2125752019 (facebook_ifr_main_mtml_main) had 0 FULL_SNAPSHOT for ~9.3h (2026-05-30 00:48 to 10:04 PT); SPARSE/DENSE_DELTA continued publishing; MC12 launch (S663840) blocked. Prior preemption by disco_oneflow_qe (PL=70>60) also noted in the window."
+   },
+   "ground_truth": {
+    "root_cause": "cogwheel_ifr_mtml_trunk_metrics_test lowering failure; AttributeError: NoneType has no __dict__ during torch_package deserialization of hammer.v2.modules.hstu_cint (R10045) blocked online_train_publish; root cause SEV S668293",
+    "owner": "andrewxmao",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.9
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-05/SEV-S669904-2026-05-30.md"
+  },
+  {
+   "id": "S669835",
+   "type": "sev",
+   "level": "unknown",
+   "input": {
+    "title": "S669835 — MAST job name overflow from D106703103 -train injection",
+    "signal_class": "mvai_publish_pipeline",
+    "body": "2 OT training jobs blocked ~17h 19min (2026-05-29 16:43 to 2026-05-30 10:02 PDT): mvai/light_cli_qps (R39769+ stalled) and model_e2e/ifr_umia_v1 (R1019+ stalled); both exceeded MAST's 76-char job name limit."
+   },
+   "ground_truth": {
+    "root_cause": "D106703103 injected -train suffix into all MAST training job names, pushing names past the 76-char MAST limit; longer oncall path (feed_recommendation_retrieval_modeling) caused ifr_umia_v1 to reach 79 chars",
+    "owner": "unknown",
+    "p_row": "none",
+    "verdict": "REAL_OT_FAILURE",
+    "confidence": 0.9
+   },
+   "eligible": true,
+   "added": "2026-06-14",
+   "source": "incidents/resolved-sevs/2026-05/SEV-S669835-2026-05-30.md"
+  }
+ ]
+}

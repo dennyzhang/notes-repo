@@ -118,7 +118,7 @@ The markdown file is the source of truth. The Google Doc is the collaboration co
 
 ## Quality Bar
 
-Scoring rubric (5 dimensions, 0-2 points each, 10 total) is in `references/deep-research-scoring.md`. Load on demand when scoring reports.
+Scoring rubric (5 dimensions, 0-2 points each, 10 total) is in `research/deep-research-scoring.md`. Load on demand when scoring reports.
 
 **Mandatory quality gates (5 gates — append results as `## Quality Gate` section to every artifact):**
 
@@ -244,4 +244,6 @@ Specific errors from the research quality audit (2026-03-29, 10 docs scored).
 ## See Also
 
 - **area monitor gdoc** (see CLAUDE.md Daily Docs) — for scanning leadership priorities (different: scans people, not topics)
-- `cheatsheet-doc-analysis.md` — for analyzing a specific document in depth
+- `research/doc-analysis.md` — for analyzing a specific document in depth
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

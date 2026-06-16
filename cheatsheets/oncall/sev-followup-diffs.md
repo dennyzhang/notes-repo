@@ -203,3 +203,5 @@ following memory entries informed this file:
 - `feedback_run_presubmit_gate_on_own_diffs.md`
 - `feedback_pull_wrapped_exception_first.md`
 - `feedback_diff_review_breadth_depth.md`
+
+_Last updated: 2026-05-12. Maintainer: dennyzhang._

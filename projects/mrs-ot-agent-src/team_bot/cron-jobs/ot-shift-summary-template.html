@@ -17,10 +17,43 @@
   - MID-SHIFT mode (invoked off-cycle, current-week tab already exists): header
     "{{DATE_RANGE}} (mid-shift, <day> ~HH:MM PT)", framing "Active oncall: <name>",
     scope to current shift only (Tue->now). NOT outgoing/incoming handover framing.
-  - "🚨 Critical alerts (paged / robocalled this shift)" section goes FIRST, before
-    Overview. Lists every SEV/alert that robocalled or paged a human this shift,
+  - MID-SHIFT FONT CONSISTENCY (comment AAAB863EMYM 2026-06-06 "the font it bad. why it's
+    not consistent with previous dates?"): when appending a new Daily Timeline day via
+    `gdocs content insert-html --after-heading`, the new `<li>` items INHERIT the paragraph
+    style at the insert point and can come in as HEADING_3 (14pt) instead of NORMAL_TEXT
+    (11pt) — mismatching prior dates. Day-heading = <h4>; day body = <ul><li> that MUST
+    render NORMAL_TEXT 11pt (mirror the most-recent existing date section). POST-INSERT,
+    get-structure and fix any HEADING_3 <li> back to NORMAL_TEXT via batch-update
+    updateParagraphStyle (see cron prompt "FONT-CONSISTENCY RULE").
+  - REQUIRED-FILL MARKER (comment AAAB863EMYQ 2026-06-06 "make this required human input
+    more obviously"): EVERY human-judgment field (Difficulty/Hours, Impact, Pain Points,
+    Systemic Issues, Tasks, Adhoc Ask, SLICK fallback) renders with a bold-red
+    `<span style="color:#CC0000"><b>⚠️ REQUIRED — oncall fill:</b></span>` prefix — NEVER a
+    bare `TODO (oncall):`. Applies to BOTH the full-template and mid-shift render paths.
+  - NEEDS-A-HUMAN ITEMS MUST BE LOUD + SPELL OUT THE HUMAN-ONLY ACTION (operator comment AAAB889DKNQ
+    2026-06-07 on the ifu_i2i NEEDS-YOU line: "if this needs human input, we should make it more
+    obvious. and what part really needs human?"). The REQUIRED-FILL marker above is for blank FIELDS
+    to fill; THIS is for OPEN ITEMS the bot is tracking but cannot resolve itself (NEEDS-YOU /
+    🚨 CRITICAL-active / anything stalled). For each such item render BOTH:
+      (a) the bold-red `<span style="color:#CC0000"><b>⚠️ NEEDS ONCALL:</b></span>` prefix, and
+      (b) an explicit `needs: <the specific action only a human can take>` clause — because the bot is
+          READ-ONLY on SEVs/alerts/pages (CLAUDE.md), the human-only action is usually one of: file a
+          SEV, escalate to the shared-infra owner (e.g. ZippyDB/Scribe team for ifu_i2i), or page.
+    BAD: "NEEDS-YOU (open): ifu_i2i FULL_SNAPSHOT — 15+ missed cycles, …; No SEV filed; bot-tracking."
+    GOOD: "⚠️ NEEDS ONCALL: ifu_i2i FULL_SNAPSHOT stalled 3 days (15+ missed cycles). needs: decide
+      file-a-SEV + page ZippyDB/Scribe shared-infra owner, or keep bot-tracking — bot can't file/page."
+    A NEEDS-YOU/CRITICAL line WITHOUT a `needs:` clause is incomplete (validator check #17).
+  - "🚨 SEVs and Alerts Oncall Got Paged" section (renamed from "Critical alerts
+    (paged / robocalled this shift)" per operator comment AAAB85kcNFw 2026-06-06) goes
+    FIRST, before Overview. Lists every SEV/alert that robocalled or paged a human this shift,
     one line each with link + who-paged + outcome. (operator KEEP request 2026-05-29.)
-  - Shift character is a bold paragraph after the active-oncall line (2 sentences max)
+  - ALSO list page-eligible MAJOR alerts here, not only the ones that robocalled
+    (comment AAAB8zSlyDY 2026-06-03 "Also list major alerts as they will call oncall").
+    Render as a 'Major alerts (page-eligible)' sub-bullet under the robocall list: one
+    line per alert (model + symptom + outcome + resolvable onedetection link), from
+    `meta monitoring.alert list --oncall=mrs_online_training --urgency-is=CRITICAL,MAJOR`
+    + alert-monitor state. These CAN page the oncall even when no human was robocalled.
+  - Shift character is a NORMAL-TEXT paragraph after the active-oncall line (2 sentences max); bold ONLY key terms (e.g. the HIGH-TOUCH count) — NOT the whole paragraph (operator AAAB889DKBk 2026-06-07: a fully-bold summary is a bold wall / RULE 82).
   - SEVs filed by oncall / robocalled go FIRST in HIGH-TOUCH list
   - Observe-only SEVs: category counts + inline IDs, one line
   - Trunk-health SEVs (mrs_ml_release_oncall-owned): one-line footnote or omit; never headline
@@ -30,6 +63,14 @@
     that fired that day (from `meta monitoring.alert list --oncall=mrs_online_training --urgency-is=CRITICAL,MAJOR`
     + alert-monitor state), one line w/ resolvable onedetection link + model + outcome. The 🚨 Critical
     alerts section is page/robocall-only; the timeline carries the broader major-alert firing history.
+  - DAILY TIMELINE MUST INCLUDE USER/WP POST ACTIVITY, not only SEVs/alerts (comment AAAB8zSlyDU
+    2026-06-03 "Why user post is missing?"). BUT no duplication (comment AAAB81zHo3Q 2026-06-04
+    "why duplicate rows?"): a WP post AUTHORED during the shift → one timeline line on its authored
+    day; a post only RESOLVED this shift (authored pre-shift) belongs in the Overview "WP user
+    reports" summary ONLY — do NOT also put it in the timeline. Never list the same post in both
+    Overview and Timeline. Timeline post line = author + ≤8-word topic, with the LINK ON THE TOPIC
+    TEXT (never a bare W### — saves space, comment AAAB81zHo3Q). Source: ot-post-monitor archives +
+    post-postmortem digest.
   - DAILY TIMELINE DAY WINDOW = Tue (shift start) → now. DROP any pre-shift (pre-Tue) day entirely
     (comment AAAB8p7d1wc 2026-06-01: 5/25 Mon was a pre-shift day and must not render).
   - WEEKDAY LABELS MUST BE COMPUTED FROM THE DATE, never hand-typed (comment AAAB8p7d1wc: 5/25 was
@@ -49,6 +90,22 @@
       · S### → https://www.internalfb.com/sevmanager/view/<numeric>   (no S prefix in path)
       · A### / alerts → onedetection resolvable url from `meta monitoring.alert metadata --alert-id=<key> -o json` (.url);
         NEVER sevmanager for an alert. The url is a long onedetection?alert_id=<urlencoded-key> form — that is correct.
+      · ALERTS REFERENCED BY MODEL-ID MUST ALSO BE LINKED (operator comment AAAB889DKRQ 2026-06-07 "why alerts
+        don't have link attached?"). Publishing-stability / FULL_SNAPSHOT / SPARSE_DELTA alerts are written as
+        "<model_name> <model_id> <ALERT_TYPE>" (e.g. "facebook_reels_ifu_i2i 2132070936 FULL_SNAPSHOT") — the bare
+        <model_id> is NOT auto-linkified and was shipping bare. Wrap the <model_id> TOKEN (RULE 84, critical token
+        only) with the alert's resolvable .url: find the alert in `meta monitoring.alert list --oncall=mrs_online_training -l 300 -o json`
+        (match the model_id inside alert_id), then `meta monitoring.alert metadata --alert-id=<full_alert_id> -o json` → .url.
+        ⚠️ ROOT CAUSE / DURABLE FIX: a CLEARED alert falls off the feed window, so its url cannot be resolved
+        retroactively at render time (2132537419, 878102693 this shift were unresolvable for exactly this reason).
+        Therefore `ot-alert-monitor` MUST capture each alert's resolvable .url into its state at detection time, and the
+        shift render reads the captured url. If a model-id alert url genuinely cannot be resolved, leave the id bare
+        (do NOT fabricate an alert_id/created_time — broken-link rule) and note "(alert cleared; url unavailable)".
+      · NEVER substitute a SLICK group-dashboard link for an alert link on an alert line (operator AAAB889DKRQ
+        follow-up 2026-06-07 "why slick link, instead of alert link?"). A "Discovery/Instagram SLI dashboard"
+        (fburl.com/monitoring/...) is a GROUP dashboard, not the alert — it belongs ONLY in the OT Topline Metrics
+        section (group SLO health), never as the clickable on a CRITICAL / NEEDS-YOU / alert reference line. An alert
+        line gets the resolvable per-alert onedetection url on its model-id token, or stays bare — not a SLICK fallback.
       · W### → fb.workplace.com/groups/mrs.ot/permalink/<id>/  (numeric-group permalink)
       · D### → https://www.internalfb.com/diff/D<num>  ·  T### → https://www.internalfb.com/tasks/?t=<num>
     Pre-push audit: regex-scan the rendered ghtml for [SAWDT]\d{6,} and assert each is inside an <a href>.
@@ -72,12 +129,32 @@
      GOOD: "Heavy week — 23 SEVs (5 HIGH-TOUCH), dominated by zombie job pattern and DPP restart. Three conveyor failures unresolved."
      Rule: no diff numbers, no pattern IDs, no technical jargon. Those go in the timeline. -->
 
-<h3>🚨 Critical alerts (paged / robocalled this shift)</h3>
-<!-- One <li> per SEV/alert that robocalled or paged a HUMAN this shift: link + who-was-paged + outcome.
+<h3>🚨 SEVs and Alerts Oncall Got Paged</h3>
+<!-- SECTION NAME is "🚨 SEVs and Alerts Oncall Got Paged" (operator rename comment AAAB85kcNFw 2026-06-06, was "Critical alerts (paged / robocalled this shift)").
+     One <li> per SEV/alert that robocalled or paged a HUMAN this shift: link + who-was-paged + outcome. DEDUP: never emit two near-identical page-eligible bullets (operator AAAB889DKFY). PLAIN LANGUAGE: write "Page-eligible alerts (would page the oncall on breach, but none robocalled a human this shift)", NOT the jargon "page-eligible, no human robocall" (operator AAAB889DKFY "what does this mean?").
+     GRAMMAR (operator comment AAAB85kcNFs 2026-06-06 "the english gramma is wrong"): the page-eligible sub-bullet sentence MUST read "These alerts page mrs_online_training on breach" — NEVER the subjectless "These page mrs_online_training on breach".
      Detection: sevmanager auto_detected + page tag; oncall.feed; pagerduty. If none this shift, render: <ul><li>None this shift.</li></ul>
      A### alert links MUST use the resolvable url from `meta monitoring.alert metadata --alert-id=<key> -o json` (.url), never bare ?alert_id=<numeric>. -->
 <ul>
 {{CRITICAL_ALERTS}}
+</ul>
+
+<h3>OT Topline Metrics</h3>
+<!-- MOVED UP + RENAMED from "SLICK status" (operator comment AAAB85kcNI0 2026-06-06: "this section shall move up. and rename to OT Topline Metrics"). -->
+<!-- SLICK SLO health for the OT model groups (operator-required 2026-06-01, thread 2aXJCXZ4VY0).
+     Populate per procedure SLICK SLI probe: `meta slick.sli performance -s <service_id> --start-time <e> --end-time <e> -l 500`.
+     🛑 MUST pass `-l 500` (comment AAAB8p7d1vo 2026-06-01 "no, I see some are red"): WITHOUT a high limit the
+     CLI returns only the first ~10 SLIs (default limit) which can ALL read OK by luck → a FALSE "✅ healthy".
+     With -l 500: Discovery=199 SLIs, Instagram=48 SLIs (matches the operator's dashboard). NEVER claim healthy
+     unless the full-roster probe shows ZERO VIOLATION status. service_ids: Discovery=mrs_ml/v1_discovery, Instagram=mrs_ml/v1_instagram.
+     🛑 SKIP TODAY'S RECORDS — end-time = start of TODAY (UTC midnight), NOT now (operator comment AAAB85kcNGM 2026-06-06 "for slick validation, always skip today's records as they are lagging"). Today's freshness/publishing SLIs read as breached because data has not fully landed → false violations. Verified 2026-06-06: incl-today IG=8/49 & Discovery=31/162, but excl-today IG=1/49 & Discovery=7/162 — i.e. ~75-90% of "violations" were today-lag false positives. Compute over [shift_start, today_00:00_UTC].
+     LIST ALL FAILURES per group with model + metric + perf-vs-goal (operator: "list all failures for IG, I want to audit them with you") — group by spatial_bucket (the model); this is an audit list, not just "worst few".
+     Render: ✅ healthy | 🔴 N SLIs breached excl-today (model: <bucket> <metric> <perf> vs <goal>; …) — enumerate each, model-level (RULE 78).
+     Any non-healthy → ALSO a Hand-off item. If a service_id can't be resolved, render the bold-red REQUIRED marker (RULE 61-bis): `<span style="color:#CC0000"><b>⚠️ REQUIRED — oncall fill:</b></span> check SLICK for <group>` — never a bare 'TODO (oncall):', never silently omit. -->
+<!-- Each group name MUST link to its SLICK dashboard (comment AAAB7ndcDo4 "slick dashboard should have link"). INSTAGRAM IS LISTED FIRST (operator comment AAAB85kcNGM 2026-06-06 "change your template: show IG slick first"). -->
+<ul>
+<li><b><a href="https://fburl.com/monitoring/gmdu02yq">Instagram Online Models</a>:</b> {{SLICK_INSTAGRAM}}</li>
+<li><b><a href="https://fburl.com/monitoring/rkhcqpuj">Discovery Online Models</a>:</b> {{SLICK_DISCOVERY}}</li>
 </ul>
 
 <h3>Overview</h3>
@@ -92,33 +169,29 @@
      (comment AAAB8p7d1wE 2026-06-01 "need keywords for the post. Currently mainly username, not helpful").
      Topic keyword = first line of post body via `meta workplace.post content --post-id=<id>` (strip leading
      #, ≤8 words). SKIP prior shift-summary posts (title regex `^Oncall Summary for mrs_online_training`) —
-     do NOT count them toward WP_COUNT. -->
+     do NOT count them toward WP_COUNT.
+     LINK PLACEMENT (comment AAAB81zHo3Q 2026-06-04 "attach post link to title to save space"): the
+     hyperlink goes ON the topic-keyword text — render `<author>: <a href="permalink">topic</a>` — NEVER
+     a separate bare `W###` token beside the title (wastes horizontal space). -->
 <li><b>WP user reports:</b> {{WP_COUNT}} — {{WP_AUTHORS}}</li>
 <li><b>Diffs that fixed a shift SEV:</b> {{DIFF_COUNT}} ({{DIFF_ONCALL}} oncall-authored) <!-- count diffs that fixed ANY shift SEV (any author, from SEV metadata), not just oncall-authored — a bare oncall '0' is misleading (comment AAAB7ndcDqI). --></li>
-<li><b>Difficulty:</b> {{DIFFICULTY}}/5 | <b>Hours:</b> {{HOURS}} | <b>Wakeups:</b> {{WAKEUPS}} | <b>Alert noise:</b> {{NOISE}}/5</li>
+<!-- Shift-load line: RE-ADDED as a BOT PROPOSAL the oncall confirms (operator AAAB889DKNA 2026-06-07 "you used to have a line of shift metrics … bot will make a proposal, then ask oncall to confirm. where is it?"). HISTORY: removed 2026-06-07 (AAAB889DKLg "adds no value") because the OLD version asserted Difficulty/Hours as if FACT — blind guesses. The reconciliation the operator now wants: keep it, but render it explicitly as a bot proposal DERIVED FROM REAL SIGNAL (page count, # manual restarts, # open root-causes) and visibly marked for oncall confirm/correct — NOT asserted, NOT blind. The loud confirm marker is what makes it honest (a proposal, not a claim). RULE 100. -->
+<li><b>Shift load (bot proposal — <span style="color:#CC0000"><b>⚠️ oncall: confirm or correct</b></span>):</b> {{SHIFT_LOAD_PROPOSAL}}</li>
+<!-- FIXED FORMAT (operator AAAB889DKQs 2026-06-07 "need something like this: Difficulty: 4/5 | Hours: 50 | Wakeups: 3 | Alert noise: 3/5 — fix your template and format to make it consistent"):
+     SHIFT_LOAD_PROPOSAL is EXACTLY four pipe-separated fields, in this order, no prose:
+       `Difficulty: {N}/5 | Hours: {N} | Wakeups: {N} | Alert noise: {N}/5`
+     Each is a BOT PROPOSAL the oncall confirms/corrects (the ⚠️ marker is what makes a proposal honest vs a blind claim — reconciles DKLg "no blind guesses" with DKNA "keep the line"). Ground what you can:
+       · Wakeups = count of robocalls/overnight pages that woke a human (from the --escalating ledger, RULE 99) — e.g. S670887 robocall = 1.
+       · Alert noise /5 = scaled from alert-fire volume + recurring-noise share (CL-003/by-design); high recurring noise → 4-5/5.
+       · Difficulty /5 = from manual-intervention count (zombie restarts) + open root-causes.
+       · Hours = best estimate of oncall toil this shift; the most subjective field — propose, oncall corrects.
+     Do NOT revert to prose ("Moderate — N pages…"); the pipe format is the consistent shape. -->
 </ul>
 
-<h3>SLICK status</h3>
-<!-- SLICK SLO health for the OT model groups (operator-required 2026-06-01, thread 2aXJCXZ4VY0).
-     Populate per procedure SLICK SLI probe: `meta slick.sli performance -s <service_id> --start-time <e> --end-time <e> -l 500`.
-     🛑 MUST pass `-l 500` (comment AAAB8p7d1vo 2026-06-01 "no, I see some are red"): WITHOUT a high limit the
-     CLI returns only the first ~10 SLIs (default limit) which can ALL read OK by luck → a FALSE "✅ healthy".
-     With -l 500: Discovery=199 SLIs, Instagram=48 SLIs (matches the operator's dashboard). NEVER claim healthy
-     unless the full-roster probe shows ZERO VIOLATION status. service_ids: Discovery=mrs_ml/v1_discovery, Instagram=mrs_ml/v1_instagram.
-     Render: ✅ healthy | 🔴 N SLIs breached (worst: <sli/bucket> <perf> vs <goal>) — list the worst few, not a count of all.
-     Any non-healthy → ALSO a Hand-off item. If a service_id can't be resolved, render `TODO (oncall): check SLICK for <group>` — never silently omit. -->
-<!-- Each group name MUST link to its SLICK dashboard (comment AAAB7ndcDo4 "slick dashboard should have link"). -->
-<ul>
-<li><b><a href="https://fburl.com/monitoring/rkhcqpuj">Discovery Online Models</a>:</b> {{SLICK_DISCOVERY}}</li>
-<li><b><a href="https://fburl.com/monitoring/gmdu02yq">Instagram Online Models</a>:</b> {{SLICK_INSTAGRAM}}</li>
-</ul>
 
-<h3>Impact this shift</h3>
-<!-- This section requires HUMAN INPUT — the cron cannot generate insights, only facts.
-     Pre-fill with TODO and link to auto-learnings digest as reference.
-     The oncall fills this with outcomes that changed system state. -->
+<h3>Highlights</h3>
+<!-- SPUN OFF from Overview (operator comment AAAB889DKBQ 2026-06-07 "do we need to spin off 'highlights' section?" — YES: Overview = counts only (short/scannable), Highlights = the derived insights). Earlier the Impact bullets were merged INTO Overview (AAAB85kcNI4) which made Overview a wall (AAAB889DKBQ "too lengthy") — the spin-off is the better design. Standing highlights: zombie-job mgmt, OT fleet-health (AAAB85kcNIk), SLICK hygiene (RULE 77), diffs by DISTINCT theme shift-left vs debug-agent (RULE 83), recurring noisy trends (RULE 89). Each highlight = mechanism→benefit (RULE 76); bold ONLY the short lead label (RULE 82); link the critical token only, never a sentence (RULE 84). HUMAN-handoff signal only (RULE 95): bot-autonomous work (debug-agent/tooling diffs, fleet-health mechanics) → ONE italic "Bot-autonomous work (FYI, not handoff)" footnote at the end (count, not list), never headline bullets. NO "what outcomes changed" REQUIRED-fill placeholder here — the highlights ARE the outcomes (AAAB889DKBQ). -->
 <ul>
-<li>TODO (oncall): What outcomes changed the system this shift? Reference: auto-learnings/digests/2026-W{NN}.md</li>
 {{IMPACT_BULLETS}}
 </ul>
 
@@ -127,7 +200,7 @@
      but the oncall must validate and add: proposed fix + CC owner.
      Reference: auto-learnings/noisy-trends.md for trending noisy models. -->
 <ul>
-<li>TODO (oncall): What systemic issues recurred this shift? Check noisy-trends.md for data.</li>
+<!-- Pain Points are BOT-DERIVED, not a human TODO (operator AAAB889DKIQ 2026-06-07 "why this needs human input, instead of automated?"): derive recurring systemic issues from auto-learnings/noisy-trends.md (RULE 89) + SEV/alert recurrence and render directly as {{PAIN_POINTS}}. Do NOT emit a "What systemic issues recurred?" placeholder — the derived bullets ARE the answer. Only genuinely-subjective fields (Difficulty/Hours/qualitative) get the REQUIRED-fill marker (RULE 96). -->
 {{PAIN_POINTS}}
 </ul>
 
@@ -147,6 +220,15 @@
      - Lead with the signal (what/who/outcome), keep each day scannable (1–4 bullets).
      - SEV/WP links: hyperlink the ID TOKEN only (S669486), not the whole sentence; date headings have NO link.
      Source: daily-brief state + GChat bot space + auto-learnings + oncall feed + incidents folder -->
+
+<h3>Local notes (Bot — don't touch it)</h3>
+<!-- OPERATOR-OWNED SECTION (comment AAAB8rj6jVk, 2026-06-02): this is a placeholder for
+     the operator's own running notes. The cron MUST NOT generate or overwrite content here.
+     PRESERVE-FORWARD RULE: on every (re-)render, read the existing 'Local notes (Bot — don't
+     touch it)' block from the CURRENT tab and carry it forward VERBATIM. If the tab has no
+     prior block (brand-new tab), emit just this heading + the empty placeholder below.
+     Never delete, never edit, never auto-fill. -->
+{{LOCAL_NOTES}}
 
 </body>
 </html>

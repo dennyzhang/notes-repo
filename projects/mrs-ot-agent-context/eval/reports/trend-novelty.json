@@ -1,0 +1,147 @@
+{
+ "window": [
+  "2026-05-17",
+  "2026-06-14"
+ ],
+ "window_days": 28,
+ "window_rows": 170,
+ "distinct_signatures": 69,
+ "novel": [
+  {
+   "signature": "mrs_online_training | OTHER | unknown_model",
+   "total": 37,
+   "last_wk": 0,
+   "this_wk": 37,
+   "wow_delta": 37,
+   "reasons": [
+    "RISING(+37 WoW, 0->37)",
+    "1x human-escalated"
+   ],
+   "new_class": false
+  },
+  {
+   "signature": "mrs_online_training | SCRIBE | ig_organic_feed_mtml",
+   "total": 9,
+   "last_wk": 1,
+   "this_wk": 8,
+   "wow_delta": 7,
+   "reasons": [
+    "NEW-class",
+    "RISING(+7 WoW, 1->8)"
+   ],
+   "new_class": true
+  },
+  {
+   "signature": "mrs_online_training | SCRIBE | ig_reels_tab_ss_omni_retrieval",
+   "total": 7,
+   "last_wk": 0,
+   "this_wk": 7,
+   "wow_delta": 7,
+   "reasons": [
+    "NEW-class",
+    "RISING(+7 WoW, 0->7)"
+   ],
+   "new_class": true
+  },
+  {
+   "signature": "mrs_online_training | SPARSE_DELTA | ig_reels_starsearch_t2i_retrieval",
+   "total": 7,
+   "last_wk": 0,
+   "this_wk": 7,
+   "wow_delta": 7,
+   "reasons": [
+    "NEW-class",
+    "RISING(+7 WoW, 0->7)"
+   ],
+   "new_class": true
+  },
+  {
+   "signature": "mrs_online_training | SCRIBE | unknown_model",
+   "total": 7,
+   "last_wk": 0,
+   "this_wk": 7,
+   "wow_delta": 7,
+   "reasons": [
+    "NEW-class",
+    "RISING(+7 WoW, 0->7)"
+   ],
+   "new_class": true
+  },
+  {
+   "signature": "mrs_online_training | SPARSE_DELTA | unknown_model",
+   "total": 5,
+   "last_wk": 0,
+   "this_wk": 5,
+   "wow_delta": 5,
+   "reasons": [
+    "NEW-class",
+    "RISING(+5 WoW, 0->5)"
+   ],
+   "new_class": true
+  },
+  {
+   "signature": "mrs_online_training | SCRIBE | ig_reels_tab_mtml",
+   "total": 4,
+   "last_wk": 0,
+   "this_wk": 4,
+   "wow_delta": 4,
+   "reasons": [
+    "NEW-class",
+    "RISING(+4 WoW, 0->4)"
+   ],
+   "new_class": true
+  },
+  {
+   "signature": "mrs_online_training | FULL_SNAPSHOT | unknown_model",
+   "total": 4,
+   "last_wk": 0,
+   "this_wk": 4,
+   "wow_delta": 4,
+   "reasons": [
+    "NEW-class",
+    "RISING(+4 WoW, 0->4)",
+    "1x human-escalated"
+   ],
+   "new_class": true
+  },
+  {
+   "signature": "mrs_online_training | FULL_SNAPSHOT | ig_reels_tab_vm_esr",
+   "total": 4,
+   "last_wk": 0,
+   "this_wk": 4,
+   "wow_delta": 4,
+   "reasons": [
+    "NEW-class",
+    "RISING(+4 WoW, 0->4)"
+   ],
+   "new_class": true
+  },
+  {
+   "signature": "mrs_online_training | FULL_SNAPSHOT | facebook_reels_vdd_hstu_v0",
+   "total": 4,
+   "last_wk": 0,
+   "this_wk": 4,
+   "wow_delta": 4,
+   "reasons": [
+    "NEW-class",
+    "RISING(+4 WoW, 0->4)"
+   ],
+   "new_class": true
+  }
+ ],
+ "noise": [
+  {
+   "signature": "mrs_online_training | FULL_SNAPSHOT | ig_reels_tab_vm_esr",
+   "total": 4,
+   "auto_handled": 4,
+   "auto_frac": 1.0
+  }
+ ],
+ "thresholds": {
+  "new_min": 2,
+  "rise_min": 3,
+  "rise_factor": 2.0,
+  "noise_min": 4,
+  "noise_auto_frac": 0.75
+ }
+}

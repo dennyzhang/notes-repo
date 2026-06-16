@@ -183,8 +183,10 @@ Append-only log of "should have fired but didn't" cases discovered by post-hoc r
 ## See also
 
 - `cheatsheets/diff/common.md` — RADAR Auto-Stamp Optimization (parallel pattern)
-- `cheatsheets/system/agent-pressure.md` — Marty Dumaual research synthesis (3-ingredient recipe, hook interference, prompt-pressure swap table)
+- `cheatsheets/agents/agent-pressure.md` — Marty Dumaual research synthesis (3-ingredient recipe, hook interference, prompt-pressure swap table)
 - `scripts/hook-stack-toggle.sh` — A/B test the Claude Code hook stack (paired with the agent-pressure cheatsheet's hook interference section)
 - `scripts/cron-diff-signal-monitor.sh` — sibling daemon (CI signal autofix), shares scan substrate
 - `scripts/cron-diff-autolearn.sh` — weekly autolearn pass, extended for Phase 2 graduation
 - `memory/feedback_radar_zero_human_review_goal.md` — the "log every outcome immediately" workflow rule
+
+_Last updated: 2026-05-23. Maintainer: dennyzhang._

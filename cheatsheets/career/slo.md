@@ -78,3 +78,5 @@ PE target: **50%+ of SEVs should have corresponding SLI violations**.
 - With SLI detectors: avg MTTD = 0.53 hours (2.5x faster)
 - Without: avg MTTD = 1.32 hours
 - Error budget consumption 2.4x higher without detectors
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

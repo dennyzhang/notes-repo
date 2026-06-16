@@ -1,0 +1,47 @@
+// render: dot -Tpng holistic-system.dot -o holistic-system.png ; cp to notes eval/
+// CLEAN version: NO long feedback arrows (they were the spaghetti). The loop is stated in each
+// engine's terminal node ("→ KB gets smarter" / "→ fewer incidents") and the caption. All edges
+// flow downward, short. blue = bot · amber = human · cylinder = store · ★ = eval gate.
+digraph holistic {
+  rankdir=TB; bgcolor="white"; fontname="Helvetica-Bold"; labelloc=t; fontsize=26; dpi=150;
+  ranksep=0.6; nodesep=0.5;
+  label="How the OT agent improves itself — two engines off every incident\n(blue = bot · amber = human · cylinder = a store · ★ = eval gate)";
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=23 fillcolor="#cfe0fb" width=4.0 height=1.0 margin="0.24,0.16" penwidth=2.5 color="#3f6097"];
+  edge [fontname="Helvetica-Bold" fontsize=18 color="#555555" penwidth=2.6 arrowsize=1.05];
+
+  ctx     [label="Context ingestion (daily, auto)\nWorkplace · OT-dev diffs · gchat · gdocs"];
+  kb      [shape=cylinder label="KNOWLEDGE BASE\nP-rows · R-rules · SKILL"];
+  inv     [shape=cylinder label="ISSUE INVENTORY\nSEVs · alerts · posts"];
+  triage  [label="Triage  +  on-spot self-audit\nact · route · tag"];
+  codebug [label="HUMAN: 1:1 co-debug\ncorrect any triage · the ~5%" fillcolor="#ffd28a" color="#e8881a"];
+
+  // ENGINE ① (learn) — ends in the KB getting smarter (the loop, stated, not an arrow)
+  distill [label="Distill the learnings"];
+  evalc   [label="★ EVAL gate → commit winner\n⟳ KNOWLEDGE BASE gets smarter"];
+
+  // ENGINE ② (auto-fix) — ends in fewer incidents
+  autofix [label="Auto-fix: draft\n--draft detector / infra diff"];
+  land    [label="HUMAN: review & land\n⟳ fewer incidents at the source" fillcolor="#ffd28a" color="#e8881a"];
+  vet     [label="HUMAN: audit (optional)\nlifecycle is auto-curated" fillcolor="#ffd28a" color="#e8881a" style="rounded,filled,dashed"];
+
+  ctx -> kb [label="enrich"];
+  kb  -> triage;
+  inv -> triage;
+  triage  -> codebug [label="the ~5%" color="#c8730f" fontcolor="#c8730f" constraint=false];
+  triage  -> distill [label="① learn" color="#3f6097" fontcolor="#3f6097"];
+  codebug -> distill [label="bot learns" style=dashed color="#c8730f" fontcolor="#c8730f"];
+  triage  -> autofix [label="② auto-fix" color="#3f6097" fontcolor="#3f6097"];
+  distill -> evalc;
+  autofix -> land;
+  vet     -> evalc [label="audit" style=dashed color="#e8881a" fontcolor="#e8881a" constraint=false];
+
+  { rank=same; kb; inv; }
+  kb -> inv [style=invis weight=10];
+  { rank=same; codebug; triage; }
+  codebug -> triage [style=invis weight=10];   // co-debug LEFT of triage
+  { rank=same; distill; autofix; }
+  distill -> autofix [style=invis weight=10];   // engine ① LEFT, engine ② RIGHT
+  { rank=same; vet; evalc; land; }
+  vet -> evalc [style=invis weight=10];
+  evalc -> land [style=invis weight=10];
+}

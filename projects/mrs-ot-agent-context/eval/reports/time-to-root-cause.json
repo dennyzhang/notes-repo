@@ -1,0 +1,29 @@
+{
+ "window": [
+  "2026-03-16",
+  "2026-06-14"
+ ],
+ "window_days": 90,
+ "bar_min": 5.0,
+ "events_in_window": 190,
+ "known_pattern_events": 49,
+ "measured": 18,
+ "all": {
+  "n": 18,
+  "median_s": 0.0,
+  "median_min": 0.0,
+  "p90_s": 0.0,
+  "p90_min": 0.0,
+  "within_bar": 17,
+  "within_bar_share": 0.944
+ },
+ "known_pattern": {
+  "n": 8,
+  "median_s": 0.0,
+  "median_min": 0.0,
+  "p90_s": 0.0,
+  "p90_min": 0.0,
+  "within_bar": 8,
+  "within_bar_share": 1.0
+ }
+}

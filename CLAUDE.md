@@ -8,12 +8,25 @@ Personal notes directory for **dennyzhang** in the Meta notes repo. Serves three
 2. **Public sharing materials** — talks, presentations, and teaching content for the team
 3. **Cheatsheets** — personal preferences and how-tos for general tasks
 
+## General Rule — Reinstall Survival
+
+Anything that must outlive a devserver reinstall — scripts, PreToolUse hooks, configs,
+cron prompts, context — lives in a **surviving repo**: this notes repo
+(`~/notes/users/dennyzhang/`) or fbcode. Local instance dirs (`~/.myclaw-ot-bot/`,
+`~/.claude/`) are WIPED on reinstall. If something lives only there, it's lost.
+References may live local (e.g. `settings.json` hook wiring), but the file itself lives
+here and a bootstrap step re-wires the reference. (Operator rule, 2026-06-02.)
+
 ## Directory Structure
 
 ```
 users/dennyzhang/
-  scripts/            # Devserver setup scripts (survive reinstalls)
-    disk-cleanup.sh   # Cron: */30 * * * * — clears worktrees, caches, logs
+  scripts/            # Scripts/hooks/configs that must SURVIVE devserver reinstall
+    hooks/            # PreToolUse hooks (gdocs-comment-guard, sl-summary-lint); wired via apply-space-hooks.py
+    cron/             # Crontab scripts (disk-cleanup.sh, push-notes.sh)
+    lint/             # lint-diff-summary.sh
+    learnings/        # auto-save-learnings.md
+    SETUP.md          # layout index + post-reinstall steps
   projects/           # Project-specific notes and artifacts
     mrs-ot/           # MRS Online Training reliability work
   mrs-ot-agent/       # OT Master Agent — canonical source (migrated from fbcode 2026-05-15)

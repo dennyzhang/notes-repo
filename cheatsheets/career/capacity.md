@@ -105,7 +105,7 @@ Quick reference for analyzing capacity, finding efficiency wins, drafting propos
 
 ## Impact Framing
 
-For PSC impact statements using capacity data, see `cheatsheet-impact-quantifier.md`. Use the capacity metrics from the Analysis Template above as inputs.
+For PSC impact statements using capacity data, see `career/impact-quantifier.md`. Use the capacity metrics from the Analysis Template above as inputs.
 
 **Capacity-specific examples:**
 
@@ -127,4 +127,6 @@ Confidence: High, based on zero-traffic analysis over 6 months.
 
 ## See Also
 
-`references/impact-metrics.md`, `references/anti-patterns.md`, `references/communication-templates.md`
+`career/impact-metrics.md`, `career/anti-patterns.md`, `career/communication-templates.md`
+
+_Last updated: 2026-05-12. Maintainer: dennyzhang._

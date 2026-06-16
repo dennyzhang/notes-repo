@@ -16,7 +16,7 @@ Procedure (decision tree, idempotent):
         'ot-postmortem-validator','ot-triage-auditor','ot-notes-fbcode-commit',
         'ot-notes-fbcode-sync-weekly','ot-sev-tag-review','ot-daily-learning-debugging',
         'ot-daily-learning-mitigated-alerts','ot-daily-learning-mitigated-posts',
-        'ot-daily-learning-mitigated-sevs','ot-cron-health-watch','ot-disk-watch',
+        'ot-daily-learning-mitigated-sevs','ot-cron-health-guard','server-disk-guard',
         'ot-bot-volume-watch','ot-metrics-rollup','ot-myclaw-backup-nightly',
         'ot-fbpkg-cap-watch','ot-notes-commit-push','ot-oauth-refresher',
         'ot-postmortem-validator','ot-debug-quality-weekly');"

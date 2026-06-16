@@ -1,6 +1,8 @@
 # Issue Report — Cheatsheet
 
-> **Sibling cheatsheets:** [escalation.md](escalation.md) (live, real-time hand-off) · [triage-trail.md](triage-trail.md) (live-investigation method capture) · [INDEX.md](INDEX.md)
+> **Sibling cheatsheets:** [escalation.md](escalation.md) (live, real-time hand-off) · [INDEX.md](INDEX.md)
+>
+> **OT-bot binding:** the OT team bot's external-posting policy (crisp 5-element template + trigger phrases for `mrs.ot` / SEV GChat / cross-team) lives in its runtime corpus at `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-generic/report-templates/crisp-report-style.md` — that's the OT-agent application of this discipline; this file is the personal/general counterpart. Keep the shared 5-element kernel in sync between the two.
 >
 > An **issue report** is the *post-investigation, async, cross-team-visibility* artifact. Use it when a finding deserves broad async attention and a written record that a future operator can find by search. Not for every triage; not for live escalation.
 
@@ -285,6 +287,39 @@ RELATED ARTIFACTS
 
 ---
 
+## 5.5. Writing patterns (from SEV-review exemplars)
+
+Cherry-picked from imoc `incident_report_guide.md` (2026-06-10).
+
+1. **Progressive disclosure — 3 self-contained layers.** Structure any
+   explanation as **summary → mechanism → scope**, where a reader can stop
+   at any layer with a complete (if coarser) understanding.
+   - *Layer 1 (1-2 sentences):* "A diff removing a privacy annotation caused
+     360 loggers to silently drop all data for 7 hours."
+   - *Layer 2 (1 paragraph):* the mechanism — what code path, why it failed
+     silently.
+   - *Layer 3 (breakdown):* scope — tier split, downstream consequence
+     ($ / users / models affected).
+   This is complementary to the §5 two-zone split (it shapes the *body*;
+   two-zone shapes the *paste*).
+
+2. **Known problem, honest context.** When the SEV exposes a known-but-
+   unfixed issue, address the obvious reviewer question head-on instead of
+   letting it derail review: (a) acknowledge it was known → (b) the competing
+   priorities that delayed it → (c) the original fix plan → (d) why interim
+   mitigations were insufficient → (e) how this SEV reprioritized it. Builds
+   credibility; preempts "if it was known so long, why not fixed?"
+
+3. **Preemptive Q&A.** Answer the predictable reviewer question inline with
+   an explicit `Q: … A: …` block (e.g., "Q: why not use DB transactions
+   instead of app-level locks? A: deadlock risk from bursty writes — we
+   evaluated it, batons give equivalent safety with better ops"). Shows
+   thoroughness, keeps the review on track.
+
+4. **Blameless framing.** Explain decisions charitably — why a reasonable
+   person made that choice given what they knew at the time. The deepest
+   root cause is never "human error"; it's the system gap that allowed it.
+
 ## 6. Writing discipline — small rules that matter
 
 1. **Numbers, not adjectives.** "25% of intervals" not "many intervals". "11.5h gap" not "a long gap". "p90 = 284 min" not "tail is bad".
@@ -295,6 +330,7 @@ RELATED ARTIFACTS
 6. **Each section answers one question.** If a section spans facts AND interpretation AND recommendations, split it.
 7. **Hyperlinks survive copy-paste.** Use full URLs (or paste IDs / task IDs / SEV IDs) — not "see the dashboard above".
 8. **Alert URLs must use the full compound alert_id.** OneDetection alert_ids have the form `<numeric>@#$<entity>@#$<key>@#$<title>`. URL-encode the full id (`@ → %40, # → %23, $ → %24`). Never strip the `@#$` suffix — the numeric prefix alone 404s or lands on the wrong sub-alert. The emitted URL should contain `%40%23%24` segments. If it's only a bare number, it's broken.
+9. **Flag AI-authored causal diffs.** If a SEV's causal diff is ≥25% AI-generated, add an AI-Generated-Code callout (diff#, AI%, tool name). It matters: AI-authored (≥90%) causal diffs cost ~2.4× the eng-hours per SEV (21.4h vs 9.0h baseline). Source: `fct_devinfra_ai_code_landed_diff_spans_signal` (landed `fbsource`/`configerator` diffs, ~1-day lag). From imoc `sev-summarization.md`.
 
 ---
 
@@ -410,4 +446,4 @@ Maps to the template as follows:
 
 ---
 
-_Last updated: 2026-05-23. Maintainer: dennyzhang. Sibling: [escalation.md](escalation.md) · [triage-trail.md](triage-trail.md)._
+_Last updated: 2026-06-10 (added §5.5 writing patterns + AI-provenance rule, cherry-picked from imoc skill). Maintainer: dennyzhang. Sibling: [escalation.md](escalation.md)._

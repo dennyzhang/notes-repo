@@ -1,0 +1,7 @@
+# Python tools are deny_files-blocked on notes-master (notes repo is shell/.md only).
+# Canonical home for these .py is fbcode pe_mrs_ml/mrs_ot_agent/tools/ (allows .py);
+# they ride the weekly notes->fbcode sync and are reinstall-durable from fbcode.
+# Kept in this working tree (crons invoke them by relative path) but UNTRACKED so
+# `sl push --to master` in the nightly backup stops choking on them.
+# Added 2026-06-09 after ot-myclaw-backup-nightly Phase A push_failed on tools/*.py.
+*.py

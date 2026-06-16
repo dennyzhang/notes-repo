@@ -1,0 +1,25 @@
+{
+  "last_run_epoch": 1781452840,
+  "per_space": {
+    "spaces/AAQAR1xHaQU": {
+      "last_catchup_date": "2026-06-14",
+      "last_msg_create_time": "2026-06-12T15:38:57.014943Z",
+      "skip_until_epoch": 0
+    },
+    "spaces/AAQAXSNWvcM": {
+      "last_catchup_date": "2026-06-14",
+      "last_msg_create_time": "2026-06-13T17:36:14.439007Z",
+      "skip_until_epoch": 0
+    },
+    "spaces/AAQAtGhVkUw": {
+      "last_catchup_date": "2026-06-13",
+      "last_msg_create_time": null,
+      "skip_until_epoch": 1783785723
+    },
+    "spaces/AAQATpEgSyk": {
+      "last_catchup_date": "2026-06-14",
+      "last_msg_create_time": "2026-06-12T21:33:19.144799Z",
+      "skip_until_epoch": 0
+    }
+  }
+}

@@ -99,9 +99,9 @@ Procedure:
       - sev_owner (from metadata)
       - degraded: true/false (true if any required field missing; do NOT emit pattern proposal for degraded entries)
 
-   g. **Pattern triage** — read `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md` ONCE per run (not per SEV). **Compute next P-id from the file, not by counting** — gaps exist in the sequence (P29, P35 are reserved/skipped):
+   g. **Pattern triage** — read `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md` ONCE per run (not per SEV). **Compute next P-id from the file, not by counting** — gaps exist in the sequence (P29, P35 are reserved/skipped):
       ```bash
-      NEXT_PID=$(grep -oE '^\| P[0-9]+ ' ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md \
+      NEXT_PID=$(grep -oE '^\| P[0-9]+ ' ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md \
           | grep -oE '[0-9]+' | sort -n | tail -1 | awk '{printf "P%02d\n", $1+1}')
       ```
       For each non-degraded digest, classify:
@@ -156,7 +156,7 @@ Procedure:
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/ \
-          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/ \
+          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/ \
           2>/dev/null | \
           grep -v "$(basename "$current_archive_path")" | \
           grep -vE "/(INDEX|README)\.md$"
@@ -256,8 +256,8 @@ Procedure:
 
 12. **Chronic-noisy model surfacing (added 2026-05-17, ported from alerts thread `Uc-pVBEXNQ8` step 11).** Surface the Pareto: models generating disproportionate SEV volume.
 
-    - **Source:** scan `incidents/resolved-sevs/*/*.md` filenames + first-line title for `model_id`. Group by model_id, count per-model SEVs in last 7d.
-    - **Threshold:** flag models in TOP 3 by SEV-count in last 7d AND with ≥2 SEVs (drop floor — SEVs are rarer than alerts, ≥2 already meaningful).
+    - **Source (2026-06-07 audit — compute in code, do NOT hand-count from the glob):** run `python3 tools/incident-pareto.py --kind sevs --days 7 --min 2` and render its output VERBATIM. It is deterministic, **reconcile-asserted** (Σ per-model == with-model incidents, else it withholds), and **coverage-honest** (states `withmodel/total had an extractable model` — only ~12/59 SEV files carry a model id, so a hand-count silently under-reports; §5). Shared with the posts/alerts siblings (§14c — one helper, not three prose copies).
+    - **Threshold:** `--min 2` (SEVs are rarer than alerts; ≥2 already meaningful). The helper already applies it + sorts desc.
     - **Pre-publish lint applies:** markdown links throughout (RULES.md § URL validity).
     - **Output format** (threaded reply in `digest_thread`):
       ```
@@ -267,7 +267,7 @@ Procedure:
       3. ...
       ```
     - **If <3 models meet threshold:** post `(no chronic-SEV models this week)` — ONE line, no header.
-    - **Persist to notes:** prepend a row (newest first) under the `## SEVs` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/noisy-trends.md`. Insert after the table header row, before existing data rows. Format:
+    - **Persist to notes:** prepend a row (newest first) under the `## SEVs` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/noisy-trends.md`. Insert after the table header row, before existing data rows. Format:
       ```
       | <run timestamp PT> | <rank> | <model_id> (<model_type_name>) | <sev_count> | <class breakdown> | <one-line notes: top cluster/P-row, owner> |
       ```

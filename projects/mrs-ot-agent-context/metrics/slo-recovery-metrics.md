@@ -227,6 +227,15 @@ Every entry carries provenance so the bot knows what's confirmed vs inferred.
 - discovered: 2026-05-26
 - last_verified: 2026-05-26
 
+#### KM-U3: DPP Data Starvation (ODS)
+- thresholds: { healthy: ~0% starvation, elevated: intermittent starvation, unhealthy: sustained high starvation % }
+- check: DPP starvation ODS canvas (fburl.com/canvas/pzoyunzx) — the component-level DPP starvation signal
+- provenance: human_dashboard (S674219, 2026-06-10)
+- confidence: confirmed
+- discovered: 2026-06-10
+- last_verified: 2026-06-10
+- notes: **This ODS is PER-MAST-JOB-ID** (filter by mast job id) — it is the strong, per-job DPP-starvation evidence to hand DPP oncall, NOT just a fleet aggregate. Pair it with **scribe token ingress** (Scuba `dpp_stats_v2`): a scribe-ingress drop = upstream scribe/region drain feeding the starvation. The trainer INFO-log `DataClient.cpp "Current output queue size is: N"` is a useful CORROBORATION (persistently 0 ⇒ starved), but **a single short queue snapshot can look healthy during a REAL fleet starvation — trust the per-job ODS + scribe-ingress trend over one queue read.** S674219 (2026-06-10): EAG/DR scribe drain → ~75% drop in DPP scribe-token ingress → 0 ingress for EAG-reading jobs → fleet OT QPS collapse; tracked S674227, mitigated by D94521578 (undrain EAG scribe). Job 2144239965's queue snapshot looked fed — a misleading single sample, not a refutation (host-preemption S674182 was a concurrent red herring, NOT the root).
+
 ### State Desync Detection
 
 #### KM-SYNC1: TMS/MAST State Desync (Orphan Job)
@@ -283,6 +292,7 @@ Track what was added/changed and why, so the flywheel's learning is auditable.
 | 2026-05-26 | Added UJ-4 (Retrieval Index Freshness) | Triage gap — no user journey covered retrieval full snapshot vs stream publish distinction | inferred |
 | 2026-05-26 | Added KM-P4 (Hedwig Publisher Activity) | Triage gap — reranker zombie undetected for 6 days | inferred |
 | 2026-05-26 | Added KM-D1 (Root Model Snapshot Production) | Triage gap — dependency chain not surfaced in any existing metric | inferred |
+| 2026-06-10 | Added KM-U3 (DPP Data Starvation ODS, per-mast-job-id) + scribe-token-ingress pairing | S674219 RCA = EAG/DR scribe drain → ~75% DPP ingress drop → fleet OT QPS=0 (S674227, fix D94521578). Per-job ODS is the strong DPP-oncall evidence; output-queue is corroboration only (a single snapshot misled on job 2144239965) | confirmed |
 | 2026-05-26 | Added KM-Q1 (NE), KM-Q2 (Loss/NaN) | Audit — UJ-003 had no detection metrics | confirmed |
 | 2026-05-26 | Added KM-F1/F2/F3 (dense/sparse/item embedding age) | Audit — IG dashboard tracks per-delta-type freshness, not just aggregate | confirmed |
 | 2026-05-26 | Added KM-PKG1 (package expiration), KM-CK1 (checkpoint cadence) | Audit — CL-009 fbpkg expiry + checkpoint vs snapshot distinction | confirmed |

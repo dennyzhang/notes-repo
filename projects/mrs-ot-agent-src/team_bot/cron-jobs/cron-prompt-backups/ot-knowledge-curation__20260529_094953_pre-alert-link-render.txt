@@ -83,7 +83,7 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
 ## Deliverable 2 — Mega Learnings (≤5 per run)
 
-6. **Mega-learnings file.** `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/<YYYY>-W<ISO_WEEK>.md` (one file per ISO week; create if missing with header).
+6. **Mega-learnings file.** `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/<YYYY>-W<ISO_WEEK>.md` (one file per ISO week; create if missing with header).
 
    For each of the top 5 MEGA_CANDIDATES (regardless of whether also became a diff), append a 5-line entry:
    ```
@@ -103,7 +103,7 @@ Existing knowledge bases to read fresh on every run (for dedup):
 ## Deliverable 3 — Systemic Gap Report (monthly)
 
 7. **Monthly trigger.** If `state.last_systemic_gap_month != current month (YYYY-MM)` AND today's date >= 25 (give the month enough resolved corpus), generate report:
-   - File: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/systemic-gaps/<YYYY-MM>.md`
+   - File: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/system-fixes/systemic-gaps/<YYYY-MM>.md`
    - Read ALL archive files from the current month (not just last 7d) across all 3 corpora.
    - Compute aggregations:
      - Top 5 recurring root-cause keyword clusters (sev count)

@@ -38,3 +38,5 @@ Don't block for:
 ## See Also
 
 `diff/review.md` (code review), `oncall/sev.md` (failure mode thinking), `career/project-doc.md` (writing your own design docs)
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

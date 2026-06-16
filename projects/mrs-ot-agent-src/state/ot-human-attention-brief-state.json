@@ -1,12 +1,19 @@
 {
-  "last_run_epoch": 1780326281,
-  "last_brief_id": "2026-06-01-0800",
+  "last_run_epoch": 1781524800,
+  "last_brief_id": "2026-06-14-0800",
   "low_confidence_seen_24h": [
-    "s669985-auditor-misattrib",
-    "s669785-unknown-run10622",
-    "ifr-main-recurring-run10755"
+    "alert-1962495167955557-needs-inv-run14019",
+    "ig-organic-feed-mtml-878102693-ne-major-run13813",
+    "sev-s675791-unknown-conf-low-run14691"
   ],
   "learnings_seen_24h": [
-    "sparse-delta-retrieval-false-alarm-run10499"
+    "sev0-s675130-scribe-fleet-publishing-cascade",
+    "sev-killed-job-no-autorestart-omni-2122881736",
+    "detector-broken-igreels-vm-esr-T275750940-T275750949",
+    "postmortem-validator-p54-collision-run13659",
+    "ot-knowledge-curation-missed-2330-run13704",
+    "knowledge-curation-p57-obs-a1572-commit-9c2c3d6bccd8",
+    "postmortem-validator-2corrections-run14842",
+    "mrb-reset-model-store-uninit-w1350388963722513"
   ]
 }

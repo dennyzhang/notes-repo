@@ -142,7 +142,7 @@ def next_run_for(job):
         return now + 60
     return now + 60
 
-inserts = updates = unchanged = deletes = 0
+inserts = updates = unchanged = deletes = skipped = 0
 
 # Orphan removal: any job_id in sqlite but NOT in MANIFEST is stale
 # (e.g., from a rename). Delete it so the daemon doesn't keep running
@@ -162,15 +162,38 @@ for job in manifest["jobs"]:
     prompt_path = jobs_dir / job["prompt_file"]
     if not prompt_path.exists():
         print(f"[FAIL] {job_id}: prompt file missing: {prompt_path}")
+        skipped += 1
         continue
     prompt = prompt_path.read_text()
 
-    sched_type = job["schedule_type"]
+    # Resilience (2026-06-08): a single MANIFEST entry missing schedule_type used to raise
+    # KeyError and abort the whole batch BEFORE commit — so every other job's prompt edit
+    # silently rolled back (this is exactly how the ot-fleet-health read-only revert failed
+    # to propagate: two new entries lacked schedule_type). Skip+warn the malformed entry,
+    # keep processing the rest, exit nonzero at the end so the bad entry can't hide.
+    sched_type = job.get("schedule_type")
+    if sched_type not in ("interval", "cron", "daily"):
+        print(f"[SKIP     ] {job_id:30s} missing/invalid schedule_type={sched_type!r} "
+              f"(needs interval|cron|daily) — fix MANIFEST.json")
+        skipped += 1
+        continue
     cron = job.get("cron")
     interval_seconds = job.get("interval_seconds")
     daily_at = job.get("daily_at")
+    # Optional per-job LLM model (e.g. "anthropic/claude-opus-4-8"). Absent/None => NULL
+    # => daemon default (BACKGROUND_SONNET_MODEL). Versioned HERE in the manifest so a
+    # model bump survives a devserver reinstall — a manual `UPDATE jobs SET model=...`
+    # does NOT (a clean reinstall rebuilds the db via INSERT below, which would drop it).
+    model = job.get("model")
+    # Optional per-job delivery channel (the daemon "Reply to" target). Absent/None =>
+    # NULL => daemon default (the bound TEAM space). Operator-facing crons MUST set this
+    # to the 1:1 ("spaces/AAQAVOjYc80") or they leak to team on any non-HEARTBEAT output.
+    # Versioned HERE so the routing survives a reinstall — a manual `UPDATE jobs SET
+    # channel=...` does NOT (a clean rebuild via INSERT below would drop it; 2026-06-14).
+    channel = job.get("channel")
+    enabled_val = 0 if job.get("enabled") is False else 1  # honor MANIFEST enabled:false (durable disable; else restart re-enables)
 
-    cur.execute("SELECT prompt, schedule_type, cron, interval_seconds, daily_at, enabled "
+    cur.execute("SELECT prompt, schedule_type, cron, interval_seconds, daily_at, enabled, model, channel "
                 "FROM jobs WHERE id=?", (job_id,))
     row = cur.fetchone()
 
@@ -180,30 +203,51 @@ for job in manifest["jobs"]:
             created_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             cur.execute("""
                 INSERT INTO jobs (id, prompt, schedule_type, cron, interval_seconds, daily_at,
-                                  next_run_epoch, last_run_epoch, enabled, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, ?)
+                                  next_run_epoch, last_run_epoch, enabled, created_at, model, channel)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)
             """, (job_id, prompt, sched_type, cron, interval_seconds, daily_at,
-                  next_run_for(job), created_at))
+                  next_run_for(job), enabled_val, created_at, model, channel))
         inserts += 1
     else:
-        cur_prompt, cur_st, cur_cron, cur_int, cur_daily, cur_enabled = row
+        cur_prompt, cur_st, cur_cron, cur_int, cur_daily, cur_enabled, cur_model, cur_channel = row
         same = (cur_prompt == prompt
                 and cur_st == sched_type
                 and (cur_cron or "") == (cron or "")
                 and (cur_int or 0) == (interval_seconds or 0)
                 and (cur_daily or "") == (daily_at or "")
-                and cur_enabled == 1)
+                and (cur_model or "") == (model or "")
+                and (cur_channel or "") == (channel or "")
+                and cur_enabled == enabled_val)
         if same:
             action = "UNCHANGED"
             unchanged += 1
         else:
             action = "UPDATE"
+            # If the SCHEDULE changed (not just the prompt), recompute next_run_epoch.
+            # Otherwise the OLD cadence's stale next_run keeps gating the job: switching
+            # ot-shift-summary weekly->daily on 2026-06-06 left cron='30 8 * * *' but
+            # next_run on the weekly value (6-09), so it never fired 6-03..6-07 — the
+            # daily increments silently went missing. Prompt-only edits do NOT reset
+            # next_run (would fire the job on every prompt tweak).
+            sched_changed = (cur_st != sched_type
+                             or (cur_cron or "") != (cron or "")
+                             or (cur_int or 0) != (interval_seconds or 0)
+                             or (cur_daily or "") != (daily_at or ""))
             if not dry_run:
-                cur.execute("""
-                    UPDATE jobs SET prompt=?, schedule_type=?, cron=?,
-                                   interval_seconds=?, daily_at=?, enabled=1
-                    WHERE id=?
-                """, (prompt, sched_type, cron, interval_seconds, daily_at, job_id))
+                if sched_changed:
+                    cur.execute("""
+                        UPDATE jobs SET prompt=?, schedule_type=?, cron=?,
+                                       interval_seconds=?, daily_at=?, enabled=?,
+                                       next_run_epoch=?, model=?, channel=?
+                        WHERE id=?
+                    """, (prompt, sched_type, cron, interval_seconds, daily_at,
+                          enabled_val, next_run_for(job), model, channel, job_id))
+                else:
+                    cur.execute("""
+                        UPDATE jobs SET prompt=?, schedule_type=?, cron=?,
+                                       interval_seconds=?, daily_at=?, enabled=?, model=?, channel=?
+                        WHERE id=?
+                    """, (prompt, sched_type, cron, interval_seconds, daily_at, enabled_val, model, channel, job_id))
             updates += 1
 
     sched_summary = (f"cron='{cron}'" if sched_type == "cron"
@@ -217,7 +261,26 @@ conn.close()
 
 print()
 print(f"[setup-cron-jobs] inserts={inserts} updates={updates} unchanged={unchanged} "
-      f"deletes={deletes} ({'DRY-RUN — no writes' if dry_run else 'committed'})")
+      f"deletes={deletes} skipped={skipped} "
+      f"({'DRY-RUN — no writes' if dry_run else 'committed'})")
+if skipped:
+    print(f"⚠️  [setup-cron-jobs] {skipped} job(s) SKIPPED (malformed MANIFEST entry) — "
+          f"their prompts did NOT propagate. Fix MANIFEST.json and re-run.")
+
+# The running daemon caches its job SET in memory at startup and does NOT reload
+# membership at runtime — so deleting an orphan row here does NOT stop the daemon
+# from firing the cached copy. A retired/renamed cron keeps running (a "zombie")
+# until the next daemon restart. See memory gotcha_orphan-cron-zombies-until-daemon-restart.
+# (2026-06-04: ot-notes-fbcode-sync kept submitting dup weekly-sync diffs, and
+#  ot-disk-watch fired 61x/day, both after their rows were orphan-deleted.)
+if deletes and not dry_run:
+    print()
+    print(f"⚠️  [setup-cron-jobs] {deletes} orphan job(s) deleted from sqlite, but the "
+          f"running daemon still has them scheduled IN MEMORY and will keep firing them.")
+    print(f"⚠️  RESTART REQUIRED to actually stop them:  myclaw-ot-bot restart")
+
+if skipped:
+    raise SystemExit(1)  # malformed entry skipped — fail loud so CI / caller notices
 PYEOF
 
 echo

@@ -136,3 +136,5 @@ This catches you up without re-reading 30 messages.
 
 For the *response* side (what to do once caught up), see [oncall/sev.md](sev.md).
 For SEV identification logic / SEV bot wiring, see `pe_mrs_ml/mrs_ot_agent/src/capabilities/sev_identification.py`.
+
+_Last updated: 2026-05-12. Maintainer: dennyzhang._

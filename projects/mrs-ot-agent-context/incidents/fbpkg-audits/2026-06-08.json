@@ -1,0 +1,42 @@
+{
+  "audited_at": "2026-06-08T14:05:00Z",
+  "fbpkg": "light_cli",
+  "version_count": 1047,
+  "version_cap": 1200,
+  "headroom": 153,
+  "headroom_prev_week": 260,
+  "growth_rate_per_day": 17.8,
+  "growth_rate_prev": 11.0,
+  "predicted_headroom_100_date": "2026-06-11",
+  "predicted_cap_zero_date": "2026-06-16",
+  "pinned_models_count": 291,
+  "confirmed_orphans": [
+    {
+      "model_id": "2139705840",
+      "model_type": "ig_textpost_feed_u2m_retrieval",
+      "owner": "akoz",
+      "oncall": "p92_relevance_retrieval_oncall",
+      "last_instance": "2026-01-23",
+      "days_stale": 136
+    },
+    {
+      "model_id": "2132160077",
+      "model_type": "ig_textpost_feed_xapp_u2m_retrieval",
+      "owner": "tianyic",
+      "oncall": "p92_relevance_retrieval_oncall",
+      "last_instance": "2026-03-17",
+      "days_stale": 83
+    },
+    {
+      "model_id": "876487490",
+      "model_type": "facebook_marketplace_mtml_tab_local_click",
+      "owner": "dingtianyang",
+      "oncall": "mp_feed_ranking_oncall",
+      "last_instance": "2026-03-25",
+      "days_stale": 75
+    }
+  ],
+  "new_orphans": ["2139705840", "2132160077", "876487490"],
+  "resolved_orphans": [],
+  "root_cause_task": "T271102844"
+}

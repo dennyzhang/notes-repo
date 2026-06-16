@@ -1,0 +1,17 @@
+{
+  "_schema": "OT known-issues registry. Each entry annotates a (model_eid, signal) so the fleet-health renderer can mark a finding KNOWN (owner already on it) instead of re-alerting it as new. Entries EXPIRE: past 'expires', a still-present finding re-surfaces LOUDLY for re-triage (a 2-week issue that persists may be a different/escalated problem). Operator-curated (trustworthy suppression); bot may propose. signal ∈ zombie|training-age|qps_down|* (* = any). Edit via tools/add-known-issue.sh.",
+  "_default_ttl_days": 14,
+  "issues": [
+    {
+      "model_eid": "2123944781",
+      "signal": "training-age",
+      "cause": "trainer-behind",
+      "summary": "owner-synced; tracking trainer efficiency",
+      "owners": ["haosha3"],
+      "synced": "2026-06-06",
+      "expires": "2026-06-20",
+      "ref": "owner-synced 2026-06-06",
+      "status": "active"
+    }
+  ]
+}

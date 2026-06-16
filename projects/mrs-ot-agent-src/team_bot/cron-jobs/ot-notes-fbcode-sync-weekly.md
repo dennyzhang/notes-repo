@@ -16,10 +16,49 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
 
    ```bash
    THIS_WEEK=$(date -u +%Y-W%V)
-   # Search Phab for unlanded diffs by this author whose title matches the current week
-   EXISTING=$(meta phabricator.diff search --author=dennyzhang --status=needs-review,changes-planned -o json 2>/dev/null \
+   # List this author's OPEN diffs whose title matches the current week.
+   # NOTE: the action is `list` (NOT `search` — `phabricator.diff search` does not
+   # exist and silently no-op'd the whole gate; 2026-06-04 it let 4 W23 dupes through).
+   # Do NOT re-add `2>/dev/null` here — swallowing the error is what hid the dead
+   # command for a week. Let a future breakage be loud.
+   # Capture ALL open W-diffs for this week (not just the first).
+   ALL_W=$(meta phabricator.diff list --author-is=dennyzhang --include-only-open -o json \
      | jq -r --arg w "$THIS_WEEK" '.[]? | select(.title | contains("[OT bot weekly sync] notes->fbcode " + $w)) | .number' \
-     | head -1)
+     | sort -n)
+   # SELF-HEAL (2026-06-05): if MORE THAN ONE already exists, the week is already
+   # DUPLICATED (e.g. a stray non-weekly `jf submit` swept the stack into a 2nd diff
+   # before the submit-guard hook was installed). ABANDON every extra, keep the
+   # lowest-numbered canonical. Abandon is the one Phab write allowed for cron/
+   # interactive Claude — do NOT just report or wait for a human; that's exactly the
+   # mistake that let D107599159 + D107688956 sit as twin W23 dups for ~8h (operator
+   # flagged the same pair 3×). NO `--message` on abandon (state change only, never a
+   # published comment).
+   KEEP=$(echo "$ALL_W" | head -1)
+   EXTRAS=$(echo "$ALL_W" | tail -n +2 | grep -v '^$')
+   NEXTRA=$(echo "$EXTRAS" | grep -c . || echo 0)
+   # §16 MASS-CAP (2026-06-08 audit): a real week has 1–2 dups, not many. >3 extras means
+   # the `list` query almost certainly over-matched (title-substring glitch) — bulk-abandon
+   # would nuke REAL diffs. Escalate, do NOT auto-abandon at scale.
+   if [ "$NEXTRA" -gt 3 ]; then
+     echo "[weekly-sync] $NEXTRA extra W-diffs > cap 3 — NOT auto-abandoning (likely list over-match); keeping all, escalating to 1:1 for human decision" >&2
+     # post a one-line escalation to spaces/AAQAVOjYc80; SKIP the abandon loop entirely.
+   else
+     for d in $EXTRAS; do
+       [ -n "$d" ] || continue
+       # §16 RE-VERIFY before the irreversible abandon: re-fetch the diff's title and only
+       # abandon if it's genuinely a [OT bot weekly sync] diff — never trust the list query
+       # alone (a substring match could catch an unrelated diff).
+       T=$(meta phabricator.diff metadata --number="$d" -o json 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin).get('title',''))" 2>/dev/null)
+       case "$T" in
+         *"[OT bot weekly sync]"*)
+           echo "[weekly-sync] abandoning duplicate D$d (keeping canonical D$KEEP)"
+           meta phabricator.diff abandon --number="$d" ;;
+         *)
+           echo "[weekly-sync] SKIP D$d — title not a weekly-sync diff ('$T'); list over-matched, NOT abandoning" >&2 ;;
+       esac
+     done
+   fi
+   EXISTING="$KEEP"
    if [ -n "$EXISTING" ]; then
      # Existing unlanded weekly diff for this week. Two safe responses:
      # (a) AMEND mode: jump to that diff's local commit (if present) and add fresh drift onto it (preferred).

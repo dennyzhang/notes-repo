@@ -1,0 +1,98 @@
+export const meta = {
+  name: 'ot-agent-delivery-eval',
+  description: 'Eval the OT agent DELIVERY quality (the missing objective): for sampled gold cases the agent renders the message it would actually POST, and a rubric grader scores density / crisp-format / channel-correctness / no-leak / length against CLAUDE.md delivery rules.',
+  phases: [
+    { title: 'Render', detail: 'agent produces the post it would actually send (channel + message)' },
+    { title: 'Grade', detail: 'rubric-score density/format/channel/no-leak/length' },
+    { title: 'Score', detail: 'delivery_quality (no-leak hard gate)' },
+  ],
+}
+
+const CLAUDE = '/home/dennyzhang/.myclaw-ot-bot/CLAUDE.md'
+const GOLD = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/eval/gold-set.json'
+const SAMPLE = 20
+
+const RENDER = {
+  type: 'object',
+  properties: {
+    channel: { type: 'string', enum: ['team', 'operator_1on1', 'silent'] },
+    message: { type: 'string' },
+  },
+  required: ['channel', 'message'],
+}
+const GRADE = {
+  type: 'object',
+  properties: {
+    density: { type: 'number', description: '1 every line action-or-investigate; 0 padded with status-quo/done-enumeration/id-dumps' },
+    crisp_format: { type: 'number', description: '1 follows crisp 5-element (title/PROBLEM+nums/CAUSE+path:line/paste/ASK) or correct verbose-internal shape; 0 wrong shape' },
+    channel_correct: { type: 'number', description: '1 right channel for the content (shared OT incident->team; plumbing/operator-facing->1:1; out-of-scope/noise->silent); 0 wrong' },
+    length_ok: { type: 'boolean', description: 'within caps (crisp <~600 chars body / verbose to paste)' },
+    no_leak: { type: 'boolean', description: 'true if NO team-space leak of operator-facing/plumbing content and no privacy/org-boundary leak' },
+    notes: { type: 'string' },
+  },
+  required: ['density', 'crisp_format', 'channel_correct', 'length_ok', 'no_leak', 'notes'],
+}
+
+// ---------- Phase 1: load + sample ----------
+phase('Render')
+const goldObj = await agent(`Read ${GOLD} and return its "cases" array verbatim (each: id,type,level,ground_truth).`,
+  { label: 'load-gold', phase: 'Render', schema: { type: 'object', properties: { cases: { type: 'array', items: { type: 'object' } } }, required: ['cases'] } })
+const all = goldObj.cases || []
+const step = Math.max(1, Math.floor(all.length / SAMPLE))
+const cases = all.filter((_, i) => i % step === 0).slice(0, SAMPLE)
+log(`Delivery eval on ${cases.length} sampled cases (of ${all.length})`)
+
+const rendered = await pipeline(
+  cases,
+  (c) =>
+    agent(
+      `You are the OT master agent. You have triaged incident ${c.id} (${c.type}). Now produce the message you would ACTUALLY POST about it, applying the delivery rules in ${CLAUDE} (read the sections: "Team-Chat Send Gate", "Cron Output Effectiveness", "Report Style / crisp 5-element", "Cron Delivery Discipline", threading, org-boundary/no-individual-data).
+
+Incident root cause (your triage result, treat as known): ${(c.ground_truth && c.ground_truth.root_cause) || '(unknown)'}
+
+Decide:
+- channel: "team" (a shared OT incident the whole team must see/act on), "operator_1on1" (plumbing / status / operator-facing), or "silent" (out-of-scope / noise / no-op).
+- message: the EXACT text you would post (or "" if silent). Obey density (every line action-or-investigate), the crisp 5-element shape for team/external, length caps, BLUF, and never leak operator-facing/plumbing content to team.
+
+Return {channel, message}.`,
+      { label: `render:${c.id}`, phase: 'Render', schema: RENDER },
+    ).then((r) => ({ ...c, channel: r.channel, message: r.message })),
+  // ---------- Phase 2: grade ----------
+  (r, c) =>
+    agent(
+      `You are an INDEPENDENT delivery-quality grader. Score this OT-bot post against the delivery rules in ${CLAUDE} (Team-Chat Send Gate, Cron Output Effectiveness, crisp report style, density, org-boundary/no-individual-data). Judge ONLY delivery/communication quality, not triage correctness.
+
+INCIDENT ${c.id} (${c.type})
+CHOSEN CHANNEL: ${r.channel}
+MESSAGE:
+"""
+${r.message || '(silent — no message)'}
+"""
+
+Score per the schema. no_leak is a HARD gate (operator-facing/plumbing content posted to team, or any privacy/org-boundary leak = no_leak:false). Give a one-line note.`,
+      { label: `grade:${c.id}`, phase: 'Grade', schema: GRADE },
+    ).then((g) => ({ id: c.id, type: c.type, channel: r.channel, grade: g })),
+)
+
+// ---------- Phase 3: score ----------
+phase('Score')
+const rows = rendered.filter(Boolean)
+const perCase = rows.map((r) => {
+  const g = r.grade
+  const gated = !g.no_leak // leak = hard 0
+  const score = gated ? 0 : +(0.35 * g.density + 0.30 * g.crisp_format + 0.25 * g.channel_correct + 0.10 * (g.length_ok ? 1 : 0)).toFixed(3)
+  return { id: r.id, type: r.type, channel: r.channel, leak: !g.no_leak, score, ...g }
+})
+const n = perCase.length
+const avg = (sel) => (n ? +(perCase.reduce((s, r) => s + sel(r), 0) / n).toFixed(3) : 0)
+const delivery_quality = avg((r) => r.score)
+const leaks = perCase.filter((r) => r.leak)
+log(`delivery_quality=${delivery_quality} | leaks=${leaks.length}/${n} | density=${avg((r) => r.density)} format=${avg((r) => r.crisp_format)} channel=${avg((r) => r.channel_correct)}`)
+
+return {
+  n,
+  delivery_quality,
+  dims: { density: avg((r) => r.density), crisp_format: avg((r) => r.crisp_format), channel_correct: avg((r) => r.channel_correct), length_ok_rate: avg((r) => (r.length_ok ? 1 : 0)), leak_rate: avg((r) => (r.leak ? 1 : 0)) },
+  leaks: leaks.map((r) => ({ id: r.id, channel: r.channel, note: r.notes })),
+  worst: perCase.slice().sort((a, b) => a.score - b.score).slice(0, 6).map((r) => ({ id: r.id, score: r.score, note: r.notes })),
+}

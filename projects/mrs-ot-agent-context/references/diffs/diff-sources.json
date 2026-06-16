@@ -1,0 +1,7 @@
+{
+  "_comment": "Config for the ot-ingest-diffs cron (Phabricator diffs authored by key OT people). Drives ingest-ot-diffs.sh. The ROSTER (who we ingest) now lives in references/key-people.json (people whose `surfaces` include 'diffs') — operator 2026-06-13 pivot to person-centric, trust-tiered ingestion (was: live oncall-rotation roster). THIS file holds only the run knobs + the candidate-discovery rotation. Read-only on Phabricator: list/metadata only, never comment/update.",
+  "_candidate_rotation": "Oncall rotation resolved LIVE each run ONLY to PROPOSE candidates: any active member not already in key-people.json is surfaced (stderr) as a candidate-to-add, never auto-ingested. mrs_online_training = the OT platform-dev/reliability oncall (operator-confirmed 2026-06-12 as the OT dev group; NOT minimal_viable_ai). Set empty to disable candidate discovery.",
+  "candidate_rotation": "mrs_online_training",
+  "lookback_days": 30,
+  "per_author_limit": 75
+}

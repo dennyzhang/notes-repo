@@ -16,6 +16,18 @@ workstream_owner: "PE (Denny / Paul Lu)"
 # to TBD or omitted (D102499943 safety gate).
 target_space_id: spaces/AAQAVOjYc80
 
+# Delivery-route split (consumed by classify_delivery_route() in team_bot.py
+# and honored by the daemon's auto-deliver, myclaw-core side):
+#   team_space_id     — shared OT workstream space. CRON alert/SEV/post triage
+#                       and explicit operator broadcasts land here.
+#   operator_space_id — operator 1:1. Interactive operator↔bot replies (acks,
+#                       close-outs, backtests, design Q&A) land here instead of
+#                       the team space — the fix for replies leaking to the
+#                       shared room. Both fall back to target_space_id when
+#                       unset, so a half-migrated config still delivers.
+team_space_id: spaces/AAQA2bZMw24
+operator_space_id: spaces/AAQAVOjYc80
+
 # Per-product reliability routing.
 #
 # 2026-05-13 design change: routing is now EMPTY by default. The bot no

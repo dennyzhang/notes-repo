@@ -1,0 +1,3 @@
+{"date": "2026-06-12", "models_scanned": 57, "models_total": 61, "no_data": 4, "errors": 0, "breaching": 12, "breach_min": 10, "breach_rate": 0.2105, "p50_age_min": 1.62, "p90_age_min": 17.32, "max_age_min": 46.85}
+{"date": "2026-06-13", "models_scanned": 55, "models_total": 61, "no_data": 4, "errors": 2, "breaching": 16, "breach_min": 10, "breach_rate": 0.2909, "p50_age_min": 2.43, "p90_age_min": 25.65, "max_age_min": 103.24}
+{"date": "2026-06-14", "models_scanned": 59, "models_total": 61, "no_data": 2, "errors": 0, "breaching": 16, "breach_min": 10, "breach_rate": 0.2712, "p50_age_min": 1.58, "p90_age_min": 27.14, "max_age_min": 103.29}

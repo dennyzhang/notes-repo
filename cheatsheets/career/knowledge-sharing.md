@@ -39,3 +39,5 @@ Specific errors from real sharings, with the correction.
 Knowledge sharing ≠ launch post. A launch post says "here's what we shipped, try it." A knowledge sharing says "here's what I learned, steal it." The audience test: would someone on a different team find this useful?
 
 The strongest sharings frame value as **capability expansion** — "you can now deep dive in minutes" — not efficiency — "saves 35 min." Time savings is incremental and forgettable. New capabilities are transformative and memorable.
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

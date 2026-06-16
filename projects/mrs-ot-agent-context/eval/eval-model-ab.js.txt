@@ -1,0 +1,160 @@
+export const meta = {
+  name: 'ot-agent-model-ab',
+  description: 'A/B the cron triage model: replay the frozen 60-case gold set through Sonnet vs Opus triage with a FIXED Opus grader, report per-dimension fitness deltas + confabulation rate so the model-bump decision is data-driven.',
+  phases: [
+    { title: 'Load', detail: 'load frozen gold set (identical cases both arms)' },
+    { title: 'Sonnet', detail: 'replay triage on sonnet -> opus grade' },
+    { title: 'Opus', detail: 'replay triage on opus -> opus grade' },
+    { title: 'Compare', detail: 'per-dimension fitness + delta + cost note' },
+  ],
+}
+
+const GOLD = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/eval/gold-set.json'
+const SKILL = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/SKILL.md'
+const KP = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md'
+const TD = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-src/human-input/triage-discipline.md'
+const GRADER_MODEL = 'opus' // fixed judge -> same bias applied to both arms
+
+// ---------- schemas ----------
+const CASE = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' }, type: { type: 'string' }, level: { type: 'string' },
+    input: { type: 'object', properties: { title: { type: 'string' }, signal_class: { type: 'string' }, body: { type: 'string' } }, required: ['title', 'body'] },
+    ground_truth: { type: 'object', properties: { root_cause: { type: 'string' }, p_row: { type: 'string' }, owner: { type: 'string' }, verdict: { type: 'string' }, confidence: { type: 'string' } }, required: ['root_cause'] },
+  },
+  required: ['id', 'type', 'input', 'ground_truth'],
+}
+const CASES_SCHEMA = { type: 'object', properties: { cases: { type: 'array', items: CASE } }, required: ['cases'] }
+const DIAGNOSIS = {
+  type: 'object',
+  properties: { root_cause: { type: 'string' }, p_row: { type: 'string' }, owner: { type: 'string' }, verdict: { type: 'string' }, confidence: { type: 'number' } },
+  required: ['root_cause', 'p_row', 'owner', 'verdict', 'confidence'],
+}
+const GRADE = {
+  type: 'object',
+  properties: {
+    root_cause_match: { type: 'number', description: '1 full, 0.5 partial, 0 wrong' },
+    owner_match: { type: 'number', description: '1 correct, 0 wrong' },
+    hallucination: { type: 'number', description: '1 if any unsupported claim present, else 0' },
+    leak_suspect: { type: 'boolean', description: 'true if cited p_row plausibly derived from THIS incident' },
+    rationale: { type: 'string' },
+  },
+  required: ['root_cause_match', 'owner_match', 'hallucination', 'leak_suspect', 'rationale'],
+}
+
+const isMalformed = (d) => !d || /<\/?invoke|<\/?parameter|&lt;|&gt;/i.test(JSON.stringify(d))
+const isActionable = (v) => !!v && !/needs[_ ]?investigation|unknown|unclassified|insufficient|undetermined/i.test(v)
+
+const triagePrompt = (c) =>
+  `You are the OT master agent performing FRESH triage on a single incident. First Read these three knowledge files (your real working context):
+- ${SKILL}
+- ${KP}
+- ${TD}
+
+Then triage from ONLY the input below. DO NOT look up the resolution; DO NOT search for the answer. Reason from input + loaded knowledge.
+
+INCIDENT ${c.id} (${c.type}, level ${c.level || 'unknown'})
+Title: ${c.input.title}
+Signal class: ${c.input.signal_class || '(unstated)'}
+Body / symptom: ${c.input.body}
+
+Output ONLY the structured diagnosis fields as PLAIN TEXT (no XML/tool-call syntax in any field): root_cause (best mechanism hypothesis), p_row (known-patterns P-row/cluster or "none"), owner (team/role), verdict (NEEDS_INVESTIGATION / KNOWN_PATTERN / OUT_OF_SCOPE / NOISE / DETECTOR_BROKEN), confidence (0-1).`
+
+const gradePrompt = (diag, c) =>
+  `You are an INDEPENDENT eval grader. Score the agent's diagnosis vs ground truth. Judge only the published diagnosis vs the known answer.
+
+INCIDENT ${c.id} (${c.type})
+Title: ${c.input.title}
+
+GROUND TRUTH:
+- root_cause: ${c.ground_truth.root_cause}
+- p_row: ${c.ground_truth.p_row || '(none cited)'}
+- owner: ${c.ground_truth.owner || '(unknown)'}
+- verdict: ${c.ground_truth.verdict || '(unknown)'}
+
+AGENT DIAGNOSIS:
+- root_cause: ${diag.root_cause}
+- p_row: ${diag.p_row}
+- owner: ${diag.owner}
+- verdict: ${diag.verdict}
+- confidence: ${diag.confidence}
+
+root_cause_match is SEMANTIC (same mechanism = 1 even if worded differently). hallucination=1 if any unsupported/fabricated claim (e.g. a P-row/CL cluster that doesn't fit, an invented mechanism). leak_suspect=true if cited p_row looks derived from THIS very incident. 1-line rationale.`
+
+// ---------- aggregate (mirrors eval-flow fitness; recall/precision null here -> renormalized) ----------
+const W = { calibration: 0.35, owner: 0.15, decisiveness: 0.15 } // present-weight subset (recall/precision need negative corpus)
+function aggregate(evaluated) {
+  const rows = evaluated.filter((r) => r && !r._malformed)
+  const n = rows.length
+  const avg = (sel) => (n ? rows.reduce((s, r) => s + sel(r), 0) / n : 0)
+  let calib = 0, owner = 0, dec = 0, gated = 0
+  for (const r of rows) {
+    if (r.grade.hallucination >= 1) { gated++; continue }
+    const rc = r.grade.root_cause_match
+    const conf = Math.max(0, Math.min(1, Number(r.diagnosis.confidence) || 0))
+    calib += 1 - Math.pow(rc - conf, 2)
+    owner += r.grade.owner_match
+    dec += isActionable(r.diagnosis.verdict) ? 1 : 0
+  }
+  const dims = { calibration: +(calib / n).toFixed(3), owner: +(owner / n).toFixed(3), decisiveness: +(dec / n).toFixed(3) }
+  const den = W.calibration + W.owner + W.decisiveness
+  const composite = +(((W.calibration * dims.calibration + W.owner * dims.owner + W.decisiveness * dims.decisiveness) / den)).toFixed(3)
+  return {
+    n,
+    composite, // renormalized over present 0.65 weight (recall/precision excluded — same for both arms)
+    dimensions: dims,
+    root_cause_accuracy: +avg((r) => r.grade.root_cause_match).toFixed(3),
+    hallucination_rate: +avg((r) => r.grade.hallucination).toFixed(3),
+    leak_suspect_rate: +avg((r) => (r.grade.leak_suspect ? 1 : 0)).toFixed(3),
+    owner_accuracy: +avg((r) => r.grade.owner_match).toFixed(3),
+    cases_gated_by_hallucination: gated,
+  }
+}
+
+// ---------- Load ----------
+phase('Load')
+const loaded = await agent(`Read ${GOLD} (JSON with a .cases array of 60 objects). Return {cases:[...]} = that .cases array verbatim, all fields intact.`, { label: 'load-gold', phase: 'Load', schema: CASES_SCHEMA })
+const gold = (loaded && loaded.cases) || []
+log(`Gold set: ${gold.length} cases`)
+
+// ---------- one arm ----------
+async function runArm(armName, triageModel, phaseName) {
+  const evaluated = await pipeline(
+    gold,
+    (c) => agent(triagePrompt(c), { label: `${armName}:triage:${c.id}`, phase: phaseName, schema: DIAGNOSIS, model: triageModel })
+      .then((d) => ({ ...d, _malformed: isMalformed(d) })),
+    (diag, c) => agent(gradePrompt(diag, c), { label: `${armName}:grade:${c.id}`, phase: phaseName, schema: GRADE, model: GRADER_MODEL })
+      .then((g) => ({ id: c.id, type: c.type, diagnosis: diag, grade: g, _malformed: diag._malformed })),
+  )
+  const agg = aggregate(evaluated.filter(Boolean))
+  log(`[${armName}] composite=${agg.composite} rc_acc=${agg.root_cause_accuracy} halluc=${agg.hallucination_rate} calib=${agg.dimensions.calibration} gated=${agg.cases_gated_by_hallucination}`)
+  return { arm: armName, model: triageModel, ...agg, rows: evaluated.filter(Boolean) }
+}
+
+phase('Sonnet')
+const sonnet = await runArm('sonnet', 'sonnet', 'Sonnet')
+phase('Opus')
+const opus = await runArm('opus', 'opus', 'Opus')
+
+// ---------- Compare ----------
+phase('Compare')
+const d = (a, b) => +(b - a).toFixed(3)
+const delta = {
+  composite: d(sonnet.composite, opus.composite),
+  root_cause_accuracy: d(sonnet.root_cause_accuracy, opus.root_cause_accuracy),
+  hallucination_rate: d(sonnet.hallucination_rate, opus.hallucination_rate), // negative = opus hallucinates LESS (good)
+  calibration: d(sonnet.dimensions.calibration, opus.dimensions.calibration),
+  owner_accuracy: d(sonnet.owner_accuracy, opus.owner_accuracy),
+  leak_suspect_rate: d(sonnet.leak_suspect_rate, opus.leak_suspect_rate),
+  decisiveness: d(sonnet.dimensions.decisiveness, opus.dimensions.decisiveness),
+}
+log(`DELTA opus-sonnet: composite ${delta.composite >= 0 ? '+' : ''}${delta.composite} | rc_acc ${delta.root_cause_accuracy >= 0 ? '+' : ''}${delta.root_cause_accuracy} | halluc ${delta.hallucination_rate >= 0 ? '+' : ''}${delta.hallucination_rate}`)
+
+return {
+  grader_model: GRADER_MODEL,
+  n: gold.length,
+  sonnet: { composite: sonnet.composite, dimensions: sonnet.dimensions, root_cause_accuracy: sonnet.root_cause_accuracy, hallucination_rate: sonnet.hallucination_rate, leak_suspect_rate: sonnet.leak_suspect_rate, owner_accuracy: sonnet.owner_accuracy, cases_gated_by_hallucination: sonnet.cases_gated_by_hallucination },
+  opus: { composite: opus.composite, dimensions: opus.dimensions, root_cause_accuracy: opus.root_cause_accuracy, hallucination_rate: opus.hallucination_rate, leak_suspect_rate: opus.leak_suspect_rate, owner_accuracy: opus.owner_accuracy, cases_gated_by_hallucination: opus.cases_gated_by_hallucination },
+  delta,
+}

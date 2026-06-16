@@ -311,7 +311,7 @@ If I catch myself writing "want me to draft X / shall I do Y / say the word" —
 
 ## Full ownership on every fix (2026-05-18 thread `wf45Cu8OLzc`)
 
-Standing rule: *"Generic feedback: whenever you fix a diff or an issue, you should have a full ownership."* Codified as **[P-016](https://www.internalfb.com/code/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-generic/principles/P-016-full-ownership-on-every-fix.md)** in the principles catalog.
+Standing rule: *"Generic feedback: whenever you fix a diff or an issue, you should have a full ownership."* Codified as **[P-016](https://www.internalfb.com/code/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/principles/P-016-full-ownership-on-every-fix.md)** in the principles catalog.
 
 **When fixing anything, the chain is:** diagnose end-to-end → land the fix → verify it works (dry-run + real-run + output check) → push to remote → monitor the consequence (does the next cron run succeed? does the symptom recur?) → close the loop on what I cannot directly fix (explicit flag with smallest manual step operator needs) → update docs/cheatsheet/R-rules to prevent recurrence.
 
@@ -327,6 +327,16 @@ Standing rule: *"Generic feedback: whenever you fix a diff or an issue, you shou
 **If I can't directly close something** (daemon-post constraint, cross-team approval needed, missing operator context): flag it explicitly with the smallest manual step the operator would need. Never let silence imply closure.
 
 **Self-check before every "done" message:** did I verify the next cron run / pushed to remote / closed the consequence loop / updated the principles or cheatsheet if recurrence-prone? If any are no, I'm half-done.
+
+## Upstream recurring issue → decisive-metric task, not narration (2026-06-09 thread `jPPo82dAT4M`)
+
+Standing rule, the upstream counterpart to P-016. Codified as **[P-017](https://www.internalfb.com/code/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/principles/P-017-upstream-issue-decisive-metric-task.md)**.
+
+**Gate, on every recurring + high-confidence issue:** is the root cause IN MY LANE (config/prompt/script/R-rule I can edit)?
+- **In-lane** → P-016: fix it end-to-end.
+- **Upstream** (myclaw-core, another team's service, an unlanded dependency) → P-017: build ONE decisive metric query (deterministic, ground-truth source, reproducible), run it to record a confirmed baseline, file ONE follow-up task carrying the query + baseline + a numeric **acceptance threshold** + a link to the root-cause task. Then **monitor the metric — do NOT re-narrate the symptom on each recurrence.**
+
+**The decisive query must:** come from authoritative data (not narration or an ingestion/cache log), be deterministic (no LLM judgment in the count), encode known confounds, and double as the acceptance test (a threshold that defines "fixed"). A new prose diagnosis of an already-tracked upstream issue is the noise this rule exists to stop. Founding instance: team-space delivery leak → `tools/team-space-precision.sh` (baseline 9.5%, target ≥90%) → T275122535, root T274834361.
 
 ## Auto-save session learnings
 

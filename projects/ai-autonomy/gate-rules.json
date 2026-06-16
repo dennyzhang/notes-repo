@@ -1,0 +1,41 @@
+{
+  "_comment": "Source-of-truth rule data for ask-gate.sh. Editable as data — no code change needed. The model fills typed fields; the verdict is computed from these rules.",
+  "_distilled_from": "act/ask/never examples below are distilled from Denny's real agent-interaction chats (backfilled 2026-06-10) — generalized to action-classes; no quotes, SEV/diff IDs, or names (this file is world-readable).",
+  "catastrophic_hard_floor": [
+    {"pattern": "\\brm\\s+-rf\\b",                   "why": "recursive delete"},
+    {"pattern": "\\bgit\\s+push\\b.*(--force|-f\\b)", "why": "force-push"},
+    {"pattern": "\\b(jf|sl|hg)\\b.*\\bland\\b",       "why": "landing code"},
+    {"pattern": "\\b(revert|backout)\\b",            "why": "reverting work"},
+    {"pattern": "\\b(drop|truncate)\\s+table\\b",     "why": "destructive SQL"},
+    {"pattern": "--no-preserve-root",                "why": "root wipe"}
+  ],
+  "_note_hard_floor": "Layer 2 returns ASK for these. Layer 1 (capability) should make them IMPOSSIBLE — Anthony's point: even if you answer 'yes, delete the DB', the only delete available must back up first.",
+  "_never": [
+    "access or read another MyClaw instance's data/files on a shared host — a team/shared bot must not see personal instances (stated hard privacy rule)"
+  ],
+  "blast_radius_order": ["none", "local", "shared", "prod"],
+  "always_act_examples": [
+    "create / amend / submit my own diff",
+    "run tests, lint, build",
+    "read any file; read-only queries (scuba/sql/log)",
+    "edit code in a branch / working copy",
+    "address Devmate/human comments on my own diff (code only)",
+    "draft a message (not send)",
+    "anything matching a precedent already approved this session",
+    "triage / act on an in-scope OT SEV or alert — don't skip it or ask ('it's an OT SEV, you should have done it')",
+    "apply a fix I've already identified — don't ask 'want me to patch it', patch it and report",
+    "create a fix diff for a known bug, including in my own agent source",
+    "run independent sub-tasks in parallel — don't serialize or wait for a go-ahead between them",
+    "re-run / kick off a job or cron on request and proceed through its steps",
+    "redo work to match a referenced convention/template after a correction — load the reference first, then act"
+  ],
+  "always_ask_examples": [
+    "send a message / email / post to a human with no precedent",
+    "delete or overwrite something I did not create and that has no backup",
+    "force-push / land / revert someone else's work",
+    "any prod-affecting change",
+    "an irreversible action I am not confident is net-good",
+    "before adding people or apps to a space / group",
+    "when scoping a NEW recurring job/automation, confirm requirements + flag missing info first — then build without further asking"
+  ]
+}

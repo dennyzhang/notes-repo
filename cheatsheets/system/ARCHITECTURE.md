@@ -121,7 +121,7 @@ Global (intentionally shared):
 |---------|------|
 | Master rules | `CLAUDE.md` |
 | Cheatsheet routing | `cheatsheets/CHEATSHEET-INDEX.md` |
-| Hook config | `.claude/settings.json` |
+| Hook config (SOURCE) | `config/hooks.yaml` → `bash scripts/render-hooks.sh` regenerates the `hooks` block in `.claude/settings.json`. NEVER hand-edit `settings.json` as the durable change — it's generated (and `~/.claude/settings.json` is a symlink to `~/work/claude/.claude/settings.json` via setup-claude). Edit the yaml + render. |
 | Session state | `context/cache/state/STATE.md` |
 | Session handoff | `HANDOFF.md` |
 | Follow-ups | `FOLLOWUPS.md` |
@@ -130,4 +130,6 @@ Global (intentionally shared):
 | Project registry | `projects/_registry.json` |
 | Cron registration | `scripts/setup-claude.sh` |
 | Enforcement log | `~/logs/enforcement-metrics.csv` |
-| Workflow design rules | `cheatsheets/system/workflow-design.md` |
+| Workflow design rules | `cheatsheets/agents/workflow-design.md` |
+
+_Last updated: 2026-06-15. Maintainer: dennyzhang._

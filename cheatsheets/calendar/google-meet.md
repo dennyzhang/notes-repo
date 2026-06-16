@@ -151,3 +151,5 @@ The `create-meeting.py` script's `--google-meet` brokenness is also worth a fric
 - `meta calendar.meeting create --help` — canonical flag list
 - `meta calendar.meeting update --help` — for retroactive AI-summary / attendee changes
 - Calendar skill: `/home/dennyzhang/.claude/skills/calendar/SKILL.md` (its 2-step Zoom workflow predates `--ai-summary` and is now obsolete for this purpose)
+
+_Last updated: 2026-05-12. Maintainer: dennyzhang._

@@ -1,76 +1,251 @@
 {
   "diagnosed_ids": {
-    "1465388744873005": {
-      "added_epoch": 1779789531,
-      "notification_outcome": "LEGACY_UNKNOWN"
-    },
-    "1530150995193297": {
-      "added_epoch": 1780033694,
-      "notification_outcome": "POSTED:spaces/AAQAVOjYc80/messages/8FDbqnF8z6Q.8FDbqnF8z6Q"
-    },
-    "1955974545038771": {
-      "added_epoch": 1780174844,
-      "notification_outcome": "DEDUP:27534791649462484"
-    },
-    "1009946182010606": {
-      "added_epoch": 1780246719,
-      "notification_outcome": "POSTED:spaces/AAQA2bZMw24/messages/WAsflqyzT04.WAsflqyzT04"
-    },
-    "918757231077640": {
-      "added_epoch": 1780282452,
-      "notification_outcome": "POSTED:spaces/AAQA2bZMw24/messages/tbmR3gVNjco.tbmR3gVNjco"
-    },
-    "1810388853949261": {
-      "added_epoch": 1780282452,
-      "notification_outcome": "POSTED:spaces/AAQA2bZMw24/messages/4TnOiGaq9mg.4TnOiGaq9mg"
-    },
-    "1386657526635645": {
-      "added_epoch": 1780314487,
-      "notification_outcome": "POSTED:spaces/AAQA2bZMw24/messages/4PmDdKt-PeU.4PmDdKt-PeU"
-    },
-    "1728833178491353": {
-      "added_epoch": 1780314487,
-      "notification_outcome": "POSTED:spaces/AAQA2bZMw24/messages/9zLt5A2qfs4.9zLt5A2qfs4"
+    "966816956193936": {
+      "added_epoch": 1781340155,
+      "notification_outcome": "OOS:DETECTOR_BROKEN_retrieval_2144816217",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781274453&alert_id=ai%252Fmodel_registry%252Falerts%252Fcentralized_alerting%252Faggregation_rules%252Fcentralized_alerting.aggregation_rule%252F2144816217.aggregation_rule%253Burgency%253D4%253B2%253A364"
     },
     "1725584478808666": {
-      "added_epoch": 1780318090,
-      "notification_outcome": "POSTED:spaces/AAQAVOjYc80/messages/vEJ_BNabHgg.vEJ_BNabHgg"
+      "added_epoch": 1781356947,
+      "notification_outcome": "OOS:MONITOR_UPSTREAM_INFRA_S668542_ig_organic_baseline_batch_daily_brief",
+      "class": "UPSTREAM_INFRA",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781355981&alert_id=977255094865118%40%23%24scribe_read_proxy%40%23%24%7Bcolumn%3Aclient_lag_in_seconds%7D%40%23%24model+2134319967+%28ig_organic_feed_mtml+baseline%29+online+training+e2e+latency+sparse+delta"
     },
-    "1798523697474833": {
-      "added_epoch": 1780321691,
-      "notification_outcome": "POSTED:spaces/AAQAVOjYc80/messages/KPayMCX_ShM.KPayMCX_ShM"
+    "1427210782504924": {
+      "added_epoch": 1781411819,
+      "notification_outcome": "OOS:DETECTOR_BROKEN_AGG_880283513_recurring_task_open",
+      "class": "DETECTOR_BROKEN",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781350768&alert_id=ai%252Fmodel_registry%252Falerts%252Fcentralized_alerting%252Faggregation_rules%252Fcentralized_alerting.aggregation_rule%252F880283513.aggregation_rule%253Burgency%253D4%253B2%253A665"
     },
-    "871087092029290": {
-      "added_epoch": 1780339861,
-      "notification_outcome": "POSTED:spaces/AAQAVOjYc80/messages/RO8OTNbICCI.RO8OTNbICCI"
+    "1544275823951823": {
+      "added_epoch": 1781432671,
+      "notification_outcome": "OOS:MISCONFIG_AGG_item_emb_FALSE_ALARM_scribe_transient_batch_daily_brief",
+      "class": "MISCONFIG_AGG",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781431815&alert_id=ai%2Fmodel_registry%2Falerts%2Fcentralized_alerting%2Faggregation_rules%2Fcentralized_alerting.aggregation_rule%2F2145491885.aggregation_rule%3Burgency%3D4%3B2%3A291"
     },
-    "708481502288258": {
-      "added_epoch": 1780343288,
-      "notification_outcome": "POSTED:spaces/AAQAVOjYc80/messages/mC1s6LjSvTU.mC1s6LjSvTU"
+    "844952808102065": {
+      "added_epoch": 1781435170,
+      "notification_outcome": "OOS:DETECTOR_BROKEN_starsearch_baseline_2126189932_healthy_task_T275817233",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781434113&alert_id=1201406268614142%40%23%241729017291786319%3Amodel+2126189932+%28ig_reels_starsearch_t2i_retrieval+baseline%29+online+training+e2e+latency+sparse+delta%40%23%24one_detection.detector.issue%40%23%24model+2126189932+%28ig_reels_starsearch_t2i_retrieval+baseline%29+online+tzvq4jso5slbmh",
+      "class": "DETECTOR_BROKEN"
     },
-    "2382297228909438": {
-      "added_epoch": 1780343288,
-      "notification_outcome": "DEDUP:708481502288258"
+    "2072111036680190": {
+      "added_epoch": 1781436764,
+      "notification_outcome": "DEDUP:same_as_1984695085496075_model_2126653325_pub_stability",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_id=2072111036680190%40%23%24dai_modelstore%40%23%24%7Bcolumn%3Acount%7D%40%23%24publishing+stability%3A+facebook_reels_ifu_mtml_v0+model+2126653325+missing+snapshot+types+sparse_delta"
     },
-    "978986517964596": {
-      "added_epoch": 1780343288,
-      "notification_outcome": "POSTED:spaces/AAQAVOjYc80/messages/O5peubDXWNE.O5peubDXWNE"
+    "863227146150234": {
+      "added_epoch": 1781454149,
+      "notification_outcome": "OOS:WARNING_severity_floor_NO_ACTION_transient_bootstrap_2125752019",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_id=863227146150234%40%23%24dai_modelstore%40%23%24%7Bcolumn%3Acount%7D%40%23%24publishing+stability%3A+facebook_ifr_main_mtml_main+model+2125752019+missing+snapshot+types+full_snapshot",
+      "class": "THRESHOLD_MISFIT",
+      "model_id": "2125752019",
+      "verdict": "NO_ACTION",
+      "root_cause": "bootstrap_gap_v40_restart"
     },
-    "2398498093914274": {
-      "added_epoch": 1780343288,
-      "notification_outcome": "POSTED:spaces/AAQAVOjYc80/messages/VcnLWRg-8II.VcnLWRg-8II"
+    "1386657526635645": {
+      "added_epoch": 1781454915,
+      "notification_outcome": "OOS:WARNING_THRESHOLD_MISFIT_FS_mid_cycle_2125752019_taskT275831624",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781453281&alert_id=863227146150234%40%23%24dai_modelstore%40%23%24%7Bcolumn%3Acount%7D%40%23%24publishing+stability%3A+facebook_ifr_main_mtml_main+model+2125752019+missing+snapshot+types+full_snapshot",
+      "class": "THRESHOLD_MISFIT"
+    },
+    "1984695085496075": {
+      "added_epoch": 1781455774,
+      "notification_outcome": "OOS:THRESHOLD_MISFIT_DEDUP_2072111036680190_model_2126653325_healthy_taskT275819804",
+      "class": "THRESHOLD_MISFIT",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781307464&alert_id=2072111036680190%40%23%24dai_modelstore%40%23%24%7Bcolumn%3Acount%7D%40%23%24publishing+stability%3A+facebook_reels_ifu_mtml_v0+model+2126653325+missing+snapshot+types+sparse_delta"
+    },
+    "1530150995193297": {
+      "added_epoch": 1781468437,
+      "notification_outcome": "OOS:DETECTOR_BROKEN-decommissioned-ghost-detector",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_id=1530150995193297%40%23%24dai_modelstore%40%23%24%7Bcolumn%3Acount%7D%40%23%24publishing+stability%3A+facebook_reels_ifu_i2i+%5Bbaseline+reranker%5D+model+2132537419+missing+snapshot+types+full_snapshot",
+      "class": "DETECTOR_BROKEN",
+      "model_id": "2132537419",
+      "verdict": "NO_ACTION"
+    },
+    "1465388744873005": {
+      "added_epoch": 1781471103,
+      "notification_outcome": "OOS:DETECTOR_BROKEN_retrieval_sparse_delta_875620176_task_T275819792",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1779786478&alert_id=939228589031311%40%23%24937317072536401%3Amodel+875620176+%28ig_feed_recs_ifr_t2i_retrieval+holdout%29+online+training+e2e+latency+sparse+delta%40%23%24one_detection.detector.issue%40%23%24model+875620176+%28ig_feed_recs_ifr_t2i_retrieval+holdout%29+online+training+e2e+5t4om4e6cipvm",
+      "class": "DETECTOR_BROKEN"
+    },
+    "2117197125745891": {
+      "added_epoch": 1781474990,
+      "notification_outcome": "OOS:THRESHOLD_MISFIT_RECURRING_detector1480195820275950_2144816217_daily_brief_taskT275847496",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781446140&alert_id=1480195820275950%40%23%24scribe_read_proxy%40%23%24%7Bcolumn%3Aclient_lag_in_seconds%7D%40%23%24model+2144816217+%28ig_reels_tab_ss_omni_retrieval+holdout%29+online+training+e2e+latency+sparse+delta",
+      "class": "THRESHOLD_MISFIT"
+    },
+    "2529846344117543": {
+      "added_epoch": 1781478589,
+      "notification_outcome": "OOS:MISCONFIG_AGG_875620176_all_DETECTOR_BROKEN_task_T275850065",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1779787970&alert_id=ai%2Fmodel_registry%2Falerts%2Fcentralized_alerting%2Faggregation_rules%2Fcentralized_alerting.aggregation_rule%2F875620176.aggregation_rule%3Burgency%3D4%3B2%3A182",
+      "class": "MISCONFIG_AGG"
+    },
+    "1690612485438486": {
+      "added_epoch": 1781493885,
+      "notification_outcome": "OOS:NO_ACTION_DETECTOR_BROKEN_recurring_misconfig_taskT275861312",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781489504&alert_id=799966216470487%40%23%24predictor_streaming_model_update%40%23%24%7Bcolumn%3Acount%7D%40%23%24%5Bifr+watchtower%5D+online+training+monitor%3A+model+%27ifr+mc8+mtml%27+%28model%3A+%27886797001%27%29+too+few+delta+snapshots+published",
+      "class": "DETECTOR_BROKEN",
+      "model_id": "886797001",
+      "verdict": "NO_ACTION"
+    },
+    "799966216470487": {
+      "added_epoch": 1781496001,
+      "notification_outcome": "DEDUP:DETECTOR_BROKEN_886797001_feedItem_1690612485438486_taskT275861312",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781489504&alert_id=799966216470487%40%23%24predictor_streaming_model_update%40%23%24%7Bcolumn%3Acount%7D%40%23%24%5Bifr+watchtower%5D+online+training+monitor%3A+model+%27ifr+mc8+mtml%27+%28model%3A+%27886797001%27%29+too+few+delta+snapshots+published",
+      "class": "DETECTOR_BROKEN"
+    },
+    "4522518738071181": {
+      "added_epoch": 1781496899,
+      "notification_outcome": "OOS:MONITOR_UPSTREAM_INFRA_S669133_starsearch_holdout_2145491885_batch_daily_brief",
+      "class": "UPSTREAM_INFRA",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781511000&alert_id=1427819186056622%40%23%24scribe_read_proxy%40%23%24%7Bcolumn%3Aclient_lag_in_seconds%7D%40%23%24model+2145491885+%28ig_reels_starsearch_t2i_retrieval+holdout%29+online+training+e2e+latency+sparse+delta",
+      "model_id": "2145491885",
+      "verdict": "MONITOR",
+      "root_cause": "S669133_scribe_quota_retrieval_ot_flows"
+    },
+    "3477520882402482": {
+      "added_epoch": 1781500505,
+      "notification_outcome": "OOS:MONITOR_UPSTREAM_INFRA_ScribeQuota_holdout_878102693_batch_daily_brief",
+      "class": "UPSTREAM_INFRA",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781499928&alert_id=ai%252Fmodel_registry%252Falerts%252Fcentralized_alerting%252Faggregation_rules%252Fcentralized_alerting.aggregation_rule%252F878102693.aggregation_rule%253Burgency%253D4%253B2%253A570",
+      "model_id": "878102693",
+      "verdict": "MONITOR",
+      "root_cause": "S668542_scribe_quota_and_tenant_feed_scribe_quota_sev_LSR_ESR"
+    },
+    "1485851106147880": {
+      "added_epoch": 1781515279,
+      "notification_outcome": "OOS:MONITOR_UPSTREAM_INFRA_S669133_starsearch_holdout_2145491885_batch_daily_brief",
+      "class": "UPSTREAM_INFRA",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781514511&alert_id=ai%252Fmodel_registry%252Falerts%252Fcentralized_alerting%252Faggregation_rules%252Fcentralized_alerting.aggregation_rule%252F2145491885.aggregation_rule%253Burgency%253D4%253B2%253A294",
+      "model_id": "2145491885",
+      "verdict": "MONITOR",
+      "root_cause": "S669133_scribe_quota_retrieval_ot_flows_18d_In_Progress"
+    },
+    "1010861974743054": {
+      "added_epoch": 1781518930,
+      "notification_outcome": "OOS:MONITOR_UPSTREAM_INFRA_S669133_ig_reels_tab_mtml_holdout_2126681227_batch_daily_brief",
+      "class": "UPSTREAM_INFRA",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781517978&alert_id=1600949354510906%40%23%24scribe_read_proxy%40%23%24%7Bcolumn%3Aclient_lag_in_seconds%7D%40%23%24model+2126681227+%28ig_reels_tab_mtml+holdout%29+online+training+e2e+latency+sparse+delta",
+      "model_id": "2126681227",
+      "verdict": "MONITOR",
+      "root_cause": "S669133_scribe_quota_LSR_ESR_retrieval_OT_flows"
+    },
+    "848827930836030": {
+      "added_epoch": 1781520093,
+      "notification_outcome": "POSTED:spaces/AAQAVOjYc80/messages/m-9opO5WUxs.m-9opO5WUxs",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_id=848827930836030%40%23%24sum%40%23%242119185970_non_retryable_error.sum.60%40%23%24mrs+online+training+-+tgif+publisher+non-retryable+error",
+      "class": "REAL_OT_FAILURE",
+      "model_id": "2119185970",
+      "verdict": "PAGE"
+    },
+    "1728833178491353": {
+      "added_epoch": 1781525973,
+      "notification_outcome": "OOS:MONITOR_UPSTREAM_INFRA_S669133_cs_omni_holdout_880283513_batch_daily_brief",
+      "class": "UPSTREAM_INFRA",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_id=2022018511860729%40%23%24scribe_read_proxy%40%23%24%7Bcolumn%3Aclient_lag_in_seconds%7D%40%23%24model+880283513+%28ig_reels_tab_cs_omni_retrieval+holdout%29+online+training+e2e+latency+sparse+delta",
+      "model_id": "880283513",
+      "verdict": "MONITOR",
+      "root_cause": "S669133_scribe_quota_retrieval_OT_flows"
+    },
+    "1558388828479222": {
+      "added_epoch": 1781537952,
+      "notification_outcome": "OOS:WARNING_THRESHOLD_MISFIT_recurring_919957162_taskT275918888",
+      "class": "THRESHOLD_MISFIT",
+      "model_id": "919957162",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_id=1558388828479222%40%23%24dai_modelstore%40%23%24%7Bcolumn%3Acount%7D%40%23%24publishing+stability%3A+facebook_cfr_video_mtml+model+919957162+missing+snapshot+types+full_snapshot"
+    },
+    "1905268493426452": {
+      "added_epoch": 1781539411,
+      "notification_outcome": "DEDUP:WARNING_severity_floor:same_underlying_1558388828479222:THRESHOLD_MISFIT:task_T275918888",
+      "class": "THRESHOLD_MISFIT",
+      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781537045&alert_id=1558388828479222%40%23%24dai_modelstore%40%23%24%7Bcolumn%3Acount%7D%40%23%24publishing+stability%3A+facebook_cfr_video_mtml+model+919957162+missing+snapshot+types+full_snapshot"
     }
   },
   "misconfig_tasks": {
-    "dai_modelstore_publishing_stability:886351377": {
-      "task": "T273749617",
-      "created_epoch": 1780321691,
+    "2194688764662362:2141728947": {
+      "task": "T275750940",
+      "created_epoch": 1781340155,
+      "class": "DETECTOR_BROKEN"
+    },
+    "1530150995193297:2132537419": {
+      "task": "T275881478",
+      "created_epoch": 1781513108,
+      "class": "DETECTOR_BROKEN"
+    },
+    "2072111036680190:2126653325": {
+      "task": "T275881538",
+      "created_epoch": 1781513108,
       "class": "THRESHOLD_MISFIT"
+    },
+    "retrieval_class_sparse_delta_detector:model_type_level": {
+      "task": "T275881513",
+      "created_epoch": 1781513108,
+      "class": "DETECTOR_BROKEN"
+    },
+    "S668542_scribe_quota_upstream": {
+      "task": "T275762912",
+      "created_epoch": 1781355599,
+      "class": "UPSTREAM_INFRA",
+      "type": "owner-handoff"
+    },
+    "2053262841986409:2122112237": {
+      "task": "T275798773",
+      "created_epoch": 1781407952,
+      "class": "DETECTOR_BROKEN"
+    },
+    "1314622086748084:2122112237": {
+      "task": "T275798780",
+      "created_epoch": 1781407952,
+      "class": "DETECTOR_BROKEN"
+    },
+    "item_emb_detector:retrieval_model_type_level": {
+      "task": "T275815748",
+      "created_epoch": 1781432671,
+      "class": "DETECTOR_BROKEN"
+    },
+    "1201406268614142:2126189932": {
+      "task": "T275817233",
+      "created_epoch": 1781435170,
+      "class": "DETECTOR_BROKEN"
+    },
+    "863227146150234:2125752019": {
+      "task": "T275831624",
+      "created_epoch": 1781454915,
+      "class": "THRESHOLD_MISFIT"
+    },
+    "1480195820275950:2144816217": {
+      "task": "T275847496",
+      "created_epoch": 1781474990,
+      "class": "THRESHOLD_MISFIT"
+    },
+    "880283513.aggregation_rule:880283513": {
+      "task": "T275848846",
+      "created_epoch": 1781476567,
+      "class": "DETECTOR_BROKEN"
+    },
+    "875620176.aggregation_rule:875620176": {
+      "task": "T275850065",
+      "created_epoch": 1781478589,
+      "class": "MISCONFIG_AGG"
+    },
+    "799966216470487:886797001": {
+      "task": "T275861312",
+      "created_epoch": 1781493885,
+      "class": "DETECTOR_BROKEN"
+    },
+    "S669133_scribe_quota_retrieval_upstream": {
+      "task": "T275863995",
+      "created_epoch": 1781496899,
+      "class": "UPSTREAM_INFRA",
+      "type": "owner-handoff"
     }
   },
-  "last_run_epoch": 1780343288,
+  "last_run_epoch": 1781515802,
+  "last_run_epoch": 1781539411,
   "gchat_health": {
-    "last_ok_epoch": 1780343288,
+    "last_ok_epoch": 1781515802,
+    "last_ok_epoch": 1781539411,
     "consecutive_403_count": 0
   }
 }

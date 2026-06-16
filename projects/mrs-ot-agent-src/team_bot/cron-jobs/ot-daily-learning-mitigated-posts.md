@@ -130,7 +130,7 @@ Procedure:
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/ \
-          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/ \
+          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/ \
           2>/dev/null | \
           grep -v "$(basename "$current_archive_path")" | \
           grep -vE "/(INDEX|README)\.md$"
@@ -211,10 +211,8 @@ Procedure:
 
 11. **Chronic-noisy author/topic surfacing (added 2026-05-17, ported from alerts thread `Uc-pVBEXNQ8` step 11).** Surface the Pareto: which authors/lanes/models generate disproportionate post volume.
 
-    - **Source:** scan `incidents/resolved-posts/*/*.md` filenames + first-line title + frontmatter `lane`/`author`/`model_id`. Two groupings:
-      - By **model_id** (if extractable): per-model post count in last 7d
-      - By **lane** (always present): per-lane post count in last 7d
-    - **Threshold:** flag TOP 3 by post-count in last 7d AND with ≥3 posts (drop floor — low-volume noise filtered).
+    - **Source (2026-06-07 audit):** the **by-model** Pareto = run `python3 tools/incident-pareto.py --kind posts --days 7 --min 3` and render VERBATIM (deterministic, reconcile-asserted, coverage-honest — ~15/25 post files carry a model id; §5; shared helper with sevs/alerts siblings, §14c). The **by-lane** grouping (lane is always present, not in the shared helper) stays a deterministic glob-count here; render it as a second line.
+    - **Threshold:** `--min 3` for models (helper applies it); ≥3 for lanes.
     - **Pre-publish lint applies:** markdown links throughout (RULES.md § URL validity).
     - **Output format** (threaded reply in `digest_thread`):
       ```
@@ -225,7 +223,7 @@ Procedure:
       3. ...
       ```
     - **If <3 entries meet threshold:** post `(no chronic-post sources this week)` — ONE line, no header.
-    - **Persist to notes:** prepend a row (newest first) under the `## Posts` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/noisy-trends.md`. Insert after the table header row, before existing data rows. Format:
+    - **Persist to notes:** prepend a row (newest first) under the `## Posts` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/noisy-trends.md`. Insert after the table header row, before existing data rows. Format:
       ```
       | <run timestamp PT> | <rank> | <grouping: model|lane> | <key> | <post_count> | <breakdown> | <one-line notes: top cluster/P-row> |
       ```

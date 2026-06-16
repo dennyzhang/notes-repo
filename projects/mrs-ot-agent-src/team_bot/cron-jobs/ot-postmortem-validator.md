@@ -41,13 +41,13 @@ This cron RUNS in agent context (per the OT bot's standard agentic-cron policy),
 
    b. **Validate cluster citations:**
       ```bash
-      grep "^### CL-NNN" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/patterns/failure-patterns.md
+      grep "^### CL-NNN" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/patterns/failure-patterns.md
       ```
       Flag any cited CL-NNN that doesn't exist in failure-patterns.md as `⚠️ unknown cluster`.
 
    c. **Validate P-row citations:**
       ```bash
-      grep "^| P<NN>" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md
+      grep "^| P<NN>" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md
       ```
       Flag any cited P-row that doesn't exist as `⚠️ unknown P-row`.
 
@@ -66,9 +66,15 @@ This cron RUNS in agent context (per the OT bot's standard agentic-cron policy),
    f. **New-pattern proposals (e.g., "PROPOSE P55"):**
       Verify pattern doesn't duplicate an existing P-row. Verify it's distinct from sibling CL-NNN sub-mechanisms. If genuinely novel → ✅ accept and recommend landing; if duplicate → ⚠️ flag as redundant.
 
-4. **Compose validation reply per digest:**
+4. **Compose validation reply per digest — OPERATOR 1:1 ONLY, never follow a digest into the team space:**
 
-   Post in the SAME thread as the original digest (per gchat RULE #1: reply-in-thread). Format:
+   **Space hard-pin (root cause of the 2026-06-03 22:35 PT leak): the send space is ALWAYS `spaces/AAQAVOjYc80` (operator 1:1) — never `spaces/AAQA2bZMw24`.** This OVERRIDES "reply in the digest's thread" whenever the two conflict. The leak happened because this step said only "reply in the same thread as the original digest"; when a parent digest's thread lived in the team space, the validator followed it there, silently defeating the line-3 OUTPUT-CHANNEL directive.
+
+   - Resolve the parent digest's `thread_name`. **If and only if it is under `spaces/AAQAVOjYc80/...`**, reply in that thread (`--reply-in-thread=<full resource name>`).
+   - **If the parent digest landed anywhere else (team space, or no thread), do NOT follow it.** Post to the operator 1:1 as a `# new-topic` message that names the digest being validated (`thread <id> / run <run_id>`) so the operator can correlate without the validator ever touching the team space.
+   - After the explicit `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 ...`, respond EXACTLY `HEARTBEAT_OK` (per line 3) so the daemon's team-channel auto-delivery posts nothing.
+
+   Format:
 
    ```
    ✅ *Validator pass (2026-05-16 22:30 PT)*

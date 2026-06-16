@@ -1,0 +1,50 @@
+{
+  "last_run_epoch": 1781453825,
+  "per_expert": {
+    "dennyzhang": {
+      "last_catchup_date": "2026-06-14",
+      "last_post_time_epoch": 1781026695,
+      "skip_until_epoch": 0
+    },
+    "lupaul": {
+      "last_catchup_date": "2026-06-14",
+      "last_post_time_epoch": 1781213642,
+      "skip_until_epoch": 0
+    },
+    "llu6": {
+      "last_catchup_date": "2026-06-14",
+      "last_post_time_epoch": 1780526260,
+      "skip_until_epoch": 1783873025
+    },
+    "shugye": {
+      "last_catchup_date": "2026-06-14",
+      "last_post_time_epoch": 1781208188,
+      "skip_until_epoch": 0
+    },
+    "ziqiliu": {
+      "last_catchup_date": "2026-06-14",
+      "last_post_time_epoch": 0,
+      "skip_until_epoch": 1783873025
+    },
+    "yabinzh": {
+      "last_catchup_date": "2026-06-13",
+      "last_post_time_epoch": 1778019505,
+      "skip_until_epoch": 1782579420
+    },
+    "dkotfis": {
+      "last_catchup_date": "2026-06-14",
+      "last_post_time_epoch": 1781225034,
+      "skip_until_epoch": 0
+    },
+    "prgzz": {
+      "last_catchup_date": "2026-06-14",
+      "last_post_time_epoch": 1781129321,
+      "skip_until_epoch": 0
+    },
+    "peiyangy": {
+      "last_catchup_date": "2026-06-13",
+      "last_post_time_epoch": 1778793798,
+      "skip_until_epoch": 1782579420
+    }
+  }
+}

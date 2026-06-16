@@ -1,5 +1,5 @@
 {
-  "_comment": "Source-of-truth config for ot-gdoc-context-sync cron. Each entry materializes as <slug>.md in this directory. Add an entry to onboard a new gdoc; remove to stop syncing. Slugs must be unique kebab-case (matched against filename).",
+  "_comment": "Source-of-truth config for ot-ingest-gdocs cron. Each entry materializes as <slug>.md in this directory. Add an entry to onboard a new gdoc; remove to stop syncing. Slugs must be unique kebab-case (matched against filename).",
   "docs": [
     {
       "doc_id": "1PpkGgLqAB6y5Z7jJWnKgNw-N2VuuNvKIwQW0XyOluPM",
@@ -10,6 +10,11 @@
       "doc_id": "1mpy7J9r-GCkUTNjQzzdWsJDWbFC9iJ3ctZsFdvyX-qs",
       "slug": "mrs-ot-reliability-cross-team-followups",
       "title": "[MRS OT Reliability] Cross-Team Follow-ups"
+    },
+    {
+      "doc_id": "10kawZuw5eAzpFm8ZvT8Hgy-wfx-Cjw1sPtcLJ_70wOY",
+      "slug": "mrs-ml-infra-sev-criteria",
+      "title": "MRS ML Infra SEV Criteria"
     }
   ]
 }

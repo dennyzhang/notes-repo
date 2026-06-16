@@ -47,6 +47,103 @@ The "Distinction" column points to root cause. Fill it out before deep-diving in
 | Checkpoint corruption | file integrity, partial writes | Load and inspect tensors, use last-known-good |
 | Stale model | SV rejections, Conveyor pipeline | Check SV logs, verify publish path |
 
+## Fact-Gathering Signature Catalog — the OBSERVE probe set (run FIRST on zombie / QPS→0 / hang / FAILED)
+
+`OBSERVE` (step 1 of the methodology) is not "skim whatever log you happened to
+fetch." It is running a **fixed probe set** and recording which signatures fire —
+*then* you hypothesize over real evidence. A triager (human or agent) that reasons
+over un-probed text will confidently miss the root cause: the line that proves it
+was never fetched.
+
+> **Origin — S670887 (2026-06-03).** A GPU **CUDA-OOM** zombie was first mis-triaged
+> (one pass correlated it to an unrelated IMA SEV; the cron monitor listed OOM only as
+> an *unconfirmed candidate*) because **nobody probed GPU memory** — the 99.88%-mem
+> signal and the `SIGTERM` line were never in the fetched text. The fix is not better
+> reasoning; it is running probes #1–#2 every time.
+
+### Step 0 — known-issue / history match (run BEFORE the probe set)
+
+A recurring symptom is **not** a novel investigation. For zombie / QPS=0-while-RUNNING / "RUNNING but not training", FIRST match against history — it yields the canonical root + the existing mitigation + the fix diff in ONE step, and the probe set below then only CONFIRMS it applies (don't re-derive from logs).
+
+- **Prior SEVs of this class:** S665454, S670887.
+- **The canonical root for the OT "RUNNING-but-zombie" class:** a worker crashes (e.g. `CUDACachingAllocator INTERNAL ASSERT FAILED`/`free_block` → `terminate()`/SIGABRT, or CUDA-OOM) and SJD *catches* it — **but a base-layer bug prevents the process from exiting cleanly, so MAST never registers the failure and creates no new attempt** (even with 100 retries configured). End state: MAST=RUNNING, QPS=0, no auto-restart. **Permanent fix: base layer ≥ [D98638473](https://www.internalfb.com/diff/D98638473)** (clean exit on worker crash). **Mitigation now: manually kill the job → MAST creates a new attempt and resumes.** MAST/SJD/TMS will NOT self-recover a zombie (confirmed by the model platform — Li Lu, 2026-06-09).
+- **Runbook:** mrs.ot post `1344542434307166` (Denny, 2026-06-06) — canonical write-up + actions.
+- **It's a CLUSTER, not one job.** These arrive as N root models at once (2026-06-09: 3 — 2121054758, 2120474184, +1). Pull the full affected-model list first; one diagnosis covers the cluster.
+
+**Confidence guard:** do NOT tag root-cause confidence "high" until Step 0 (history) AND probe #1 have both run. Over-fitting to the most-frequent log lines (e.g. background `STORAGE_SVC_PUT_CHUNK RESOURCE_BUSY_TIMEOUT` storage noise) and naming them the root — without confirming the actual crash signature (probes #3/#4) or checking history — is the exact miss Step 0 prevents. (2026-06-09: a deep triage of 2121054758 rooted on storage timeouts at "high" confidence; the real root was the base-layer exit bug, already documented 3 days earlier in the runbook above.)
+
+### The probe set (run all — each is cheap; record fired/not-fired)
+
+| # | Class | Probe (runnable) | Signature = hit |
+|---|-------|------------------|-----------------|
+| 1 | **Trainer liveness — progress ≠ heartbeat** | `meta scuba.dataset query -d mvai_metrics -a count -w '[{"column":"model_entity_id","op":"eq","values":["<MID>"]}]' --hours=18 --time-bucket="30 minutes"` | emission → **0 while MAST=RUNNING** ⇒ zombie. THE defining signal; a stuck-job detector watching heartbeat/lease never sees it. |
+| 2 | **GPU memory / OOM** | `meta scuba.dataset query -d gpu_dyno_stats -a "max(gpu_memory_utilization_float)" -w '[{"column":"model_entity_id","op":"eq","values":["<MID>"]}]' --hours=18 --time-bucket="30 minutes"` (add `host_name` group-by to find WHICH GPU) | any GPU **>99% mem util** ⇒ CUDA OOM occurred/imminent. **The probe missed in S670887.** |
+| 3 | **Rank death / SIGTERM** | `meta ai.mast-job error --name=JOB --version=V --no-truncate` (+ logs) | `SIGTERM`, `Signal 15`, `ChildFailedError`, `exited with code`, `Fatal Python error`, `terminate called`. Also: a top-level `error` of "killed by user … stuck" ⇒ a human, not auto-recovery, ended it. |
+| 4 | **CUDA OOM (log)** | logs grep | `CUDA out of memory`, `torch.cuda.OutOfMemoryError`, `CUDA error: out of memory` |
+| 5 | **CUDA IMA** | logs grep | `an illegal memory access was encountered`, `CUDA error: an illegal memory access`, offending kernel (e.g. `permute_multi_embs_kernel`) |
+| 6 | **NCCL collective hang/timeout** | logs grep | `Watchdog caught collective operation timeout`, `NCCL timeout`, `ProcessGroupNCCL`, `has not joined`, `operations have failed or timed out` |
+| 7 | **Publish-path GPU accumulation** | logs grep + correlate GPU-mem(#2) climb vs publish events | `full snapshot`, `snapshot publish`, `PublishRateLimiter`, `push://`. S670887: GPU mem steps up at each **full-snapshot publish** (publish reads GPU→snapshot, holds allocations); `empty_cache` before publish did **not** free it. |
+| 8 | **Stuck-job-detector blindness** | check SJD / lease-renewal thread | training thread stuck **but** lease-renewal thread independently renews `mvai_monitor` ⇒ SJD never fires ⇒ no auto-kill. (S670887's "why wasn't it auto-killed.") |
+| 9 | **GIL / Python deadlock** | py-spy dump per rank | `_preload_item_pool`, non-daemon thread hang, all threads parked on one lock |
+| 10 | **Loss NaN/Inf** | logs grep | `loss is nan`, `NaN`, `Inf detected`, `assert .*finite` |
+| 11 | **Host OOM-killer** | dmesg / host logs | `Out of memory: Killed process`, `oom-kill` |
+| 12 | **DPP starvation (is the trainer data-starved?)** | PRIMARY: per-mast-job DPP starvation ODS `fburl.com/canvas/pzoyunzx` (filter by mast job id) + scribe token ingress Scuba `dpp_stats_v2`. CORROBORATE: trainer INFO log `DataClient.cpp "Current output queue size is: N"` (pull INFO logs, NOT `fetch_mast_job_errors`). | ODS starvation high / scribe ingress dropped ⇒ DPP starvation (upstream data) ⇒ hand DPP/scribe oncall the per-job ODS as evidence. Output-queue persistently 0 corroborates; **but a single short queue snapshot can look fed during a REAL fleet starvation (2144239965 in S674219) — trust the per-job ODS/ingress trend, not one sample.** S674219 (2026-06-10): EAG scribe drain → ~75% DPP ingress drop → fleet OT QPS=0; tracked S674227, fix D94521578. |
+
+### Reading the result
+- **Exactly one fires** → confirmed root cause; cite the probe output verbatim (self-reporting-from-data).
+- **Several fire** → order them into ONE causal chain, don't report N root causes. Canonical zombie chain (S670887):
+  `#7 publish-path leak → #2 GPU 99.88% → #4 CUDA OOM → #3 SIGTERM on the rank → #6 79 ranks block on collective → #1 QPS=0 while RUNNING → #8 SJD blind → ~2h until human kill`.
+- **#1 true but #2–#11 all false** → genuine silent hang → escalate to #9 (py-spy) + flight recorder. Do **not** write "root cause unknown; candidates OOM/GIL/race" until #2 and #9 have actually been run — that string is the smell of a skipped probe set.
+
+## Performance Regression — pre-SEV early indicators (gradual, not a failure)
+
+A model can degrade *without* failing: training **example age** creeps up,
+**training QPS** drifts down, **QPS startup / age-drain after restart** gets
+slower. None of these trip a SEV on their own, but they are the leading edge
+of one (the S670887 OOM zombie was preceded by days of "example age high,
+slow to drain"). Catch them as **drift vs the model's own baseline**, not vs
+an absolute threshold — every model's healthy QPS/age is different, so a global
+number either false-alarms or misses.
+
+### Detection principle — baseline-relative + slope
+- Baseline = the model's own trailing **median ± MAD** over ~7–14d of healthy
+  operation (robust to spikes). Compare current to *that*, per model.
+- **Trend beats instantaneous** for early warning: a sustained positive slope
+  toward the SEV threshold is the signal, even before the threshold is hit.
+  (A flat-but-elevated value is steady-state; a slow ramp is the warning.)
+- Flag rules (starting points, tune per model):
+  - example age > 2× baseline sustained >30min, OR positive slope over 6h;
+  - window QPS < 70% baseline sustained >1h;
+  - post-restart age-drain time > 2× baseline (e.g. 5h vs ~1h);
+  - GPU mem-util positive slope over 6h (leading indicator of the OOM path).
+
+### Runnable signals (verified metric sources)
+```bash
+# Example age (freshness) — dedicated column, seconds
+meta scuba.dataset query -d mvai_metrics -a p50 -a p90 -c data_age_at_publish_secs \
+  -w '[{"column":"model_entity_id","op":"eq","values":["<MID>"]}]' --hours=48 --time-bucket="1 hour"
+# Training QPS — window (current), not lifetime (smoothed)
+meta scuba.dataset query -d mvai_metrics -a avg -c metric_value \
+  -w '[{"column":"model_entity_id","op":"eq","values":["<MID>"]},{"column":"metric_name","op":"eq","values":["qps/global/window/train"]}]' --hours=48 --time-bucket="1 hour"
+# GPU mem slope (leading indicator) — see catalog probe #2 (gpu_dyno_stats)
+# Startup ramp — RUNNING transition (state-transition tool) → time until age/QPS back to baseline
+```
+
+### Debug decision matrix — which signal moved × co-signal → subsystem
+| Primary | Co-signal | Likely subsystem | Next probe |
+|---------|-----------|------------------|-----------|
+| Example age ↑ | QPS normal, GPU normal | **Upstream / publish pipeline** (scribe volume, Hedwig backpressure, delta/snapshot publish lag) — trainer fine, freshness path behind | scribe lag, Hedwig queue waits, publish cadence (S670887's "5h to drain" 2nd symptom) |
+| Example age ↑ | QPS ↓ | **Trainer can't keep up** (GPU-mem throttle, straggler rank, PT2 recompile, contention) | GPU-mem slope (#2), per-rank QPS variance, `mvai trace-doctor analyze -j <job>` |
+| QPS ↓ | GPU mem ↑ slope | **Memory pressure / leak** — same path that ends in the OOM zombie; this is the early warning | gpu_dyno_stats slope; trace-doctor embedding/batch analyzers |
+| QPS ↓ | GPU util ↓ | **Input-bound / data stall** (DPP readers, dataloader, partition availability) | trace-doctor critical-path; T1/DPP worker counts |
+| Slow QPS startup / slow age-drain | (post-restart) | **Cold-start cost** (checkpoint/snapshot load, sharding replan, cache warmup, backfill catch-up) | compare RUNNING→steady time vs baseline; checkpoint-load duration |
+| QPS sawtooth ~every 6min | aligned to publish | **Publish blocks training thread** (full-snapshot/delta publish stalls the train step) | correlate QPS dips to publish timestamps (S670887: "qps drops every 6min aligned with delta publish") |
+
+**Reuse TraceDoctor for the throughput side:** `mvai trace-doctor analyze -j <job-id>`
+is the first stop for any QPS-down regression — it auto-detects efficiency
+issues (batch size, embedding comm, activation memory, input-bound) with impact
+estimates, so don't hand-derive what it computes.
+
 ## Quick Reference — The Debug Ladder
 
 When debugging a MAST job, go **top-down** through this ladder. Each level gives you more detail.
@@ -229,7 +326,7 @@ meta ai.mast-job error --name=JOB_NAME --attempt=N -o json
 | OT QPS metric shows zero output but alert does not fire for 10+ hours | Configure sub-30-minute QPS staleness alerts instead of relying on long-latency thresholds. When QPS staleness alerts fire, route to model owner immediately; unassigned metric alerts tend to age silently. Check alert-to-owner routing for mvai_metrics NaN and staleness signals. (Learned 2026-04-08: OT autolearn — S644248, S644354) |
 | NCCL ALLTOALL_BASE timeout on specific rank (e.g. Rank 6) with NumelIn=0 across consecutive attempts — same rank fails every time | Map Rank 6 to physical host across all failure attempts; if host is constant, escalate as host-level hardware/NIC topology fault to minimal_viable_ai (reference prior IL investigations like P2263447718); rule out model/code bugs by confirming other ranks healthy. (Learned 2026-04-11: OT autolearn) |
 | SLO monitoring threshold misaligned with customer expectation (e.g. oncall dashboard at 90% SLO, customer contract at 95%) — team alignment reached weeks ago but config not updated | Verify customer SLO vs monitoring threshold in ODS/alerting config; update threshold to match commitment (e.g. 95%); track as blocking until implemented; gap means oncall sees green while customer sees yellow/red. (Learned 2026-04-11: OT autolearn) |
-| GPU communication bottleneck during distributed training — NCCL timeout with high GPU util (>80%) but no OOM, no data stall (SM util low 30–40%) | Pull Zoomer trace; measure compute/comm overlap; identify dominant collective kernel (e.g. ALLTOALL_BASE); if >40% exposed communication time, communication is saturating — check if specific ranks slow (compare send/receive patterns); consider model parallelism rebalance or batch size reduction. (Learned 2026-04-11: OT autolearn) |
+| GPU communication bottleneck during distributed training — NCCL timeout with high GPU util (>80%) but no OOM, no data stall (SM util low 30–40%) | Pull Zoomer trace; measure compute/comm overlap (exposed-comm = NCCL wallclock minus its overlap with compute — merge kernel intervals first; summing per-stream durations overcounts, e.g. 4 kernels ×1s on 4 streams = 4s sum vs 1s wallclock; method+code: `gpu-trace-analysis` skill §"Measuring Time: Wallclock vs Sum of Durations"); identify dominant collective kernel (e.g. ALLTOALL_BASE); if >40% exposed communication time, communication is saturating — check if specific ranks slow (compare send/receive patterns); consider model parallelism rebalance or batch size reduction. (Learned 2026-04-11: OT autolearn) |
 | NCCL ALLTOALL_BASE timeout with **changing failure rank between attempts** (e.g., rank 42 → rank 6 NumelIn=0) | Root cause is IL (interconnect layer) hook instability, not static NCCL config. Verify with `meta ai.mast-job error --name=JOB` + `query-error-context`. Check if D100214795 + D99499951 (IL fix diffs) are deployed. Escalate to minimal_viable_ai team for IL hook investigation. (Learned 2026-04-12: OT autolearn — S644354 case) |
 | Training job fires **4+ related NaN alerts simultaneously** (LOSS NaN + NE NaN on comment/like/share + calibration NaN from same job window) | Indicates model weights diverged (not flaky metric reporting). Do NOT promote checkpoints from this window. Assign model owner, check if job auto-recovered, validate checkpoint integrity with load test. Root cause often learning rate spike or upstream data corruption. (Learned 2026-04-12: OT autolearn — CFR MainPredictor case) |
 | Model updates stop silently; TGIF async publish subprocess crashes with `ImportError: cannot import name 'StrEnum'` (or other 3.11+ API). Base layer Python 3.10, app code uses 3.11+ stdlib. Parent process does not fail immediately. | **First check**: `meta ai.mast-job error --name=JOB` and search logs for `ImportError` in subprocess. Check base layer Python version vs app dependencies for 3.11+ APIs (e.g., `StrEnum`, `tomllib`). **Fix**: Backport app code to Python 3.10 stdlib OR upgrade base layer. **Prevention**: Audit new OT models adopting 3.11+ features before merge. (Learned 2026-04-15: OT autolearn) |
@@ -542,3 +639,5 @@ meta ai.mast-job error --name=JOB_NAME --attempt=N -o json
 | DistStore timeout blocks Conveyor publish after a GPU fbpkg version bump (e.g., ien.lower.mvai.mi300x v99+) | Pin fbpkg to last known-good version (e.g., v93) as immediate mitigation to unblock Conveyor. Then track forward fix with GPU lowering team. GPU fbpkg regressions can manifest as DistStore timeouts rather than obvious job crashes. (Learned 2026-05-30: OT autolearn) |
 | ~280 non-actionable alert dips per half-shift; example age spikes + UBN/SEV alerts fire then self-recover; pattern repeats every ~20 days | DPP 20-day session restart: DPP auto-restarts each OT job's data session periodically, pausing training for a few minutes. Self-recovers — no action needed. Verify by checking DPP session restart timing against alert timestamp. Suppress/acknowledge without escalating; loop in dpp_distributed_data_reading if graceful rotation not yet deployed. (Learned 2026-05-30: OT autolearn) |
 | Training QPS crashes specifically during online training delta publish stage (not during forward/backward); model not in sparse delta allowlist | Publish-stage QPS crash: likely model is doing in-trainer full snapshots but not on sparse delta allowlist (see S652695 platform-allowlist-silent-fallback pattern). Check publish logs for `PublishMode` and JK allowlist flags. If confirmed as full-snapshot mode, engage platform team to add model to sparse delta allowlist. (Learned 2026-05-30: OT autolearn) |
+
+_Last updated: 2026-06-10. Maintainer: dennyzhang._

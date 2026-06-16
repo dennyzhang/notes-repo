@@ -1,9 +1,9 @@
 {
-  "last_run_epoch": 1780330538,
+  "last_run_epoch": 1781280988,
   "per_expert": {
     "dennyzhang": {
-      "last_catchup_date": "2026-06-01",
-      "last_post_time_epoch": 1779823000,
+      "last_catchup_date": "2026-06-11",
+      "last_post_time_epoch": 1781026695,
       "skip_until_epoch": 0
     },
     "lupaul": {
@@ -22,8 +22,8 @@
       "skip_until_epoch": 1782579420
     },
     "dkotfis": {
-      "last_catchup_date": "2026-06-01",
-      "last_post_time_epoch": 1780326669,
+      "last_catchup_date": "2026-06-11",
+      "last_post_time_epoch": 1781225034,
       "skip_until_epoch": 0
     },
     "prgzz": {

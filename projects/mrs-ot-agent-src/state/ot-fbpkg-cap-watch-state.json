@@ -1,18 +1,17 @@
 {
-  "last_run_epoch": 1779743043,
-  "last_run_iso": "2026-05-25T21:04:03Z",
-  "previous_orphans": [],
-  "previous_count": 852,
-  "last_alert_epoch": 1779743043,
+  "last_run_epoch": 1749391500,
+  "last_run_iso": "2026-06-08T14:05:00Z",
+  "previous_orphans": ["2139705840", "2132160077", "876487490"],
+  "previous_count": 1047,
+  "last_alert_epoch": 1749391500,
   "audit_summary": {
-    "version_count": 852,
-    "version_cap": 850,
-    "headroom": -2,
-    "pinned_models": 280,
-    "confirmed_orphans": 0,
-    "uncertain_candidates": [],
-    "growth_rate_per_day": 8.0,
-    "cap_status": "BREACHED - 852 > 850",
-    "key_finding": "Third consecutive audit: all 280 pinned model IDs ALIVE. Zero orphan tags. Cap raised 800\u2192850 but 56 new versions published \u2192 now 2 OVER cap. Cap raise via fbpkg oncall required URGENTLY."
+    "version_count": 1047,
+    "version_cap": 1200,
+    "headroom": 153,
+    "pinned_models": 291,
+    "confirmed_orphans": 3,
+    "growth_rate_per_day": 17.8,
+    "cap_status": "TRAJECTORY ALERT - 1047/1200 (headroom: 153, ~3d to threshold)",
+    "key_finding": "Headroom dropped 260→153 in 6 days (17.8/day, up from 11/day). Predicted to hit headroom=100 by 2026-06-11 (Wed). 3 confirmed orphan tags: 2139705840 (136d), 2132160077 (83d), 876487490 (75d). Cleanup saves 3 slots. Cap raise likely needed."
   }
 }

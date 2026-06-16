@@ -28,6 +28,19 @@ Quick reference for `gdocs` CLI operations. Load this before any Google Doc oper
 
 (Learned 2026-05-17 + reaffirmed 2026-05-26 + 2026-05-26: three sessions hit the same wall by grabbing `meta google.docs.*` first. Cheatsheet rule existed at line 93 but was buried — hoisted to top-of-file. If you're about to declare a doc "unwritable", you're wrong.)
 
+## ⛔ Comments-First Gate — daily/accumulating doc updates
+
+**Operator rule (2026-06-14): a cron that updates a gdoc every day MUST address all OPEN comments FIRST, before adding the new day's content.** Otherwise Denny's feedback gets buried under a fresh section and never gets actioned.
+
+For EACH open, non-orphaned comment, in order, BEFORE writing today's content:
+1. Do what it asks — fix the actual content in the doc (`gdocs` writes, `--untrusted-authors-mode`).
+2. Reply `[Claude] ...` summarizing what you changed.
+3. **NEVER resolve or delete** — Denny resolves his own (see Reading & Comments dedup rule).
+
+Then, and only then, append the new day's content.
+
+**Shared implementation:** call `gdoc_address_comments_first "$DOC_ID"` (in `scripts/lib/gdocs_lib.sh`) at the top of any gdoc-writing cron, before its append/replace. It counts open comments via the read-only JSON path (cheap no-op when zero) and runs a bounded LLM pass only when one exists; fails soft so it never blocks the daily update. Already wired into: `cron-area-monitor`, `cron-alert-sync`, `cron-ai-health`, `cron-nightly-routine-preprocessing`. Any NEW daily-gdoc cron must add the same one-liner.
+
 ## Decision Tree — "I want to do X"
 
 | I want to... | Use this | NOT this |
@@ -67,13 +80,14 @@ Does the doc have ANY comments (resolved or unresolved)?
 ```
 
 **POLICY: User's Google Doc comments must NEVER be deleted by any automated action.**
-Enforced by: PreToolUse hook (SYNC, exit 2), gdocs-safe-write.sh (cron scripts), CLAUDE.md rule.
+Enforced by: `scripts/gdocs-safe-replace.sh` (mandatory interactive wrapper, hard-blocks if comments > 0) + `gdocs-post-verify.sh` (PostToolUse, alerts if comments dropped) + `scripts/lib/gdocs_lib.sh` `gdoc_address_comments_first` (cron path) + CLAUDE.md rule.
 
 ## Hard Rules (read first)
 
 | Rule | Why |
 |------|-----|
 | **All docs must be scannable** | Scannability is a non-negotiable requirement for ALL docs — research, proposals, business plans, design docs. Before generating: (1) use tables instead of paragraph lists, (2) bold key terms and metrics, (3) break paragraphs >2 sentences into bullets, (4) competitive comparisons always as tables, (5) verify: "can I get the key message in 5 seconds of scanning?" If a section is a wall of text, it fails this rule. (Learned 2026-04-06: user flagged as key requirement for all research) |
+| **Separate human-facing content from agent/meta context** | Doc preambles drift into low-density meta — provenance ("Created by X"), source-rules ("built from public material…"), tab-navigation, how-the-doc-works prose. This distracts a human reviewer who wants the substance. Fix pattern: (1) keep a TIGHT human-facing header up top (Purpose + a one-line legend of recurring section labels); (2) promote only the load-bearing constraint into that header (e.g. "public-safe only"); (3) relocate provenance/agent-context to a small italic FOOTER at the doc/tab end — REORGANIZE, don't delete (the meta is often real agent-loading context, just mis-placed). Litmus: would a human reviewer skip this line? If yes and it's not actionable, it belongs in the footer, not the header. (Learned 2026-06-01: Denny flagged the AI Infra Reliability doc's "How to use" + "Sources rule" + created-by + tabs block as "not helpful for human… distract human review"; collapsed ~670 chars → one Legend line, moved provenance to footer. He then refined the Legend himself — structure accepted.) |
 | **Oncall shift summaries: ≤4 pages hard cap** | Shift summaries (OT, MRS, any oncall) must fit in ≤4 printed pages (~12KB ghtml body). The reader is the incoming oncall who scans for hand-off + open issues in ≤3 minutes. Over-budget = info-density failure, not just length. Before push: (a) `wc -c` on ghtml body ≤ 13000, (b) section count ≤ 6, (c) NO redundant "End of <date> summary" footer lines, NO "FYI" filler bullets, NO unsorted lists. If over: cut historical detail BEFORE current shift content, scope HIGH-TOUCH to current shift only, drop pre-shift timeline entries. (Learned 2026-05-28: operator flagged 6-page tab as "too long for a shift report"; ot-shift-summary cron's default output regularly exceeds budget.) |
 | **Identifier linking (universal)** | Every `S###` (SEV), `D###` (diff), `W###` (Workplace post), `A###` (alert), `T###` (task), `f###` (FBLearner run), `m###` / `mvai-training-online-###` (MAST job / model id) rendered into a gdoc MUST be wrapped in `<a href>` on the BARE TOKEN ONLY (never wrap a URL on a date, section header, or surrounding sentence). NEVER emit a bare ID without a link. Pre-publish validation: regex-scan rendered ghtml for `/[SDWATf]\d{6,}\|mvai-training-online-\S+/` and assert each match is inside `<a href>`. Validate href resolves — for AGG alerts (A###), the bare `?alert_id=<numeric>` URL does NOT resolve; use `short_id` from `meta oncall.feed metadata --id=<numeric> -o json` instead. If an ID cannot be resolved, OMIT the row rather than emit a broken link (operator flagged broken `A2449443538836650` on 2026-05-28 thread `WR9DFGuQ3dU`). Standard URL templates: SEV = `https://www.internalfb.com/sevmanager/view/<numeric>`, diff = `https://www.internalfb.com/diff/D<num>`, task = `https://www.internalfb.com/T<num>`, alert = use `short_id`, WP post = `https://fb.workplace.com/groups/<group>/permalink/<id>/`. |
 | **Never delete diagrams/images from docs** | Diagrams are high-value artifacts — clear and powerful visuals that took effort to create. When refreshing a doc, preserve all existing images. If a diagram is outdated, refresh it with an updated version — don't delete it. Before any `gdocs replace`, check for inline objects (images/drawings) with `get-structure` (look for `[image]`). If present, use round-trip edit instead of full replace, or extract image URIs from the backup and re-insert after replace. (Learned 2026-03-31: full replace wiped 3 design diagrams from autolearn doc) |
@@ -131,6 +145,9 @@ Non-obvious pitfalls not covered by Hard Rules above. Grouped by operation type.
 | `gdocs insert-text <DOC> @file.html --as-html` for HTML tab insertion | `gdocs content insert-html <DOC> @file.html --tab-id <TAB>` | `insert-text` does not support HTML insertion into tabs. `content insert-html` is the correct subcommand. (Learned 2026-04-14: cron-signal-to-action.sh first run failure) |
 | `grep -q "$TODAY"` to check if today's entry exists in gdocs HTML | `grep -q "<h2.*$TODAY"` or `<h3.*$TODAY` | Bare date grep matches metadata timestamps, comment dates, and other non-content locations — causing false positive dedup. Use heading-level pattern to match only actual content entries. (Learned 2026-04-14) |
 | `gdocs comments list <DOC>` without `--untrusted-authors-mode` | `gdocs comments list <DOC> --untrusted-authors-mode` | Same as `gdocs get` — fails on docs with external collaborators. Always include the flag. Note: `comments list` worked without it on some docs but fails unpredictably on others. Always include it. |
+| `gdocs get <DOC> --raw-json` HANGS / times out at 120s on a large doc (while sibling docs return in ~4s) | Add `--no-daemon`: `gdocs get <DOC> --raw-json --no-daemon` | The shared `gdocs`/google-mux DAEMON reproducibly hangs on large docs; `--no-daemon` makes the direct Drive/Docs API call and returns in seconds. `--untrusted-authors-mode` is a RED HERRING here (isolation-tested — only `--no-daemon` fixes it). Applies to ANY gdocs-using cron, not just ot-ingest-gdoc (shift-summary etc. share the exposure). Cost: ~2s/call CAT-token re-fetch — negligible for crons. (Learned 2026-06-13, T275785951: `mrs-ot-reliability-cross-team-followups` 599KB raw-json dark ~a week.) **Refinement (2026-06-13): the daemon-bypass is for large FETCHES (`get`/`get-structure`/`raw-json`) only. Small WRITES (`comments reply`, `batch-update`) are the OPPOSITE — they HANG/timeout under `--no-daemon` but complete in ~3s via the daemon. Rule of thumb on a daemon-hang doc: fetch with `--no-daemon`, write WITHOUT it.** |
+| `GOOGLE_MUX_UNTRUSTED_AUTHORS_MODE=1 gdocs get <DOC>` (env=1) OR `gdocs get <DOC> --untrusted-authors-mode true` (flag+value) | `gdocs get <DOC> --untrusted-authors-mode` (BARE switch, no value) | Flag syntax drifted: this `gdocs` build treats `--untrusted-authors-mode` as a boolean SWITCH — passing `true` errors `unexpected argument 'true'`, and the env form `=1` errors `invalid value '1' (possible values: true, false)`. Net for interactive reads/writes: pass the bare flag with no value, no env var. Cron lib wrapper (`gdocs_lib.sh`) is unaffected. (Learned 2026-06-13: interactive `gdocs get` on AI Playbook returned 0 chars silently until the bare flag was used.) |
+| Keying doc-drift/idempotency ONLY on `revisionId` from `gdocs get --raw-json` | Fall back to a DETERMINISTIC content hash when `revisionId` is absent | The Docs API `documents.get` OMITS `revisionId` for some docs (and `gdocs revisions` can return 0 revisions for the same doc) → a revisionId-only gate fails forever on those. Fallback = `sha256` of markdown fetched with `--image-text-backend none --no-comments` (the default `--markdown` uses an LLM to describe images + includes comment threads → both vary run-to-run → false drift every run = silent daily rewrite noise). (Learned 2026-06-13, T275785951: `mrs-ml-infra-sev-criteria`.) |
 | Pulling all comments (including resolved) | Filter to unresolved-only before acting | Resolved comments are already handled — processing them wastes time and clutters output. In scripts: `not c.get('resolved', False)`. In interactive sessions: skip rows with RESOLVED=true. |
 | Processing comments in one pass without re-checking | After addressing all comments, re-fetch `gdocs comments list` and compare against initial set. Process any new comments. | Users actively comment while Claude processes. Single-pass workflows miss comments created during processing. Always re-check at the end. (Learned 2026-03-24: missed 2 comments added during a 15-min processing window) |
 | One-shot comment processing when `/my-finish comments` is invoked | Set up a 5-min polling cron per `/my-finish` Mode B instructions. Save baseline comment IDs, poll for new ones. | `/my-finish comments <URL>` triggers watch mode, not one-shot. The user expects continuous monitoring while they comment. Without polling, new comments go unnoticed until the user complains. (Learned 2026-03-24: missed 3 comment rounds because no cron was set up) |
@@ -296,6 +313,26 @@ echo '[
   {"deleteContentRange":{"range":{"startIndex":50,"endIndex":100}}}
 ]' | gdocs batch-update <DOC_ID> --data -
 ```
+
+### Surgical block-rewrite in a MULTI-TAB doc (devserver, `--local` broken)
+
+Rewriting a contiguous block (e.g. compressing a verbose header) without the export→apply round-trip. `--local` is broken on stock devservers, so apply's `.base` snapshot is unusable — use `batch-update` + `insert html` instead. **In multi-tab docs every range/location MUST carry `tabId`** or the op hits the wrong tab.
+
+```bash
+# 1. Get tab-local indices for the block to replace
+meta google.docs structure --id=<DOC> --tab-id=t.0
+
+# 2. Delete the block [start,end) — endIndex is the start of the element to KEEP after it
+meta google.docs batch-update --id=<DOC> \
+  --requests='[{"deleteContentRange":{"range":{"startIndex":345,"endIndex":1425,"tabId":"t.0"}}}]'
+
+# 3. Insert formatted replacement at the freed index (insert html preserves <b>/<i>/<a>)
+meta google.docs.insert html --id=<DOC> --tab-id=t.0 --index=345 --html='<p><b>...</b> ...</p>'
+
+# 4. Optional footer at tab end
+meta google.docs.insert html --id=<DOC> --tab-id=t.0 --end --html='<p><i>...</i></p>'
+```
+Do delete→insert in that order (delete first; index stays valid). Verify with `structure` after. `insert html` applies bold/italic/links; `replace-all`/`batch-update insertText` do not. **Transport caveat:** the `meta google.docs.*` form above works for INTERNAL-author docs. For docs with personal-gmail/untrusted contributors, switch to `GOOGLE_MUX_UNTRUSTED_AUTHORS_MODE=1 gdocs ...` (see "Always use `gdocs` for writes" hard rule) — `meta google.docs.*` write subcommands have no `--untrusted-authors-mode`. (Learned 2026-06-01: compressing the AI Infra Reliability doc header.)
 
 ### Setting Proportional Column Widths
 
@@ -569,7 +606,7 @@ Use `knowledge_filtered_search` with `doc_types: ["GOOGLE_DOCUMENT"]` and keywor
 ## See Also
 
 - Full skill reference: `/usr/local/claude-templates-cli/components/skills/google-docs/SKILL.md`
-- `cheatsheet-project-doc.md` — for writing project proposals and specs
+- `career/project-doc.md` — for writing project proposals and specs
 
 ## GOTCHA: `gdocs content find-replace` is case-insensitive SUBSTRING by default (2026-06-01)
 `find-replace "Discussion" → "Open design questions"` also rewrote the substring inside
@@ -594,28 +631,3 @@ rename tab (`docs tabs rename`), replace the lead paragraph with a real exec sum
 prefixes via `find-replace --match-case` (full heading string). Baseline the comment-ID set
 before and re-verify identical after — anchored comments survive a prefix-strip (partial-text
 edit), only full deletion of the anchored text orphans them.
-
-## Filling a person/POC row in a doc table (2026-06-01)
-When a doc references a colleague by FIRST NAME only (e.g. "add Anthony"), resolve the real
-unixname before writing the row — don't leave a `(confirm)` placeholder next to fully-filled
-peer rows (reads as unfinished; gets sent back). Resolution: launch the
-`meta_knowledge_v3:knowledge_search` agent with the disambiguation key the user gives you
-(team / manager / peer unixnames) — e.g. "find Anthony under the same manager as yilunc2288 /
-npallanez" → returned exactly one match (Anthony Foiani, ajfoiani, mgr Shumin Wu). Then MATCH
-the existing peer rows' format + completeness (full name · real unixname · role-based "why" ·
-same context-link style). Keep referral claims attributed ("X's DM (referral)"), not asserted
-as verified facts — the directory confirms team+manager, not oncall participation.
-
-## Match existing element markup on insert + don't edit a live-edited doc (2026-06-01)
-Before inserting an item into an existing list/table, READ the target's exact ghtml and MIRROR it.
-Existing questions were `<li><b>[tag]</b> text` (bulleted, bold tag); inserting plain `<p>[tag] text`
-(no bullet, tag not bold) reads as "format off". To add a matching list item insert
-`<ul><li><b>[tag]</b> …</li></ul>` (renders as a bullet), NOT a bare `<p>`.
-- Legend ↔ usage consistency: a tag defined in a legend must have ≥1 item using it (and vice-versa).
-- Count words in labels: "[both]" (2) must become "[All]" when a 3rd party is added.
-- Per-cell index: `meta google.docs structure --id <DOC> --tab-id <T>` prints `R{row}C{col} start end`
-  (gdocs `get-structure` is block-level only; `get --format json` may return empty). `grep -F` for
-  literal brackets ([A] in a regex is a char class).
-- LIVE-EDIT RULE: if the user is editing the doc in real time, re-fetch immediately before each write;
-  if the state keeps shifting or your edits get reverted, STOP and confirm intent — do not churn edits
-  into a moving target (they collide and get deleted). This is a legit "ask, don't churn" exception.

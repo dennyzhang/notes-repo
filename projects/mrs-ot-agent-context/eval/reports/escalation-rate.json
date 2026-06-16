@@ -1,0 +1,15 @@
+{
+ "window": [
+  "2026-05-13",
+  "2026-06-12"
+ ],
+ "window_days": 30,
+ "triaged": 108,
+ "escalated_human": 0,
+ "auto": 108,
+ "unset": 108,
+ "human_escalation_rate": 0.0,
+ "autonomy_rate": 1.0,
+ "target": 0.05,
+ "verdict": "AT/BELOW target"
+}

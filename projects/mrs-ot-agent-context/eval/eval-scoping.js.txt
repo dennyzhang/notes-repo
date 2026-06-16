@@ -1,0 +1,129 @@
+export const meta = {
+  name: 'ot-agent-scoping-eval',
+  description: 'Completes the OT-agent fitness function: mine a false-negative + noise/out-of-scope corpus, replay the agent SCOPING decision (engage vs drop) on each, and compute detection_recall + scoping_precision (the two terms currently null).',
+  phases: [
+    { title: 'Mine', detail: 'false-negatives (auto_detected=false + operator miss-flags) + noise (out-of-org / non-OT)' },
+    { title: 'Scope', detail: 'replay engage/drop decision per signal' },
+    { title: 'Score', detail: 'detection_recall + scoping_precision' },
+  ],
+}
+
+const CLAUDE = '/home/dennyzhang/.myclaw-ot-bot/CLAUDE.md'
+const DB = '/home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db' // operator 1:1
+const SCOPE_CAP = 25 // per source, bounded for tractability
+// FREEZE the scoping corpus (2026-06-12): re-mining every run made detection_recall/scoping_precision
+// non-comparable run-to-run (0.83 one run vs 0.96 another = different mined corpus, not regression).
+// Like eval-flow's gold set, reuse a FIXED corpus and only re-run the engage/drop DECISION fresh.
+const SCOPING_CORPUS = '/home/dennyzhang/notes/users/dennyzhang/projects/mrs-ot-agent-context/eval/scoping-corpus.json'
+const FROZEN_MIN = 30 // below this, fall back to live mining
+
+const ITEM = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },           // S### / ALERT-### / POST-###
+    label: { type: 'string', enum: ['engage', 'drop'] }, // ground truth
+    source: { type: 'string' },       // auto_detected_false | operator_missflag | out_of_org | non_ot
+    title: { type: 'string' },
+    sev_type: { type: 'string' },     // org / product signal (e.g. Instagram, Ads, WhatsApp) or ''
+    tags: { type: 'string' },
+    note: { type: 'string' },         // why this label (esp. why_missed for false-negatives)
+  },
+  required: ['id', 'label', 'source', 'title'],
+}
+const MINE_SCHEMA = { type: 'object', properties: { items: { type: 'array', items: ITEM }, coverage: { type: 'string' } }, required: ['items', 'coverage'] }
+const DECISION = {
+  type: 'object',
+  properties: { decision: { type: 'string', enum: ['engage', 'drop'] }, reason: { type: 'string' } },
+  required: ['decision', 'reason'],
+}
+
+// ---------- Phase 1: Mine corpus (parallel, best-effort) ----------
+phase('Mine')
+const miners = [
+  // A. false-negatives via auto_detected=false (deterministic source, Source B)
+  () => agent(
+    `Mine FALSE-NEGATIVE OT incidents — real MRS online-training SEVs the bot SHOULD have caught but did not auto-detect. These are detection_recall POSITIVES (label="engage").
+Use the meta CLI (sevmanager). Find resolved/mitigated SEVs tagged mvai-online-training (or clearly MRS online-training by title) from roughly the last 60 days where auto_detected=false OR there is no bot triage thread. Try: \`meta sevmanager.sev list --tags=mvai-online-training\` and inspect metadata for an auto_detected / detection-source field; if that field isn't exposed, capture the candidates and note that in 'coverage'.
+Return up to ${SCOPE_CAP} items: {id, label:"engage", source:"auto_detected_false", title, sev_type, tags, note:why-it-was-missed-or-uncertain}. If meta is unavailable headless, return items:[] and explain in 'coverage'. Be honest about coverage — do not fabricate SEV ids.`,
+    { label: 'mine:auto-undetected', phase: 'Mine', schema: MINE_SCHEMA },
+  ),
+  // A2. operator miss-flags from the 1:1 DB (Source A, LLM extraction over reliable local data)
+  () => agent(
+    `Mine OPERATOR MISS-FLAGS from the 1:1 chat DB at ${DB} (sqlite, table 'messages', sender_type='HUMAN'). These are detection_recall POSITIVES (label="engage").
+Query human messages that genuinely flag the bot MISSING a SEV/incident — phrases like "you missed", "didn't catch", "why didn't you flag/triage", "you should have caught". CRITICAL: EXCLUDE false positives where "missed" refers to SEV-body content ("12 missed intervals", "8-9 missed FULL_SNAPSHOT") or where the human is pasting/quoting bot output — those are NOT miss-flags. Only keep messages where the OPERATOR is telling the bot it failed to detect something, and a SEV id (S###) is present or clearly referenced.
+Example query: SELECT create_time, content FROM messages WHERE sender_type='HUMAN' AND (content LIKE '%missed%' OR content LIKE '%didn''t catch%' OR content LIKE '%should have caught%' OR content LIKE '%why didn''t you%'); then JUDGE each for genuineness.
+Return items: {id:S###, label:"engage", source:"operator_missflag", title:short, note:the-operator-comment-quote}. coverage = how many candidates examined vs kept.`,
+    { label: 'mine:miss-flags', phase: 'Mine', schema: MINE_SCHEMA },
+  ),
+  // B. noise / out-of-scope — signals the bot should DROP (scoping_precision negatives)
+  () => agent(
+    `Mine NOISE / OUT-OF-SCOPE signals the OT bot should NOT engage. These are scoping_precision NEGATIVES (label="drop").
+Two kinds, via meta sevmanager: (1) OUT-OF-ORG SEVs — sibling orgs the MRS OT lane must ignore: Ads, WhatsApp, Wearables, Oculus/VR/Horizon, FacOps, FAIR, Datacenter, MSL, AR Effects (e.g. an ads_mtml SEV like S657101 is the canonical leak). (2) IN-MRS-but-NOT-online-training SEVs (serving-only, ranking-infra unrelated to OT). Recent ~60 days, up to ${SCOPE_CAP} total.
+Return items: {id, label:"drop", source:"out_of_org" or "non_ot", title, sev_type:the-org/product, tags, note:why-out-of-scope}. If meta is unavailable, include the documented S657101 (Ads ads_mtml) plus any others you can name with certainty, and explain coverage. Do not fabricate ids.`,
+    { label: 'mine:noise', phase: 'Mine', schema: MINE_SCHEMA },
+  ),
+]
+// FREEZE: reuse the fixed scoping-corpus.json inputs (id/label/source/title) for cross-run
+// comparability; re-run only the DECISION fresh. Mine live only when the frozen set is too small.
+const CORPUS_SCHEMA = { type: 'object', properties: { corpus: { type: 'array' } }, required: ['corpus'] }
+const frozen = await agent(`Read ${SCOPING_CORPUS} and return its JSON content verbatim.`, { label: 'scoping-corpus-load', phase: 'Mine', schema: CORPUS_SCHEMA })
+const frozenItems = ((frozen && frozen.corpus) || []).filter((it) => it && it.id && it.label)
+let items, coverageNotes
+if (frozenItems.length >= FROZEN_MIN) {
+  const seenF = new Set()
+  items = frozenItems.filter((it) => !seenF.has(it.id) && seenF.add(it.id))
+    .map((it) => ({ id: it.id, label: it.label, source: it.source, title: it.title, sev_type: it.sev_type, tags: it.tags }))
+  coverageNotes = `  [frozen] ${items.length} fixed scoping-corpus.json cases (cross-run comparable); live mining skipped`
+} else {
+  log(`Frozen corpus insufficient (${frozenItems.length} < ${FROZEN_MIN}) — mining fresh`)
+  const mined = await parallel(miners)
+  const corpus = mined.filter(Boolean).flatMap((m) => m.items || [])
+  coverageNotes = mined.filter(Boolean).map((m, i) => `  [${['auto-undetected', 'miss-flags', 'noise'][i]}] ${m.coverage}`).join('\n')
+  const seen = new Set()
+  items = corpus.filter((it) => it && it.id && !seen.has(it.id) && seen.add(it.id))
+}
+const nPos = items.filter((i) => i.label === 'engage').length
+const nNeg = items.filter((i) => i.label === 'drop').length
+log(`Corpus: ${items.length} items (${nPos} engage / ${nNeg} drop)\n${coverageNotes}`)
+
+// ---------- Phase 2: Scope replay (engage vs drop) ----------
+phase('Scope')
+const scoped = items.length
+  ? await pipeline(items, (it) =>
+      agent(
+        `You are the OT master agent deciding ONLY ONE thing: do I ENGAGE this signal (it is an in-scope MRS online-training OT incident) or DROP it (out-of-org, non-OT, or noise)? Read the scope rules first: ${CLAUDE} (sections: "Org boundary — MRS only", "No individual-scoped data", the three-question gate). Apply the sev_type allowlist + title hard-exclude + org boundary. Do NOT triage; just the scoping gate.
+
+SIGNAL ${it.id}
+Title: ${it.title}
+Type/Org: ${it.sev_type || '(unstated)'}
+Tags: ${it.tags || '(none)'}
+
+Decide: "engage" (in-scope MRS OT — would triage) or "drop" (out-of-org / non-OT / noise — stay silent). Give a one-line reason citing the deciding rule.`,
+        { label: `scope:${it.id}`, phase: 'Scope', schema: DECISION },
+      ).then((d) => ({ ...it, decision: d.decision, reason: d.reason })),
+    )
+  : []
+
+// ---------- Phase 3: Score ----------
+phase('Score')
+const rows = scoped.filter(Boolean)
+const positives = rows.filter((r) => r.label === 'engage')
+const engaged = rows.filter((r) => r.decision === 'engage')
+const tp = engaged.filter((r) => r.label === 'engage').length
+const fp = engaged.filter((r) => r.label === 'drop').length
+const fn = positives.filter((r) => r.decision === 'drop').length
+const detection_recall = positives.length ? +(positives.filter((r) => r.decision === 'engage').length / positives.length).toFixed(3) : null
+const scoping_precision = engaged.length ? +(tp / engaged.length).toFixed(3) : null
+const misses = positives.filter((r) => r.decision === 'drop').map((r) => ({ id: r.id, source: r.source, title: r.title, why_should_engage: r.note }))
+const leaks = rows.filter((r) => r.label === 'drop' && r.decision === 'engage').map((r) => ({ id: r.id, source: r.source, title: r.title, agent_reason: r.reason }))
+log(`detection_recall=${detection_recall} (FN=${fn}) | scoping_precision=${scoping_precision} (FP=${fp})`)
+
+return {
+  corpus_size: { total: rows.length, positives: positives.length, negatives: rows.length - positives.length },
+  coverage_notes: coverageNotes,
+  detection_recall,
+  scoping_precision,
+  missed_incidents: misses, // false-negatives the agent STILL drops -> highest-cost evolve targets
+  scope_leaks: leaks,       // out-of-scope it wrongly engages -> the S657101 class
+  corpus: rows.map((r) => ({ id: r.id, label: r.label, source: r.source, title: r.title, decision: r.decision })),
+}

@@ -14,13 +14,13 @@ State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/knowledge-
 ```
 Time budget: ~10 min on D1+D2-only nights, ~25 min when D3 fires (monthly).
 
-Inputs (three corpora, all written by sibling crons):
-- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/mitigated-sevs/<YYYY-MM>/L<level>-<date>-S<sev>.md`
-- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/mitigated-posts/<YYYY-MM>/<lane>-<date>-W<post>.md`
-- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/mitigated-alerts/<YYYY-MM>/<class>-<date>-A<id>.md` (cron may produce 0 — directory may not yet exist; treat as empty corpus, do not error)
+Inputs (three corpora, all written by sibling crons). **Paths fixed 2026-06-07 audit: were `mitigated-{sevs,posts,alerts}/` which DO NOT EXIST — the writers (ot-triage-summary) use `incidents/resolved-*/`, so this cron had been globbing dead paths → always-empty corpus → silent no-op. FAIL-LOUD: if all three globs return 0 files over the 7d window, emit a one-line "corpus empty: globbed <paths>, 0 files — path regression?" to the 1:1 (a populated fleet producing 0 resolved incidents is suspicious, not a quiet week).**
+- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/<YYYY-MM>/SEV-<id>-<date>.md`
+- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/<YYYY-MM>/POST-<id>-<date>.md`
+- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/ALERT-<id>-<date>.md`
 
 Existing knowledge bases to read fresh on every run (for dedup):
-- `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/known_patterns.md` (P-rows)
+- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md` (P-rows)
 - `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/human-input/triage-discipline.md` (R-rules)
 - `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/human-input/ot-failure-mode-catalog.md` (catalog entries)
 
@@ -57,7 +57,7 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
    For each cluster of size ≥2, score:
    - `signal_strength = cluster_size + cross_corpus_bonus` (cross_corpus_bonus = +2 if cluster spans ≥2 of {sev, post, alert}, else 0)
-   - `novelty = 0 if any keyword matches an existing P-row in known_patterns.md, else 1`
+   - `novelty = 0 if any keyword matches an existing P-row in known-patterns.md, else 1`
    - `actionability = 1 if cluster has a clear fix mechanism in mitigation text, else 0`
 
    Rank clusters by `(novelty * 2 + actionability + signal_strength)`. Take top 5 → MEGA_CANDIDATES.
@@ -73,11 +73,11 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
    For each diff:
    - Determine target file:
-     - New pattern → `known_patterns.md` (append next P-row at end of Quick-Match Table)
-     - New triage rule → `references/triage-discipline.md` (append next R-rule)
+     - New pattern → `known-patterns.md` (append next P-row at end of Quick-Match Table)
+     - New triage rule → `human-input/triage-discipline.md` (append next R-rule) — was `references/triage-discipline.md` (nonexistent → dedup-read returned nothing, every rule looked novel + edits targeted a dead path); fixed 2026-06-07 audit
      - Cron prompt fix → `team_bot/cron-jobs/<cron>.md` (targeted edit)
    - Apply edit locally in `~/notes/`.
-   - `cd ~/notes && sl add <path>` + `sl commit -m "[OT bot] <one-line> from <archive ids>"`.
+   - `cd ~/notes && LK="$HOME/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/scripts/notes-sl-lock.sh"` then `bash "$LK" sl add <path>` + `bash "$LK" sl commit -m "[OT bot] <one-line> from <archive ids>"`. (Notes write-lock, Option B 2026-06-14 — serialize tree-mutating sl so concurrent sessions can't clobber the shared tree.)
    - Skip `jf submit` for now (notes is not a Phab-tracked repo; commits are surfaced via the new `ot-notes-commit-push` cron to fb:notes). If the file lives in fbcode (it doesn't — bot only writes to notes-side per the canonical split), `jf submit --draft --publish-when-ready` would apply there.
    - Record commit hash; surface in GChat output.
 
@@ -85,7 +85,7 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
 ## Deliverable 2 — Mega Learnings (≤5 per run)
 
-6. **Mega-learnings file.** `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/<YYYY>-W<ISO_WEEK>.md` (one file per ISO week; create if missing with header).
+6. **Mega-learnings file.** `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/<YYYY>-W<ISO_WEEK>.md` (one file per ISO week; create if missing with header).
 
    For each of the top 5 MEGA_CANDIDATES (regardless of whether also became a diff), append a 5-line entry:
    ```
@@ -105,7 +105,7 @@ Existing knowledge bases to read fresh on every run (for dedup):
 ## Deliverable 3 — Systemic Gap Report (monthly)
 
 7. **Monthly trigger.** If `state.last_systemic_gap_month != current month (YYYY-MM)` AND today's date >= 25 (give the month enough resolved corpus), generate report:
-   - File: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/systemic-gaps/<YYYY-MM>.md`
+   - File: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/system-fixes/systemic-gaps/<YYYY-MM>.md`
    - Read ALL archive files from the current month (not just last 7d) across all 3 corpora.
    - Compute aggregations:
      - Top 5 recurring root-cause keyword clusters (sev count)

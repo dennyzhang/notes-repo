@@ -26,13 +26,13 @@ spaces/AAQAVOjYc80/ot-monitor-state.json -> users/dennyzhang/projects/mrs-ot-age
 spaces/AAQAVOjYc80/ot-sev-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-sev-state.json
 spaces/AAQAVOjYc80/sev-tag-asked.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/sev-tag-asked.json
 spaces/AAQAVOjYc80/ot-shift-summary-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-shift-summary-state.json
-spaces/AAQAVOjYc80/ot-disk-watch-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-disk-watch-state.json
+spaces/AAQAVOjYc80/server-disk-guard-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/server-disk-guard-state.json
 spaces/AAQAVOjYc80/ot-postmortem-validator-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-postmortem-validator-state.json
 spaces/AAQAVOjYc80/ot-human-attention-brief-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-human-attention-brief-state.json
 spaces/AAQAVOjYc80/ot-prompt-change-validator-state.json -> users/dennyzhang/projects/mrs-ot-agent-src/state/ot-prompt-change-validator-state.json
 
 # Learning ledger — append-only output from ot-daily-learning-debugging cron
-spaces/AAQAVOjYc80/learnings.md -> users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/daily-ledger.md
+spaces/AAQAVOjYc80/learnings.md -> users/dennyzhang/projects/mrs-ot-agent-context/learnings/daily-ledger.md
 
 # Identity files — operator's standing rules, identity, soul, user context.
 # Moved to mrs-ot-agent-src/agent_identity/ (2026-05-17 restructure: code/config → src repo).

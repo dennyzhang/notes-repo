@@ -1,0 +1,3 @@
+{"date": "2026-06-12", "window_days": 90, "events_in_window": 157, "known_pattern_events": 35, "measured": 0, "kp_median_min": null, "kp_p90_min": null, "kp_within_bar_share": null}
+{"date": "2026-06-13", "window_days": 90, "events_in_window": 185, "known_pattern_events": 46, "measured": 15, "kp_median_min": 0.0, "kp_p90_min": 0.0, "kp_within_bar_share": 1.0}
+{"date": "2026-06-14", "window_days": 90, "events_in_window": 190, "known_pattern_events": 49, "measured": 18, "kp_median_min": 0.0, "kp_p90_min": 0.0, "kp_within_bar_share": 1.0}

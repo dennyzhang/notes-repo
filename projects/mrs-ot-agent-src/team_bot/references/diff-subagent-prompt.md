@@ -80,6 +80,40 @@ Constraints:
    consumer (file:line) in the report. If no consumer exists, drop the
    write OR document a follow-up diff plan.
 
+5. Reproduce-the-symptom + adversarial full-behavior verify (added
+   2026-06-08, D107935047 retro — the fix shipped on an INHERITED symptom
+   claim and a HAPPY-PATH-only verification, so it mislabeled the entity
+   and missed a selection edge):
+   a. REPRODUCE the bug via a GROUND-TRUTH query/command BEFORE fixing —
+      do not author a fix on an inherited/assumed symptom. Cite the repro
+      command + its literal output (e.g. the resolver/GraphQL field, the
+      `meta` describe). If you cannot reproduce it, STOP and report.
+   b. ADVERSARIAL full-behavior check: enumerate EVERY output the changed
+      code path now produces, not just the reported case. Ask "what ELSE
+      does the new logic select / return / drop?" and name the cases. A
+      filter that fixes case X but silently changes case Y is incomplete.
+   c. VERIFIED terminology only: describe entities by what you verified
+      (state / type / attribution), never by an assumed label. Origin/cause
+      claims are `[VERIFIED]` or `[UNKNOWN]` — never fabricated.
+
+6. Minimality / necessity gate (added 2026-06-13, D108525530 retro — the
+   diff carried 3 unnecessary `ig_retrieval/` files kept as "defense-in-
+   depth" for a DIFFERENT bug, bundled into an issue-scoped fix in load-
+   bearing cross-team code). This is the COUNTER-check to the sibling-site
+   sweep (#3): #3 prevents UNDER-fixing, #6 prevents OVER-fixing.
+   a. For EACH changed file/hunk, state the ONE verified-root `file:line`
+      (the actual raising/effective site from check 5a) it is REQUIRED to
+      fix. If a hunk does not trace to that root, it is scope creep.
+   b. A change that fixes a DIFFERENT bug, is "defense-in-depth",
+      "while we're here", or is on a code path OTHER than the verified
+      failing path → REMOVE it from this diff (revert the file to base) OR
+      split it into its own diff. "Kept as defense-in-depth" is a
+      VIOLATION to FLAG, never a feature to report.
+   c. Prefer the fix at the SINGLE layer where the verified root lives
+      (e.g. a generic base resolver over a per-model override) — touching
+      extra files/owners is a flag unless each is required by 6a.
+   d. If you removed/declined a speculative change, say so in the report.
+
 == Report format ==
 
 Return a markdown report with these sections:
@@ -104,11 +138,20 @@ Return a markdown report with these sections:
   ## Captured state consumers
   - <field/log>: consumer at <file:line> | OR | dropped, reason: <X>
 
+  ## Symptom reproduction + full-behavior verify
+  - repro command + literal output proving the bug (ground truth, not inherited): <...>
+  - full-behavior: every case the changed path now produces (what else selected/returned/dropped): <...>
+  - terminology/origin: entities described by verified state/type; origin [VERIFIED]/[UNKNOWN] (not fabricated)
+
+  ## Minimality / necessity
+  - per changed file → verified-root file:line it serves: <list>
+  - speculative/defense-in-depth/off-path changes removed or split: <list, or "none">
+
   ## Diff submitted
   - URL: https://www.internalfb.com/diff/D<N>
   - Status: <draft/published/blocked-by-X>
 
-DO NOT submit if any of the 4 checks fail. Report the failure and stop.
+DO NOT submit if any of the 6 checks fail. Report the failure and stop.
 The main session will decide how to proceed.
 
 --- END ---

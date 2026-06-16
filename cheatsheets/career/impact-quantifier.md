@@ -34,3 +34,5 @@ Stop at the level your audience cares about. ICs care about the first level. Dir
 | "Saved engineering time" | "Automated oncall triage saves **15 min/alert x 30 alerts/week = 7.5 eng-hours/week** ($60K/year, [Medium])" |
 | "Built monitoring" | "12 SLI dashboards covering 3 oncall areas. Detected 2 incidents before user impact (est. 4h MTTD reduction, [Medium])" |
 | "Worked on training pipeline" | "Reduced training staleness SLA violations from 8/week to 0 for 6 retrieval models serving 500M+ users" |
+
+_Last updated: 2026-06-01. Maintainer: dennyzhang._

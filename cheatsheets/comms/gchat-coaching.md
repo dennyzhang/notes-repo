@@ -148,3 +148,5 @@ Track in: `context/cache/state/COMMS-FEEDBACK.md` (append-only, 1 line per inter
 Format: `YYYY-MM-DD | recipient | sent/edited/skipped | response_type | note`
 
 This feeds back into the priority ranking — if "question" consistently gets engagement but "credit" doesn't change response rate, deprioritize credit coaching.
+
+_Last updated: 2026-05-12. Maintainer: dennyzhang._

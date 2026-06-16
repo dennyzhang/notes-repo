@@ -67,7 +67,7 @@ A weekly Saturday-midnight restart provides a clean baseline for Monday morning 
 
 A systemd timer would be cleaner mechanism-wise (lives outside the daemon, no chicken-and-egg), but:
 1. Keeping the schedule in `MANIFEST.json` means the restart is visible/auditable alongside other crons.
-2. `ot-cron-health-watch` can detect missed restarts using the same machinery it uses for other crons.
+2. `ot-cron-health-guard` can detect missed restarts using the same machinery it uses for other crons.
 3. The `setup-cron-jobs.sh` flow already handles UPSERT — no new infra needed.
 4. The detached-subprocess pattern is well-tested elsewhere (e.g., `pastry create -d` jobs).
 
