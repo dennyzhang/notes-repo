@@ -36,6 +36,7 @@ rsync -avz --delete --force --copy-links \
     --exclude='context/cache/gchat' \
     --exclude='context/cache/comms' \
     --exclude='logs' \
+    --exclude='notes' \
     "$DEVSERVER:$REMOTE_PATH" "$LOCAL_PATH"
 
 NOTES_REMOTE="~/notes/users/dennyzhang/"
