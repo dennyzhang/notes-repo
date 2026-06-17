@@ -1140,11 +1140,19 @@
     "users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/2026-06-14-experts-posts-catchup.md": 1781461264,
     "users/dennyzhang/projects/mrs-ot-agent-src/team_bot/scripts/normalize-shift-timeline-fonts.sh": 1781461264,
     "users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/2026-06-14-mvai-ot-dev-catchup.md": 1781461264,
-    "users/dennyzhang/projects/mrs-ot-agent-src/team_bot/scripts/notes-sl-lock.sh": 1781479274
+    "users/dennyzhang/projects/mrs-ot-agent-src/team_bot/scripts/notes-sl-lock.sh": 1781479274,
+    "users/dennyzhang/projects/mrs-ot-agent-context/.claude/.claude-templates-manifest.json": 1781540483,
+    "users/dennyzhang/projects/mrs-ot-agent-context/.claude/settings.json": 1781540483,
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/debug-threads/2026-06/human-2026-06-13-1218-Nk_Ui4WFn4U-retrieval-model-checkpoint-mrb-parent-lineage.md": 1781540483,
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/debug-threads/2026-06/human-2026-06-13-1428-A4VpmKFNOJ4-ingest-gdoc-api-timeout-fix-and-escalate.md": 1781540483,
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/debug-threads/2026-06/human-2026-06-13-1947-k1_36_8oPeQ-d108525530-wrong-site-checkpoint-fix-reassessment.md": 1781540483,
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/debug-threads/2026-06/human-2026-06-13-2253-0J2jhgZrS6c-shift-gdoc-comment-reply-threading.md": 1781540483,
+    "users/dennyzhang/projects/mrs-ot-agent-context/incidents/debug-threads/2026-06/human-2026-06-13-2310-xq9U9j0tvgU-reply-in-thread-cheatsheet-correction.md": 1781540483,
+    "users/dennyzhang/projects/mrs-ot-agent-src/state-symlinks.manifest.txt": 1781540483
   },
   "draft_only_files": {},
-  "last_run_epoch": 1781515278,
-  "last_baseline_hash": "4c0ec2bee52b86d60305574be00f113e658e98f3",
+  "last_run_epoch": 1781540483,
+  "last_baseline_hash": "9892915ff50bcb3c472bead51e419caf06371a21",
   "alert_history": [
     {
       "path": "users/dennyzhang/projects/mrs-ot-agent-context/learnings/2026-06-07-cron-audit.md",
@@ -1212,9 +1220,9 @@
   "auto_recoveries_this_week": 0,
   "auto_recoveries_week_key": "2026-W25",
   "last_raw_debug": {
-    "epoch": 1781515278,
-    "current_files_count": 1141,
-    "last_seen_count": 1141,
+    "epoch": 1781540483,
+    "current_files_count": 1149,
+    "last_seen_count": 1149,
     "draft_only_count": 0,
     "recovery_attempts": []
   }

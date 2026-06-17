@@ -17,18 +17,6 @@
       "class": "DETECTOR_BROKEN",
       "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781350768&alert_id=ai%252Fmodel_registry%252Falerts%252Fcentralized_alerting%252Faggregation_rules%252Fcentralized_alerting.aggregation_rule%252F880283513.aggregation_rule%253Burgency%253D4%253B2%253A665"
     },
-    "1544275823951823": {
-      "added_epoch": 1781432671,
-      "notification_outcome": "OOS:MISCONFIG_AGG_item_emb_FALSE_ALARM_scribe_transient_batch_daily_brief",
-      "class": "MISCONFIG_AGG",
-      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781431815&alert_id=ai%2Fmodel_registry%2Falerts%2Fcentralized_alerting%2Faggregation_rules%2Fcentralized_alerting.aggregation_rule%2F2145491885.aggregation_rule%3Burgency%3D4%3B2%3A291"
-    },
-    "844952808102065": {
-      "added_epoch": 1781435170,
-      "notification_outcome": "OOS:DETECTOR_BROKEN_starsearch_baseline_2126189932_healthy_task_T275817233",
-      "url": "https://www.internalfb.com/onedetection/alert?alert_created_time=1781434113&alert_id=1201406268614142%40%23%241729017291786319%3Amodel+2126189932+%28ig_reels_starsearch_t2i_retrieval+baseline%29+online+training+e2e+latency+sparse+delta%40%23%24one_detection.detector.issue%40%23%24model+2126189932+%28ig_reels_starsearch_t2i_retrieval+baseline%29+online+tzvq4jso5slbmh",
-      "class": "DETECTOR_BROKEN"
-    },
     "2072111036680190": {
       "added_epoch": 1781436764,
       "notification_outcome": "DEDUP:same_as_1984695085496075_model_2126653325_pub_stability",
@@ -239,12 +227,15 @@
       "created_epoch": 1781496899,
       "class": "UPSTREAM_INFRA",
       "type": "owner-handoff"
+    },
+    "1558388828479222:919957162": {
+      "task": "T275918888",
+      "created_epoch": 1781539411,
+      "class": "THRESHOLD_MISFIT"
     }
   },
-  "last_run_epoch": 1781515802,
-  "last_run_epoch": 1781539411,
+  "last_run_epoch": 1781540252,
   "gchat_health": {
-    "last_ok_epoch": 1781515802,
     "last_ok_epoch": 1781539411,
     "consecutive_403_count": 0
   }

@@ -1748,6 +1748,21 @@ if [ "$errored" -gt 0 ]; then
 _(${errored} diff(s) failed ci-status query — investigate manually)_"
 fi
 
+# Durable both-fail fallback: if a PRIOR run's send failed (both as-bot AND as-user
+# paths), the escalation was saved to this file so a transient gmux/auth blip never
+# silently drops an alert. Flush it by prepending to this run's message; the file is
+# cleared only after a successful send below. (Tested 2026-06-16: both send paths work;
+# the gap was no durable retry when both fail transiently, as at the 16:00 cron.)
+DSM_PENDING_FILE="$REPO_DIR/state/diff-signal-pending-escalation.md"
+if [ -s "$DSM_PENDING_FILE" ]; then
+    message="_(recovered from a prior failed send)_
+$(cat "$DSM_PENDING_FILE")
+
+---
+${message}"
+    echo "$LOG_PREFIX Flushing pending escalation from a prior failed send"
+fi
+
 if [ "$DRY_RUN" = "1" ]; then
     echo "$LOG_PREFIX [DRY] Would send to $PYLON_SPACE:"
     echo "$message" | sed "s|^|$LOG_PREFIX [DRY-MSG] |"
@@ -1812,10 +1827,16 @@ except Exception:
     echo "$LOG_PREFIX Sent escalation ($escalations diffs, thread=${DSM_SAVED_THREAD:-NEW}, fallback=$dsm_used_fallback)"
     audit_log "-" "-" "escalation_send" "OK_$escalations"
     cron_alert_clear "diff-signal-monitor"
+    # Send succeeded (incl. any flushed pending) — clear the durable backlog.
+    [ -f "$DSM_PENDING_FILE" ] && rm -f "$DSM_PENDING_FILE"
 else
     echo "$LOG_PREFIX [WARN] GChat send failed (exit=$send_exit)"
     audit_log "-" "-" "escalation_send" "FAILED_exit_$send_exit"
     cron_alert "diff-signal-monitor" "GChat send failed (exit=$send_exit), $escalations diffs unreported"
+    # Both paths failed — persist the message so the next run flushes it (never lost).
+    mkdir -p "$(dirname "$DSM_PENDING_FILE")"
+    printf '%s\n' "$message" > "$DSM_PENDING_FILE"
+    echo "$LOG_PREFIX Saved escalation to $DSM_PENDING_FILE — will retry next run"
 fi
 
 write_heartbeat "diff-signal-monitor"

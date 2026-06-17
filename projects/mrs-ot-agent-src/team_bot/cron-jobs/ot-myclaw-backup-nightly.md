@@ -15,9 +15,9 @@ Procedure:
    b. Pull latest to avoid push conflicts: `bash "$LK" sl pull 2>&1` (non-fatal — if pull fails, push will surface a clearer error in step e).
    c. Check status restricted to operator's dir: `sl status users/dennyzhang/ 2>&1`. If output empty: notes repo clean → skip to step 2 (record `notes_phase=skipped_clean`).
    d. If dirty:
-      - `bash "$LK" sl add users/dennyzhang/ 2>&1` — picks up untracked files (commit hook will reject anything outside operator's dir or with disallowed extension).
+      - `bash "$LK" sl add -X '**/*.lock' -X '**/.claude/*.lock' users/dennyzhang/ 2>&1` — picks up untracked files; `-X '**/*.lock'` excludes lock files (e.g. scheduled_tasks.lock) that the notes hook denies. Commit hook will also reject anything outside operator's dir or with disallowed extension.
       - `STAMP=$(TZ=America/Los_Angeles date +%Y-%m-%d_%H:%M)`
-      - `bash "$LK" sl commit -A -m "auto-save notes ${STAMP}" 2>&1` — capture exit code + stderr. If exit non-zero (commit hook rejection: ownership, extension, root-level placement), record `notes_phase=commit_rejected: <stderr last line>` and continue to Phase B (the rejection is operator-actionable; don't loop).
+      - `bash "$LK" sl commit -m "auto-save notes ${STAMP}" 2>&1` — NO `-A` flag: staged files are already scoped to users/dennyzhang/ by the prior `sl add`; `-A` would addremove the whole repo and accidentally stage root-level lock files (.sl-write.lock). Capture exit code + stderr. If exit non-zero (commit hook rejection: ownership, extension, root-level placement), record `notes_phase=commit_rejected: <stderr last line>` and continue to Phase B (the rejection is operator-actionable; don't loop).
       - If commit ok, capture committed rev: `COMMIT_REV=$(sl log -r . -T '{node|short}')`
    e. `sl push --to master 2>&1` — capture exit code + stderr. If push fails (network, conflict): record `notes_phase=push_failed: <stderr last line>`. Local commit stays — next run retries push automatically. Continue to Phase B.
    f. On success: record `notes_phase=pushed COMMIT_REV files=<count from step c diff>`.

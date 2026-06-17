@@ -1,6 +1,5 @@
 {
-  "last_run_epoch": 1781515869,
-  "last_run_epoch": 1781539641,
+  "last_run_epoch": 1781540948,
   "_hash_method": "python3 hashlib.sha256(sqlite_prompt.strip().encode()).hexdigest() \u2014 sqlite-stripped, canonical from 12:40 PDT 2026-06-03. Notes-based hashing abandoned (extra trailing \\n in sqlite caused false positives). IMPORTANT: use per-row individual queries (not multi-row with newline splitting) to avoid multi-line prompt truncation bug discovered 2026-06-14.",
   "prompt_snapshots": {
     "daily-brief": {
@@ -30,10 +29,10 @@
       "consecutive_inconclusive": 1
     },
     "ot-bot-volume-watch": {
-      "prompt_sha256": "b172da33fac54c2974fb18c93d89cd4021e41cc908b948b38ce8453a7558bced",
-      "last_validated_epoch": 1781371660,
+      "prompt_sha256": "37ee02af2dc008955c89a0532152378b7df0a05721414aec3e69988fff38d1d2",
+      "last_validated_epoch": 1781540948,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "last_validation_summary": "2026-06-15 09:26 PDT: PASS (subagent). Score formula correctly bracketed as [manual_fallback ONLY] when script returns error/empty. LABELING-ONLY path is unambiguously primary. DETERMINISTIC PARTITION and Score bullets are now consistent. No LLM escape route to re-compute on normal path. Fix directly addresses 09:16 FAIL. Already in alerts_posted_24h \u2014 no new alert needed."
     },
     "ot-cron-health-guard": {
       "prompt_sha256": "a90b2eba8b9791115e3e9506439c645c4985b88ddcac2271946c5c0b120016e4",
@@ -301,13 +300,7 @@
     }
   },
   "alerts_posted_24h": [
-    "ot-notes-fbcode-commit",
-    "ot-ingest-posts",
-    "ot-shift-summary",
-    "ot-myclaw-backup-nightly",
-    "ot-notes-deletion-watch"
+    "ot-bot-volume-watch"
   ],
-  "_last_run_note": "2026-06-15 02:30 PDT: 45 crons checked (1 self-skip), 0 changed, 0 validated, 0 alerts."
-  "alerts_posted_24h": [],
-  "_last_run_note": "2026-06-15 09:06 PDT: 45 crons checked (self-skipped), 0 changed, 0 validated, 0 alerts."
+  "_last_run_note": "2026-06-15 09:26 PDT: 44 crons checked (self-skip), 1 changed (ot-bot-volume-watch), 1 validated, pass: 1, fail: 0, inconclusive: 0, alerts_posted: 0 (already in 24h window, fix verified PASS)."
 }

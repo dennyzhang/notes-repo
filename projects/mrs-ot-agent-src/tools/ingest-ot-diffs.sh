@@ -151,6 +151,13 @@ ROSTER_SOURCE="key-people.json"
 AFTER_DATE=$(python3 -c "from datetime import date, timedelta; print((date.today()-timedelta(days=${LOOKBACK_DAYS})).isoformat())")
 NOW_ISO=$(python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
 
+# Sidecar: this-run DELTA (diffs new or status-changed since last sync) — the deterministic
+# input the cron prompt synthesizes "key learnings" from. Runtime artifact (NOT corpus, NOT
+# committed): lives under ~/.myclaw-ot-bot/. Written every run (incl. dry-run) so the prompt
+# always reads a fresh, accurate delta rather than re-deriving per-item in the LLM.
+CHANGED_OUT="${CHANGED_OUT:-$HOME/.myclaw-ot-bot/ot-ingest-diffs-changed.json}"
+mkdir -p "$(dirname "${CHANGED_OUT}")" 2>/dev/null || true
+
 if [ "${DRY_RUN}" = "false" ]; then
   mkdir -p "${OUT_DIR}"
 fi
@@ -178,6 +185,7 @@ SUMMARY=$(OUT_DIR="${OUT_DIR}" DRY_RUN="${DRY_RUN}" NOW_ISO="${NOW_ISO}" \
   LOOKBACK_DAYS="${LOOKBACK_DAYS}" AFTER_DATE="${AFTER_DATE}" \
   N_AUTHORS="${N_AUTHORS}" ROTATION="${ROTATION}" ROSTER_SOURCE="${ROSTER_SOURCE}" \
   ROSTER_CSV="${AUTHORS_CSV}" TRUST_JSON="${TRUST_JSON}" CANDIDATES_CSV="${CANDIDATES_CSV}" \
+  CHANGED_OUT="${CHANGED_OUT}" \
   python3 - "${DIFFS_TMP}" <<'PY'
 import json, os, re, sys
 
@@ -317,6 +325,7 @@ def render(author, recs):
 
 written = 0
 total_diffs = sum(len(v) for v in by_author.values())
+delta = []  # this-run change-delta: diffs new or status-changed since last sync (for "key learnings")
 
 def strip_synced(t):
     # Compare ignoring the volatile last_synced line so a no-drift run is a true no-op.
@@ -351,6 +360,27 @@ for author in candidate_authors:
     path = os.path.join(out_dir, f"{author}.md")
     fresh = by_author.get(author, {})
     existing = read_existing(path)
+    # Change-delta capture: a fresh in-window diff is "new" if unseen, or "status-changed"
+    # if its status moved since last sync. This is the signal the prompt distills learnings
+    # from (selection is deterministic here; synthesis is the LLM's job downstream).
+    for num, r in fresh.items():
+        if (r.get("created", "") or "")[:10] < after_date:
+            continue
+        prev = existing.get(num)
+        if prev is None:
+            change = "new"
+        elif (prev.get("status") or "") != (r.get("status") or ""):
+            change = f"{prev.get('status','?')}->{r.get('status','?')}"
+        else:
+            continue
+        delta.append({
+            "number": r.get("number"), "title": r.get("title", ""),
+            "summary": (r.get("summary", "") or "")[:240],
+            "status": r.get("status", ""), "created": (r.get("created", "") or "")[:10],
+            "url": r.get("url") or f"https://www.internalfb.com/diff/{r.get('number')}",
+            "author": author, "trust": trust_of(author), "domains": domains_of(author),
+            "change": change,
+        })
     # Merge: fresh wins on overlap (status updates), keep old ones still in window not re-returned.
     merged = dict(existing)
     merged.update(fresh)
@@ -409,11 +439,35 @@ if strip_synced2(idx_text) != strip_synced2(old_idx):
         open(idx_path, "w").write(idx_text)
     written += 1
 
+# Write the this-run change-delta sidecar (runtime artifact; the prompt reads it to
+# synthesize "key learnings"). Sort: highest trust first (1 > 2 > 3 > unknown), then newest.
+# Cap at 40 so a backfill day can't bloat the prompt input.
+def _trust_rank(d):
+    t = d.get("trust")
+    try:
+        return int(t)
+    except Exception:
+        return 99
+delta_sorted = sorted(delta, key=lambda d: (_trust_rank(d), ))
+delta_sorted = sorted(delta_sorted, key=lambda d: d.get("created", ""), reverse=True)
+delta_sorted = sorted(delta_sorted, key=lambda d: _trust_rank(d))
+delta_capped = delta_sorted[:40]
+changed_out = os.environ.get("CHANGED_OUT", "")
+if changed_out:
+    try:
+        with open(changed_out, "w") as fh:
+            json.dump({"changed": delta_capped, "count": len(delta),
+                       "capped": len(delta) > len(delta_capped),
+                       "generated": now_iso, "lookback_days": int(lookback)}, fh)
+    except Exception:
+        pass
+
 print(json.dumps({"summary": {
     "authors": n_authors,
     "authors_with_diffs": len(by_author),
     "diffs": total_diffs,
     "written": written,
+    "changed": len(delta),
     "errors": 0,
     "lookback_days": int(lookback),
 }}))

@@ -1,5 +1,5 @@
 {
-  "last_run_epoch": 1781194005,
+  "last_run_epoch": 1781539981,
   "weekly_scores": [
     {
       "week": "2026-W20",
@@ -1031,6 +1031,216 @@
         "thursday_run": 8,
         "new_match_pct": 0.875
       }
+    },
+    {
+      "week": "2026-W24",
+      "issues_scored": 23,
+      "no_initial_triage": 26,
+      "backfill_excluded": 0,
+      "match_pct": 0.83,
+      "cluster_accuracy": 0.12,
+      "verdict_accuracy": 0.91,
+      "root_cause_avg": 0.77,
+      "owner_accuracy": 0.88,
+      "mitigation_pct": 0.75,
+      "miss_classes": {
+        "cluster_missed": 7,
+        "both_none": 13,
+        "owner_wrong": 0,
+        "no_initial_triage": 26,
+        "root_cause_drift": 4,
+        "premature_page": 1
+      },
+      "special_flags": {
+        "missed_real_issue": 0,
+        "false_page": 0
+      },
+      "per_issue": [
+        {
+          "id": "SEV-S672886",
+          "composite": 0.75,
+          "grade": "GOOD",
+          "bot_verdict": "UNKNOWN/NEEDS_INVESTIGATION",
+          "archive_class": "FP auto-closed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S673102",
+          "composite": 0.72,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE",
+          "archive_class": "NCCL watchdog + Boxcar preemption",
+          "miss_class": "root_cause_drift"
+        },
+        {
+          "id": "SEV-S673338",
+          "composite": 0.6,
+          "grade": "PARTIAL",
+          "bot_verdict": "PAGE/REAL_OT_FAILURE low-conf",
+          "archive_class": "dtype error auto-resolved 18min",
+          "miss_class": "premature_page"
+        },
+        {
+          "id": "SEV-S673569",
+          "composite": 0.96,
+          "grade": "EXCELLENT",
+          "bot_verdict": "PAGE/REAL_OT_FAILURE high",
+          "archive_class": "dual code regression confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S673727",
+          "composite": 0.82,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE medium",
+          "archive_class": "HSTU snapshot transition delay",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S673791",
+          "composite": 0.71,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE/CONVEYOR_REGRESSION low",
+          "archive_class": "transient Sandcastle/Buck self-resolved",
+          "miss_class": "mechanism_wrong"
+        },
+        {
+          "id": "SEV-S674096",
+          "composite": 0.96,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/REAL_OT_FAILURE P58-adjacent",
+          "archive_class": "P58-adjacent clang21 FAISS confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "SEV-S674219",
+          "composite": 0.79,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE/REAL_OT_FAILURE medium partial",
+          "archive_class": "P16 EAG scribe drain 75% DPP regression",
+          "miss_class": "cluster_missed"
+        },
+        {
+          "id": "SEV-S674228",
+          "composite": 0.84,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE/UPSTREAM_INFRA S674219 high",
+          "archive_class": "P16 DPP starvation EAG drain",
+          "miss_class": "cluster_missed"
+        },
+        {
+          "id": "SEV-S674371",
+          "composite": 1.0,
+          "grade": "EXCELLENT",
+          "bot_verdict": "MONITOR/TRANSIENT_NOISE high",
+          "archive_class": "TRANSIENT_NOISE MSV quarantine confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "POST-W1240817001297636",
+          "composite": 1.0,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION medium",
+          "archive_class": "config question confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "POST-W1342971631130913",
+          "composite": 0.7,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE/REAL_OT_FAILURE high (torch.cat symptoms)",
+          "archive_class": "dup sparse streaming config",
+          "miss_class": "symptom_vs_root"
+        },
+        {
+          "id": "POST-W1344542434307166",
+          "composite": 0.78,
+          "grade": "GOOD",
+          "bot_verdict": "PAGE/REAL_OT_FAILURE high zombie",
+          "archive_class": "P61 zombie NCCL deadlock 7.5d",
+          "miss_class": "root_cause_drift"
+        },
+        {
+          "id": "POST-W1346326357462107",
+          "composite": 0.7,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/MISCONFIG_AGG high",
+          "archive_class": "UPSTREAM_INFRA MLHub/AIM bug",
+          "miss_class": "class_wrong"
+        },
+        {
+          "id": "POST-W1347152497379493",
+          "composite": 0.65,
+          "grade": "PARTIAL",
+          "bot_verdict": "PAGE/streaming publisher frozen medium",
+          "archive_class": "P61 zombie ChildFailedError/NCCL join",
+          "miss_class": "root_cause_drift"
+        },
+        {
+          "id": "POST-W1347227230705353",
+          "composite": 0.65,
+          "grade": "PARTIAL",
+          "bot_verdict": "PAGE/REAL_OT_FAILURE CPU OOM AOTI corr",
+          "archive_class": "P63 py3.12 memory leak",
+          "miss_class": "cluster_missed"
+        },
+        {
+          "id": "POST-W1348853410542735",
+          "composite": 0.45,
+          "grade": "PARTIAL",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA RE throttling",
+          "archive_class": "REAL_OT_FAILURE configerator write transient",
+          "miss_class": "class_and_mechanism_wrong"
+        },
+        {
+          "id": "POST-W1350388963722513",
+          "composite": 0.95,
+          "grade": "EXCELLENT",
+          "bot_verdict": "PAGE MRB checkpoint -1 DB uninitialized",
+          "archive_class": "MRB-induced checkpoint metadata failure",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-AGG-2134319967",
+          "composite": 0.8,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA Scribe quota",
+          "archive_class": "CL-003 Scribe quota confirmed",
+          "miss_class": "cluster_missed"
+        },
+        {
+          "id": "ALERT-AGG-878102693",
+          "composite": 0.75,
+          "grade": "GOOD",
+          "bot_verdict": "UPSTREAM_INFRA S669133+S672461",
+          "archive_class": "UPSTREAM_INFRA confirmed",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A1840391773334834",
+          "composite": 0.95,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION/THRESHOLD_MISFIT high",
+          "archive_class": "THRESHOLD_MISFIT auto-fix T275008531",
+          "miss_class": null
+        },
+        {
+          "id": "ALERT-A3362683783911618",
+          "composite": 0.85,
+          "grade": "GOOD",
+          "bot_verdict": "MONITOR/UPSTREAM_INFRA S674251 high",
+          "archive_class": "CL-003 scribe lag confirmed",
+          "miss_class": "cluster_missed"
+        },
+        {
+          "id": "ALERT-A2032923427581795",
+          "composite": 0.95,
+          "grade": "EXCELLENT",
+          "bot_verdict": "NO_ACTION/UPSTREAM_INFRA ZippyDB high",
+          "archive_class": "UPSTREAM_INFRA S672163 auto-resolved",
+          "miss_class": null
+        }
+      ]
     }
   ],
   "scored_issue_ids": [
@@ -1161,6 +1371,38 @@
     "SEV-S669985",
     "SEV-S670347",
     "SEV-S670795",
-    "SEV-S672220"
+    "SEV-S672220",
+    "SEV-S672886",
+    "SEV-S673102",
+    "SEV-S673338",
+    "SEV-S673569",
+    "SEV-S673727",
+    "SEV-S673791",
+    "SEV-S674096",
+    "SEV-S674219",
+    "SEV-S674228",
+    "SEV-S674371",
+    "SEV-S670344",
+    "POST-W1240817001297636",
+    "POST-W1342971631130913",
+    "POST-W1344542434307166",
+    "POST-W1346326357462107",
+    "POST-W1347152497379493",
+    "POST-W1347227230705353",
+    "POST-W1348853410542735",
+    "POST-W1350388963722513",
+    "ALERT-AGG-2134319967",
+    "ALERT-AGG-878102693",
+    "ALERT-A2032923427581795",
+    "ALERT-A983491247848676",
+    "ALERT-A1007176034988171",
+    "ALERT-A1251799150173788",
+    "ALERT-A4522518738071181",
+    "ALERT-A3393744730790471",
+    "ALERT-A781051625001966",
+    "ALERT-A846486638144717",
+    "ALERT-A860655070440504",
+    "ALERT-A1572282324514227",
+    "ALERT-A1663051274928516"
   ]
 }

@@ -2,80 +2,59 @@
   "per_mount": {
     "/": {
       "last_state": "warning",
-      "last_pct_used": 45,
-      "last_free_gb": 1240,
-      "last_pct_used": 43,
-      "last_free_gb": 1300,
+      "last_pct_used": 44,
+      "last_free_gb": 1276,
       "last_inode_pct": 0,
       "last_btrfs_unallocated_gib": 29.0,
       "prev_state": "warning",
-      "consecutive_in_state": 1024,
-      "last_run_epoch": 1781516199
-      "consecutive_in_state": 1050,
-      "last_run_epoch": 1781539562
+      "consecutive_in_state": 1051,
+      "last_run_epoch": 1781540410
     },
     "/tmp": {
       "last_state": "ok",
-      "last_pct_used": 45,
-      "last_free_gb": 1240,
-      "last_pct_used": 43,
-      "last_free_gb": 1300,
+      "last_pct_used": 44,
+      "last_free_gb": 1276,
       "last_inode_pct": 0,
       "last_btrfs_unallocated_gib": null,
       "prev_state": "ok",
-      "consecutive_in_state": 1089,
-      "last_run_epoch": 1781516199
-      "consecutive_in_state": 1115,
-      "last_run_epoch": 1781539562
+      "consecutive_in_state": 1116,
+      "last_run_epoch": 1781540410
     },
     "/data/users/dennyzhang/notes": {
       "last_state": "ok",
       "last_pct_used": 0,
-      "last_free_gb": 1240,
-      "last_free_gb": 1300,
+      "last_free_gb": 1276,
       "last_inode_pct": 0,
       "last_btrfs_unallocated_gib": null,
       "prev_state": "ok",
-      "consecutive_in_state": 1123,
-      "last_run_epoch": 1781516199
-      "consecutive_in_state": 1149,
-      "last_run_epoch": 1781539562
+      "consecutive_in_state": 1150,
+      "last_run_epoch": 1781540410
     },
     "/data/users/dennyzhang/fbsource": {
       "last_state": "ok",
       "last_pct_used": 0,
-      "last_free_gb": 1240,
-      "last_free_gb": 1300,
+      "last_free_gb": 1276,
       "last_inode_pct": 0,
       "last_btrfs_unallocated_gib": null,
       "prev_state": "ok",
-      "consecutive_in_state": 1124,
-      "last_run_epoch": 1781516199
-      "consecutive_in_state": 1150,
-      "last_run_epoch": 1781539562
+      "consecutive_in_state": 1151,
+      "last_run_epoch": 1781540410
     }
   },
   "alerts_posted_24h": [],
-  "last_run_epoch": 1781516199,
-  "last_run_epoch": 1781539562,
+  "last_run_epoch": 1781540410,
   "last_raw_debug": {
-    "epoch": 1781516199,
-    "df_h": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       2.3T 1007G  1.3T  45% /",
-    "df_h_vda4": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       2.3T 1007G  1.3T  45% /",
-    "epoch": 1781539562,
-    "df_h": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       2.3T  945G  1.3T  43% /",
-    "df_h_vda4": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       2.3T  945G  1.3T  43% /",
+    "epoch": 1781540410,
+    "df_h": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       2.3T  971G  1.3T  44% /",
+    "df_h_vda4": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda4       2.3T  971G  1.3T  44% /",
     "df_i": "Filesystem     Inodes IUsed IFree IUse% Mounted on\n/dev/vda4           0     0     0     - /",
-    "btrfs_fi_usage": "Device unallocated: 29.00GiB\nData,single: Size:2.14TiB, Used:977.86GiB (44.68%)"
-    "btrfs_fi_usage": "Device size: 2.24TiB | Device allocated: 2.21TiB | Device unallocated: 29.00GiB | Used: 944.32GiB | Free (estimated): 1.27TiB | Data,single: Size:2.14TiB Used:917.11GiB (41.91%)"
+    "btrfs_fi_usage": "Device size: 2.24TiB | Device allocated: 2.21TiB | Device unallocated: 29.00GiB | Used: 969.63GiB | Free (estimated): 1.25TiB | Data,single: Size:2.14TiB Used:941.60GiB (43.03%) | Metadata,single: Size:80.01GiB Used:28.04GiB (35.04%)"
   },
   "last_worktree_reap": {
-    "epoch": 1781516199,
-    "epoch": 1781539562,
-    "count": 19
+    "epoch": 1781540410,
+    "count": 20
   },
-  "root_tmp_uncleanable_count": 1989,
-  "root_tmp_uncleanable_count": 1671,
+  "root_tmp_uncleanable_count": 1675,
   "last_auto_mitigation_epoch": 1780453204,
   "last_aggressive_mitigation_epoch": 1780464050
 }

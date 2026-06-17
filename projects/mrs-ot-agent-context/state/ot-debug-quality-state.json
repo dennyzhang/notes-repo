@@ -1,10 +1,10 @@
 {
-  "last_run_epoch": 1749643200,
-  "last_run_date": "2026-06-11T09:00:00-07:00",
+  "last_run_epoch": 1781539860,
+  "last_run_date": "2026-06-15T09:00:00-07:00",
   "weekly_scores": [
     {
       "week": "2026-W23",
-      "period": "Jun 1–7 2026",
+      "period": "Jun 1\u20137 2026",
       "issues_scored": 7,
       "match_pct": 100.0,
       "cluster_accuracy": null,
@@ -21,15 +21,62 @@
         "alerts_excluded_no_delta_target": 32
       },
       "notes": "Baseline week. Alerts excluded (archive=triage, no separate postmortem). Enhancement: score alerts with linked SEV postmortems."
+    },
+    {
+      "week": "2026-W24",
+      "period": "Jun 8\u201314 2026",
+      "issues_scored": 12,
+      "issues_total_in_scope": 19,
+      "match_pct": 83.3,
+      "cluster_accuracy": null,
+      "owner_accuracy": 82.0,
+      "mitigation_pct": 80.0,
+      "root_cause_avg": 0.8,
+      "verdict_accuracy": 91.0,
+      "miss_classes": {
+        "missed_real_issue": 0,
+        "false_page": 0,
+        "cluster_wrong": 0,
+        "owner_wrong": 0,
+        "no_initial_triage": 7,
+        "partial_triage": 2
+      },
+      "rating_breakdown": {
+        "EXCELLENT": 8,
+        "GOOD": 2,
+        "PARTIAL": 2,
+        "MISS": 0
+      },
+      "notes": "W23 baseline was 7 issues/100%; W24 more representative (12 scored + 7 no_initial_triage). Coverage gap: 6/7 no-triage are posts. ot-post-monitor detection needs expansion for P61/P63/checkpoint-failure keywords.",
+      "paste_url": "https://fburl.com/everpaste/zsd56v2v",
+      "gchat_thread": "spaces/AAQAVOjYc80/threads/3XV7FKZy65M"
     }
   ],
   "scored_issue_ids": [
-    "SEV-S665478",
+    "POST-W1314267290126950",
+    "POST-W1342971631130913",
+    "POST-W1344542434307166",
+    "POST-W1346326357462107",
+    "POST-W1347152497379493",
+    "POST-W1347227230705353",
+    "POST-W1348853410542735",
+    "POST-W1350388963722513",
     "SEV-S665454",
+    "SEV-S665478",
     "SEV-S669980",
+    "SEV-S670344",
     "SEV-S670347",
     "SEV-S670795",
     "SEV-S672220",
-    "POST-W1314267290126950"
+    "SEV-S672886",
+    "SEV-S673102",
+    "SEV-S673338",
+    "SEV-S673569",
+    "SEV-S673727",
+    "SEV-S673791",
+    "SEV-S674096",
+    "SEV-S674219",
+    "SEV-S674228",
+    "SEV-S674371"
   ]
 }

@@ -18,7 +18,12 @@ Procedure:
 
 3. **Leak-safe + idempotent (enforced IN the tool, not the prompt):** captures ONLY change-metadata (diff id `D###`, author, title, summary, status, created date, url) — NO diff bodies, NO reviewer lists. Dedup on diff number; a file is rewritten only when a diff is new or its status changed; aged-out diffs are pruned to the lookback window; authors with no in-window diffs have their stale file removed. A no-drift run touches nothing (so the notes auto-push has nothing to commit).
 
-4. **Self-report from the tool's summary JSON, never narrated.** The last stdout line is `{"summary":{"authors":N,"authors_with_diffs":A,"diffs":M,"written":W,"errors":E,"lookback_days":D}}`. Capture these counts VERBATIM for the step-6 message. If `errors`>0 → set the error flag (forces step-6 post). If `written`==0 and `errors`==0 → no diff drift (silent `HEARTBEAT_OK`, step 6).
+4. **Self-report from the tool's summary JSON, never narrated.** The last stdout line is `{"summary":{"authors":N,"authors_with_diffs":A,"diffs":M,"written":W,"changed":C,"errors":E,"lookback_days":D}}`. Capture these counts VERBATIM for the step-6 message. `changed` = diffs new or status-changed THIS run (the change-delta). If `errors`>0 → set the error flag (forces step-6 post). If `written`==0 and `errors`==0 → no diff drift (silent `HEARTBEAT_OK`, step 6).
+
+4b. **KEY LEARNINGS — synthesize the signal, not the count (operator 2026-06-15 thread `ZI8cYYlILAI`: "your report should also show key things you have learned from this ingestion").** A bare `synced N diffs` count is bot-as-database — it tells the operator nothing about WHAT changed. When `changed`>0, read the deterministic delta sidecar the tool just wrote — `~/.myclaw-ot-bot/ot-ingest-diffs-changed.json` (`{"changed":[{number,title,summary,status,author,trust,domains,change},…],"count":C,"capped":bool}`; entries pre-sorted highest-trust-first, capped at 40) — and distill **2–4 key learnings** for the step-6 message:
+   - Group the delta into the few THEMES most relevant to OT reliability/triage (e.g. detector/alert tuning, checkpoint/snapshot publish, TMS/refresh, delta-update subscribers, infra/dep bumps). Cite the single most notable diff per theme by its `D###` number (auto-linkifies; no bare URL needed) + author + `(trust N)`.
+   - **Prefer trust-1/2 authors and OT-domain diffs; weight `Accepted`/`Closed` (landing) over `Abandoned`. Each bullet must say what it MEANS for OT** (what to watch / why it matters), not just restate the title. Connect to live context where obvious (e.g. "detector false-alarm work — aligns with the P57/UPSTREAM_INFRA noisy-trends cluster").
+   - The synthesis is the LLM's judgment over the tool-selected delta — the selection/counts are deterministic (step 2), the themes are yours. Do NOT enumerate all `changed` diffs (that's an id-dump, the anti-pattern); 2–4 themed bullets max. If nothing is OT-relevant this run, ONE line: `🔑 no OT-relevant changes this run (N infra/tooling diffs)`.
 
 5. **Recurrence tracking + chronic escalation + auto-fix (the fix-don't-report mechanism).** Read the state file.
    - **On success this run** (`errors`==0) → reset `consecutive_failures` to 0, clear `first_failed_iso`. If it had an `autofix_task` and is now succeeding, note `recovered` for the summary and leave the task for the operator to close.
@@ -34,9 +39,12 @@ Procedure:
    - If ANY diff-corpus file synced (`written`>0) OR an error occurred (`errors`>0) → post exactly ONE message to `spaces/AAQAVOjYc80` (operator 1:1):
      ```
      [ot-ingest-diffs] synced <W> diff-files (<M> diffs, <A>/<N> authors, <D>d lookback)
+     🔑 Key learnings (<C> changed):
+     • <theme> — D### (<author>, trust N): <what it means for OT>
+     • <theme> — D### (<author>, trust N): <what it means for OT>
      errors: <error_kind or 'none'>
      ```
-     (counts come VERBATIM from the `ingest-ot-diffs.sh` summary JSON — `written`/`diffs`/`authors_with_diffs`/`authors`/`lookback_days`, never narrated; omit the `errors:` line when none).
+     (counts come VERBATIM from the `ingest-ot-diffs.sh` summary JSON — `written`/`diffs`/`authors_with_diffs`/`authors`/`changed`/`lookback_days`, never narrated; the 🔑 bullets are the step-4b synthesis; omit the `errors:` line when none. If `changed`==0 but `written`>0 — e.g. only an aged-out prune or README refresh — omit the 🔑 block).
    - If `written`==0 AND `errors`==0 (no drift, no error): silent — respond EXACTLY `HEARTBEAT_OK`, send nothing.
 
 7. **Persistence model.** Synced files live in `mrs-ot-agent-context/references/diffs/` (the runtime corpus tree alongside `references/gdocs/`, `references/skills/`) — notes-only, NOT in `-src/` and NOT mirrored to fbcode. Phabricator is the actual source of truth; notes is just a versioned checkpoint cache, captured by the nightly `ot-myclaw-backup-nightly` cron's notes push. No `jf submit` needed for routine syncs. Fresh agent bootstraps load context via the OT-agent skill loader (which reads `mrs-ot-agent-context/`), not via fbcode reinstall.

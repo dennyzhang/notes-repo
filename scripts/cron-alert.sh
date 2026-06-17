@@ -741,6 +741,16 @@ cron_diagnose_and_fix() {
         return 0
     fi
 
+    # Non-transient CODE/DEPLOY errors — NO daemon restart or prefetch can fix these.
+    # Return 1 (no targeted fix) so cron_run skips the pointless retry and the failure
+    # escalates to a human instead of looping an ineffective fix forever.
+    # (ot-alert-investigator looped 84x/7d restarting google-mux for a ModuleNotFoundError
+    # from the 2026-06-01 fbcode refactor that moved its classifier module.)
+    if echo "$stderr_sample" | grep -q -i -E 'ModuleNotFoundError|No module named|ImportError|cannot import name|SyntaxError|Error while finding module specification'; then
+        echo "[diagnose] Code/deploy error (import/module not found) — NOT a daemon issue; no fix, escalating"
+        return 1
+    fi
+
     # Auth/DCAT/token failure — daemon might be wedged
     if echo "$stderr_sample" | grep -q -i -E 'DCAT|auth|token|credential|untrusted|Access denied'; then
         echo "[diagnose] Auth failure detected — restarting google-mux daemon"
@@ -765,10 +775,13 @@ cron_diagnose_and_fix() {
         return 0
     fi
 
-    # Generic exit=1 with gdocs/google-mux in the call stack — likely stale socket
-    # This catches the case where gdocs replace hangs for 18 min then fails silently
-    if [ "$exit_code" -eq 1 ]; then
-        echo "[diagnose] Generic exit=1 — restarting google-mux as precaution"
+    # Generic exit=1 — ONLY restart google-mux when it is actually implicated (stale socket,
+    # e.g. gdocs replace hangs then fails). The earlier blanket "restart gmux on any exit=1"
+    # pointlessly restarted the daemon for unrelated failures (code errors, missing binaries),
+    # which never stuck and looped. Require a gmux/gdocs signal in stderr; otherwise fall
+    # through to "unknown -> return 1" so it escalates instead of churning the daemon.
+    if [ "$exit_code" -eq 1 ] && echo "$stderr_sample" | grep -q -i -E 'gdocs|google-mux|gmux|googleapis|drive\.google|supportsAllDrives'; then
+        echo "[diagnose] exit=1 with google-mux implicated — restarting as precaution"
         pkill -9 'google-mux' 2>/dev/null || true
         rm -f /tmp/gmux-"$USER"*.sock
         sleep 3
@@ -795,11 +808,24 @@ cron_diagnose_and_fix() {
         return 0
     fi
 
-    # File not found / VFS eviction — touch parent dir to trigger EdenFS prefetch
+    # File not found — force-materialize the specific missing file(s) (EdenFS / notes-symlink
+    # eviction). If a file is STILL absent afterward it is GENUINELY missing (deleted / wrong
+    # path), not a transient eviction -> escalate instead of looping prefetch forever.
+    # (metaclaw-healthcheck looped 18x/7d on exit=127 because cron-metaclaw-healthcheck.sh does
+    # not exist at the invoked path, yet exit=127 was treated as a transient VFS eviction.)
     if echo "$stderr_sample" | grep -q -i -E 'No such file|not found|ENOENT'; then
-        echo "[diagnose] File missing (possible VFS eviction) — triggering prefetch"
-        ls "$HOME/work/claude/scripts/" &>/dev/null || true
-        ls "$HOME/work/claude/config/" &>/dev/null || true
+        local _miss _still_missing=0
+        _miss=$(echo "$stderr_sample" | grep -oE '/home/[^ :]+\.(sh|py|json|md)' | sort -u)
+        for _f in $_miss; do
+            cat "$_f" >/dev/null 2>&1 || true   # force EdenFS fetch
+            [ -e "$_f" ] || _still_missing=1
+        done
+        ls "$HOME/work/claude/scripts/" "$HOME/work/claude/config/" &>/dev/null || true
+        if [ "$_still_missing" = "1" ]; then
+            echo "[diagnose] File genuinely missing after materialization attempt ($_miss) — no fix, escalating"
+            return 1
+        fi
+        echo "[diagnose] File was VFS-evicted — re-materialized, retrying"
         return 0
     fi
 
