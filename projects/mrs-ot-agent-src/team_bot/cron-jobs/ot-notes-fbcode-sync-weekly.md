@@ -1,6 +1,4 @@
-[ot-notes-fbcode-sync-weekly cron] Monday 09:00 PDT (16:00 UTC). Companion to `ot-notes-fbcode-commit` (4×/day, commit-only). This weekly cron folds all accumulated `[OT bot weekly sync]` local commits in fbcode into a single Phabricator diff and submits it.
-
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+[ot-notes-fbcode-sync-weekly cron] Monday 09:00 PDT (16:00 UTC). Companion to `ot-notes-fbcode-sync` (4×/day, commit-only). This weekly cron folds all accumulated `[OT bot weekly sync]` local commits in fbcode into a single Phabricator diff and submits it.
 
 State file: NONE — fully idempotent. No-op when there are no draft sync commits to submit.
 
@@ -16,49 +14,17 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
 
    ```bash
    THIS_WEEK=$(date -u +%Y-W%V)
-   # List this author's OPEN diffs whose title matches the current week.
-   # NOTE: the action is `list` (NOT `search` — `phabricator.diff search` does not
-   # exist and silently no-op'd the whole gate; 2026-06-04 it let 4 W23 dupes through).
-   # Do NOT re-add `2>/dev/null` here — swallowing the error is what hid the dead
-   # command for a week. Let a future breakage be loud.
-   # Capture ALL open W-diffs for this week (not just the first).
-   ALL_W=$(meta phabricator.diff list --author-is=dennyzhang --include-only-open -o json \
-     | jq -r --arg w "$THIS_WEEK" '.[]? | select(.title | contains("[OT bot weekly sync] notes->fbcode " + $w)) | .number' \
-     | sort -n)
-   # SELF-HEAL (2026-06-05): if MORE THAN ONE already exists, the week is already
-   # DUPLICATED (e.g. a stray non-weekly `jf submit` swept the stack into a 2nd diff
-   # before the submit-guard hook was installed). ABANDON every extra, keep the
-   # lowest-numbered canonical. Abandon is the one Phab write allowed for cron/
-   # interactive Claude — do NOT just report or wait for a human; that's exactly the
-   # mistake that let D107599159 + D107688956 sit as twin W23 dups for ~8h (operator
-   # flagged the same pair 3×). NO `--message` on abandon (state change only, never a
-   # published comment).
-   KEEP=$(echo "$ALL_W" | head -1)
-   EXTRAS=$(echo "$ALL_W" | tail -n +2 | grep -v '^$')
-   NEXTRA=$(echo "$EXTRAS" | grep -c . || echo 0)
-   # §16 MASS-CAP (2026-06-08 audit): a real week has 1–2 dups, not many. >3 extras means
-   # the `list` query almost certainly over-matched (title-substring glitch) — bulk-abandon
-   # would nuke REAL diffs. Escalate, do NOT auto-abandon at scale.
-   if [ "$NEXTRA" -gt 3 ]; then
-     echo "[weekly-sync] $NEXTRA extra W-diffs > cap 3 — NOT auto-abandoning (likely list over-match); keeping all, escalating to 1:1 for human decision" >&2
-     # post a one-line escalation to spaces/AAQAVOjYc80; SKIP the abandon loop entirely.
-   else
-     for d in $EXTRAS; do
-       [ -n "$d" ] || continue
-       # §16 RE-VERIFY before the irreversible abandon: re-fetch the diff's title and only
-       # abandon if it's genuinely a [OT bot weekly sync] diff — never trust the list query
-       # alone (a substring match could catch an unrelated diff).
-       T=$(meta phabricator.diff metadata --number="$d" -o json 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin).get('title',''))" 2>/dev/null)
-       case "$T" in
-         *"[OT bot weekly sync]"*)
-           echo "[weekly-sync] abandoning duplicate D$d (keeping canonical D$KEEP)"
-           meta phabricator.diff abandon --number="$d" ;;
-         *)
-           echo "[weekly-sync] SKIP D$d — title not a weekly-sync diff ('$T'); list over-matched, NOT abandoning" >&2 ;;
-       esac
-     done
-   fi
-   EXISTING="$KEEP"
+   # Search Phab for unlanded diffs by this author whose title matches the current week.
+   # FIX 2026-06-21: was `meta phabricator.diff search --author=… --status=needs-review,changes-planned`,
+   # but `search` is NOT a valid action for phabricator.diff (errored) and `2>/dev/null` swallowed it ->
+   # EXISTING was ALWAYS empty -> this "MANDATORY dedup gate" was a silent no-op since written ->
+   # a fresh `[OT bot weekly sync] <week>` diff on every (re)trigger (W25 pile-up: D109095236 /
+   # D109226976 / D109245016). Use the working `phabricator.diff list`; strip the leading D from .number
+   # so downstream `D$EXISTING` resolves correctly. VERIFY with `meta phabricator.diff <action> --help`
+   # before changing this query again.
+   EXISTING=$(meta phabricator.diff list --author-is=dennyzhang --include-only-open -o json 2>/dev/null \
+     | jq -r --arg w "$THIS_WEEK" '.[]? | select(.title | contains("[OT bot weekly sync] notes->fbcode " + $w)) | .number | ltrimstr("D")' \
+     | head -1)
    if [ -n "$EXISTING" ]; then
      # Existing unlanded weekly diff for this week. Two safe responses:
      # (a) AMEND mode: jump to that diff's local commit (if present) and add fresh drift onto it (preferred).
@@ -101,10 +67,10 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
    c. **≥2 commits** → fold them. The oldest commit is the base; fold all subsequent ones into it:
       ```
       cd ~/fbsource
-      OLDEST=$(sl log -r 'sort(draft() & user(dennyzhang) & desc("OT bot weekly sync"), date)' \
-        -T "{node|short}\n" -l 1 | head -1)
-      NEWEST=$(sl log -r 'sort(draft() & user(dennyzhang) & desc("OT bot weekly sync"), -date)' \
-        -T "{node|short}\n" -l 1 | head -1)
+      OLDEST=$(sl log -r 'draft() & user(dennyzhang) & desc("OT bot weekly sync")' \
+        -T "{node|short}\n" --sort=date -l 1 | head -1)
+      NEWEST=$(sl log -r 'draft() & user(dennyzhang) & desc("OT bot weekly sync")' \
+        -T "{node|short}\n" --sort=-date -l 1 | head -1)
       sl fold --exact -r "$OLDEST::$NEWEST" --message "$(cat <<EOF
       [OT bot weekly sync] notes->fbcode $(date -u +%Y-W%V)
 
@@ -128,26 +94,50 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
 
 3. **Verify** the resulting single commit (`sl log -r . -T "{node|short} {desc|firstline}\n"`).
 
-3.5. **Run diff cheatsheet gate** (MANDATORY, thread `Q_8ELeVd7cU` 2026-05-30 — crons follow the same cheatsheet rules as agents):
+3.5. **BUILD FRESH ON CURRENT TRUNK — conflict-free BY CONSTRUCTION (operator 2026-06-21: "weekly sync diff always runs into merge conflict").** Weekly-sync is a ONE-WAY MIRROR (notes→fbcode, notes canonical), so the diff is just "current notes vs current trunk." Merge conflicts only happened because we REBASED the week-old folded commit onto moved trunk. Instead, **rebuild the commit fresh on current trunk** — a fresh commit has no merge step, so a conflict is structurally impossible. This SUPERSEDES the fold output of steps 1–3 (they still run harmlessly; this discards their stale-based commit and rebuilds).
 
-   Self-review against `cheatsheets/diff/fbcode.md` + `cheatsheets/diff/common.md`:
-   - Title: `[OT bot weekly sync] notes->fbcode YYYY-WNN` — correct prefix?
-   - Summary: explains WHY (motivation/design), NOT a file inventory (Phab shows changed files)
-   - Test plan: present and specific (not "documentation only" without evidence)
-   - Task/Reviewers/Tags: `T259215482`, `mrs-ot-reliability`, `publish_when_ready`
-   - <300 lines? (`sl diff --stat | tail -1`)
-   - No dup fields in commit message?
+   **(a) DRIFT GATE FIRST — data safety (notes is not yet canonical-current everywhere; do NOT overwrite trunk-ahead content).** For each shared multi-author file, if trunk has content notes lacks, abort + escalate:
+   ```bash
+   cd ~/fbsource; sl pull -q
+   DRIFT=""
+   for f in team_bot/CLAUDE.md team_bot/cron-jobs/MANIFEST.json team_bot/team_bot_config.yaml; do
+     fb="pe_mrs_ml/mrs_ot_agent/$f"; nt="$HOME/notes/users/dennyzhang/projects/mrs-ot-agent-src/$f"
+     [ -f "$nt" ] || continue
+     # lines present in trunk but NOT in notes == trunk-ahead content the mirror would silently drop
+     if [ -n "$(comm -23 <(sl cat -r remote/master "$fb" 2>/dev/null | sort -u) <(sort -u "$nt") | head -1)" ]; then DRIFT="$DRIFT $f"; fi
+   done
+   if [ -n "$DRIFT" ]; then
+     meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --as-meta-bot \
+       --text="WARN [weekly-sync] trunk is AHEAD of notes on:$DRIFT — build-fresh would drop trunk-only content. Skipping submit; needs the notes<->fbcode reconciliation first (notes not yet canonical-current)."
+     exit 0
+   fi
+   ```
+   **(b) BUILD FRESH on current trunk:**
+   ```bash
+   sl goto -C remote/master    # clean base on current trunk; discards the stale-based folded commit
+   bash ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/notes-to-fbcode-sync.sh
+   #  ^ copies all canonical notes files -> fbcode + commits ONE fresh commit on current trunk.
+   #    "[no drift]" (notes already == trunk) -> nothing to submit -> respond HEARTBEAT_OK, exit.
+   ```
+   **(c) DEDUP carry — if step-0 found an open W## diff ($EXISTING), tag the fresh commit so step 4 UPDATES it (never a 2nd):**
+   ```bash
+   [ -n "$EXISTING" ] && sl metaedit -r . -m "$(sl log -r . -T '{desc}')
 
-   Fix every finding before proceeding to step 4. The PreToolUse gate requires `# diff-cheatsheet-ok` in the submit command — only append it after completing this self-review.
+   Differential Revision: https://phabricator.intern.facebook.com/D$EXISTING"
+   ```
+   Conflict-free (fresh commit on trunk), data-safe (drift gate), dedup-safe (carries $EXISTING). When notes is canonical-current this runs clean weekly; while notes is still stale vs trunk it safely aborts (same as today's sync crons) — no data loss, no bad merge.
 
-4. **Submit** to Phabricator:
+4. **Submit** to Phabricator (dedup-aware):
    ```
    cd ~/fbsource
-   timeout 180 jf submit --draft --publish-when-ready 2>&1 | tail -10  # diff-cheatsheet-ok # ot-weekly-sync-submit-ok
+   if [ -n "$EXISTING" ]; then
+     # fresh commit already carries D$EXISTING's Differential Revision (step 3.5c) -> UPDATE it, never a 2nd
+     timeout 180 jf submit --update-fields 2>&1 | tail -10
+   else
+     timeout 180 jf submit --draft --publish-when-ready 2>&1 | tail -10
+   fi
    ```
-   Capture the diff URL from the output.
-
-   **Both trailing tokens are MANDATORY.** `# ot-weekly-sync-submit-ok` bypasses the weekly-sync guard (2026-05-30, thread `S2zrir2qpBY`); `# diff-cheatsheet-ok` bypasses the cheatsheet gate (thread `Q_8ELeVd7cU` 2026-05-30 — these are now independent guards). Do NOT remove either, and NEVER add `# ot-weekly-sync-submit-ok` to the commit cron. Do NOT append `# diff-cheatsheet-ok` without completing step 3.5.
+   Capture the diff URL from the output. (The weekly-sync-dedup PreToolUse hook is the backstop: it blocks any `jf submit` that would create a 2nd open W## diff.)
 
 5. **Send ONE GChat message** to spaces/AAQAVOjYc80:
    ```
@@ -173,7 +163,7 @@ Pre-2026-05-22: the 4×/day sync cron also submitted a diff per run, producing u
 
 ## Provenance
 
-Created 2026-05-22 as part of plan B (split sync into commit-only + weekly-submit). Decision in MyClaw thread `zv128jeH6Q8` after S22 incident where 3 sync diffs created in 6h. Companion to `ot-notes-fbcode-commit` (4×/day, commit-only).
+Created 2026-05-22 as part of plan B (split sync into commit-only + weekly-submit). Decision in MyClaw thread `zv128jeH6Q8` after S22 incident where 3 sync diffs created in 6h. Companion to `ot-notes-fbcode-sync` (4×/day, commit-only).
 
 ## Learned Rules (auto-appended)
 

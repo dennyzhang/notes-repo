@@ -1,7 +1,5 @@
 [ot-prompt-change-validator cron] Every 10 min (interval=600s). Detect cron-prompt edits via sqlite-prompt-diff against a snapshot; for each changed prompt, simulate the new prompt against a representative past triage from the same cron to verify the new prompt still produces compliant output. Catches silent-failure prompt edits BEFORE the next live cron fire.
 
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
-
 Goal: reduce operator's burden of catching silent failures. Today (2026-05-17) operator caught 5 silent failures in 2 hours from prompt-only edits with no execution verification. This cron automates pre-flight validation.
 
 State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/ot-prompt-change-validator-state.json` —
@@ -84,11 +82,7 @@ All 5 were prompt-only edits where I claimed "shipped" without executing. This c
          - Bad pattern: "X = distinct failure class; new P-row needed" — that's the topic, not the insight
          - Good pattern: "X mechanism causes Y symptom; mitigation is Z. [P-row landed]" — that's the insight
          - FAIL if any learning bullet reads as a topic-only summary without a falsifiable claim or actionable mitigation
-      - `meta` CLI commands referenced are flag-correct. **MANDATORY before flagging any CLI flag/action as invalid: actually run `meta <platform>.<object> <action> --help` and confirm the flag/action is genuinely absent. NEVER flag from memory or pattern-match.** Two false-positive classes to avoid (both produced wrong FAILs):
-        1. **Prohibition-context strings.** A line saying "NEVER `meta google.docs.*`" or "`--foo` is FORBIDDEN" is documentation, NOT an invocation. Only flag a command that is actually being *invoked* (inside a ```bash block or as a step action), never one inside a NEVER/FORBIDDEN/do-not rule. (2026-05-28: flagged ot-shift-summary's `NEVER meta google.docs.*` rule as a bug.)
-        2. **Valid flags assumed invalid.** `--item-type-is=Alert` IS valid for `meta oncall.feed list` (in `--help` + works live); flagging it was wrong (2026-05-29: false-FAILed ot-debug-quality-weekly + ot-triage-summary). Conversely `--since` is genuinely invalid for `meta workplace.feed list` (use `--after`) and `meta ai.mast-job error` (no time-window flag at all) — those were REAL and correctly actionable. The ONLY way to tell real from false is `--help`, every time.
-
-      - **Narration / no-op-HEARTBEAT_OK compliance — MANDATORY false-positive guard (added 2026-06-10 after a self-inflicted loop).** A fixture that emits narration before `HEARTBEAT_OK` ("All checks pass… HEARTBEAT_OK", "State updated. Delivering…") proves the LLM *can* narrate — it does NOT prove the prompt lacks a rule against it. **Before issuing any "re-edit so no-op = bare HEARTBEAT_OK" FAIL: grep the prompt for an existing no-op/narration-prohibition rule** (e.g. `emit ONLY .*HEARTBEAT_OK`, "nothing before it", "no status narration", an explicit-1:1-send-then-HEARTBEAT_OK two-part rule). If that rule is ALREADY PRESENT, the fixture narration is **LLM-variance against the daemon deliver-to-team default — a core issue, NOT a prompt gap.** Do NOT FAIL-and-recommend-re-edit (re-recommending an existing rule = duplicate prose + a prompt-hash change that re-triggers this exact validation next run = an infinite false-FAIL loop). Instead classify INCONCLUSIVE with note `narration is LLM-variance; prompt rule already present; structural fix = T275142534 (daemon send gate), not a prompt edit`. Cross-check actual runs: if recent `job_runs` show `delivered=skipped` / bare `HEARTBEAT_OK`, the real cron is compliant and the fixture is a sim artifact. (2026-06-10: false-FAILed `ot-bot-volume-watch` recommending a bare-HEARTBEAT_OK rule its line 64 already states verbatim — including banning the exact `"all checks pass"` phrase the fixture emitted; 8/8 real runs were clean.)
+      - `--meta` CLI commands referenced are flag-correct (you can probe with `--help` if uncertain)
 
       Report: PASS (prompt is sound, past triage would still validate) | FAIL (prompt has a defect, here are the issues + suggested fix) | INCONCLUSIVE (past triage not representative enough, recommend manual review).
 
@@ -112,9 +106,7 @@ All 5 were prompt-only edits where I claimed "shipped" without executing. This c
 
 5. **For each PASS verdict:** silent — update snapshot, no post.
 
-6. **For INCONCLUSIVE verdicts:**
-   - **EXEMPT script-orchestrated crons FIRST (added 2026-06-10, `ot-fleet-health` 3×-INCONCLUSIVE root-fix).** A cron whose real logic lives in scripts and that returns bare `HEARTBEAT_OK` (no triage payload in `raw_response`) by design CANNOT be job_runs-payload-validated — that's structural, not a thin-history problem, so a synthetic/team-post fixture would only validate the *script's* output, not the prompt. For these, mark `exempt-script-orchestrated` and **stay silent — do NOT escalate INCONCLUSIVE** (repeating "needs better fixture" forever is just noise). Their correctness is covered elsewhere: the script's own reconciliation gate/tests + `ot-cron-health-guard` runtime-failure checks + the backtest-by-default discipline. **Exempt set:** `ot-fleet-health` (logic in `run-fleet-health.sh` + `render-fleet-digest.py`'s hard-fail reconciliation gate; prompt is a thin wrapper — see memory `fleet-cron-logic-in-script-not-prompt`). Add a cron here ONLY when confirmed thin-wrapper + HEARTBEAT_OK-returning; never exempt a cron that emits a validatable payload (that would hide real regressions).
-   - Otherwise: silent unless 3+ consecutive INCONCLUSIVE on same cron → post `🔍 ot-prompt-change-validator: <cron_id> needs better test fixture` so operator knows the cron's history is too thin to validate.
+6. **For INCONCLUSIVE verdicts:** silent unless 3+ consecutive INCONCLUSIVE on same cron → post `🔍 ot-prompt-change-validator: <cron_id> needs better test fixture` so operator knows the cron's history is too thin to validate.
 
 7. **Output summary**: 
    - **If `alerts_posted == 0` AND no INCONCLUSIVE-escalation fired**: respond `HEARTBEAT_OK {crons_checked: N, changed: N, validated: N, pass: N, fail: N, inconclusive: N, alerts_posted: 0}` and **DO NOT POST TO GCHAT**. Per RULES.md § Signal-only operator messaging: "checked 25 things, all clean" runs are pure cron-self-reporting; operator value = zero. State file remembers; operator doesn't need to. This explicitly includes:
@@ -137,11 +129,11 @@ All 5 were prompt-only edits where I claimed "shipped" without executing. This c
 ## Self-escalation
 
 - If 3+ consecutive FAIL on same cron → escalation `🚨 PERSISTENT FAIL — needs operator manual review or revert`
-- If validator itself errors (subagent unavailable, sqlite corrupt) for 6+ consecutive runs → ot-cron-health-guard catches as `persistent_failure`
+- If validator itself errors (subagent unavailable, sqlite corrupt) for 6+ consecutive runs → ot-cron-health-watch catches as `persistent_failure`
 
 ## Distinct from sibling crons
 
-- **ot-cron-health-guard** (existing, hourly): catches RUNTIME failures (cron didn't fire, errored, hung). Doesn't validate output content.
+- **ot-cron-health-watch** (existing, hourly): catches RUNTIME failures (cron didn't fire, errored, hung). Doesn't validate output content.
 - **ot-postmortem-validator** (existing, daily 22:30 PT): validates mitigated-* DIGESTS, not prompt-edit changes.
 - **ot-prompt-change-validator** (THIS, every 10 min): validates PROMPT EDITS pre-flight via simulation. Catches the silent-failure-from-spec-only-edits pattern.
 
@@ -149,7 +141,7 @@ All 5 were prompt-only edits where I claimed "shipped" without executing. This c
 
 - New cron behaviors with no historical baseline (first-ever run of a new cron — INCONCLUSIVE)
 - Failures that emerge only in cross-cron interactions (cron A's output feeds cron B, change to A breaks B's parser)
-- Resource/env failures (cron prompt is sound but daemon can't spawn agent, sqlite locks, etc — that's ot-cron-health-guard's job)
+- Resource/env failures (cron prompt is sound but daemon can't spawn agent, sqlite locks, etc — that's ot-cron-health-watch's job)
 - Schema-level changes that intentionally break old output (e.g., today's 10→6 section restructure was breaking-change-on-purpose; validator would FAIL it though correctly)
 
 For schema-changes that intentionally break, operator can suppress one fire by bumping the snapshot hash manually OR by passing `--skip-validation` flag (TODO: not yet implemented).

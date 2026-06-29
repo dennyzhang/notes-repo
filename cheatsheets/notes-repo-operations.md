@@ -28,24 +28,9 @@ sl cat -r master path/to/file | grep <marker>
 sl cat -r <hash_or_bookmark> path/to/file
 
 # View accumulated changes for a folder over N days (in browser)
-# 1. Baseline: the date() revset ABORTS on the notes repo (100k+ commit graph) and a -l walk
-#    only spans ~1.5 days per 600 commits. Use the -d date FILTER (short-circuits) instead:
-sl log -d '<YYYY-MM-DD' -l 1 -T '{node}\n'                                 # newest commit before the window
-# 2. Paste: `pastry`'s upload service is flaky (fails ERR_INVALID_CHAR on ANY input when down).
-#    Fallback that works: `meta phabricator.paste create --stdin` (different upload path).
-sl diff --stat -r <baseline> -r . -- path/to/folder/ | meta phabricator.paste create --title="..." --stdin --language=diff -o json
-#    --language=diff makes the paste RENDER as a colored +/- diff (not plain text). Use it for both
-#    the --stat map AND the full-content diff. The --stat map alone is usually "not good enough" when
-#    the operator wants to read the actual content.
-# 3. For a multi-day window the RAW diff is multi-MB and dominated by machine churn (cron-prompt-backups/
-#    frozen snapshots, state/*.json, incidents/auto-learnings/mega-learnings archives). EXCLUDE that to get
-#    a reviewable content diff. NOTE: `sl diff -X <pat>` SILENTLY NO-OPS with a positional path (does not
-#    filter) — instead drop noise file-blocks post-hoc:
-#      sl diff -r <baseline> -r . path/to/folder/ > /tmp/full.diff
-#      python3 -c "import re;n=re.compile(r'(cron-prompt-backups|/state/|/incidents/|auto-learnings|mega-learnings|bot-debugging-threads|resolved-(sevs|alerts|posts))');k=True;o=[];b=[]
-#      [ ( (o.extend(b) if k else None), b.clear() ) for _ in [0]]  # (use the flush-on-'diff --git' loop)"
-#      # simpler: split on lines starting 'diff --git ', keep blocks whose path !~ noise regex, then paste.
-# Browse alternative (no paste): https://www.internalfb.com/code/notes/users/<unixname>/ (CodeHub history)
+sl log -r "last(public() & date('<YYYY-MM-DD'), 1)" -T '{node|short}\n'  # get baseline hash
+sl diff -r <baseline> -r . -- path/to/folder/ | pastry                    # paste for web viewing
+# Open the paste URL — renders diff with syntax highlighting
 ```
 
 ## The push-divergence dance (when "Root is too far behind" fires)
@@ -149,71 +134,6 @@ When `sl rebase` hits a merge conflict and you `sl resolve --mark`, the rebase s
 Notes repo is an Eden virtual mount. `sl pull` sometimes pulls a snapshot older than what's actually on remote — when multiple devservers or sessions are writing in parallel, you can pull a state that doesn't include your most recent push from the same session.
 
 **Mitigation:** before any `sl pull`, check current remote with `sl log -r remote/master -T '{node|short}\n'`. After pull, re-check. If hash didn't advance to what you expected, retry the pull.
-
-## The null-parent broken-checkout corruption (2026-06-13)
-
-**Symptom:** `sl status` reports a ridiculous number of untracked files (~875k, including other users' `shared/...` dirs, `.arcconfig`, etc.). `sl log -r .` shows the working-copy parent as `000000000000` (the null commit). `sl checkout --continue` aborts with `NNN conflicting file changes`. The repo "appears to have not finished cloning."
-
-**What it means:** the Eden update/checkout was interrupted, leaving files materialized on disk while the dirstate points at the null commit. Everything looks untracked because there is no parent to diff against. **`remote/master` is fine** — only the local working copy is broken. The `notes-push` cron silently fails the whole time (it's been days), so this can sit undetected.
-
-**Recovery (verified safe):**
-```bash
-cd ~/notes
-# 1. Confirm the damage is local-only: your content is on master.
-sl log -r remote/master -T '{node|short} {date|isodate} {desc|firstline}\n'
-sl files -r remote/master users/<unixname> | wc -l          # vs `find users/<unixname> -type f | wc -l`
-# 2. Insurance: back up YOUR subtree (small, ~10-15M) before any destructive op.
-cp -a users/<unixname> ~/work/claude/backup/notes-<unixname>-$(date +%Y%m%d-%H%M)/
-# 3. Prove nothing is local-only (must print 0):
-comm -23 <(find users/<unixname> -type f | sort) <(sl files -r remote/master users/<unixname> | sort) | wc -l
-# 4. Repair: reset working copy to master. --clean is safe HERE because step 3 proved no local-only data.
-sl goto remote/master --clean
-# 5. Verify: parent is now a real hash, status empty.
-sl log -r . -T '{node|short} {desc|firstline}\n'; sl status | wc -l   # expect 0
-```
-
-**Why `--clean` is OK here (despite the casualty log above):** the casualties happened when `--clean` discarded *real* uncommitted edits. In this corruption the working copy is a stale SUBSET of master (parent=null, fewer files than master) — step 3 proves there is nothing to lose. Always run step 3 first; if it prints > 0, stop and recover those files individually instead.
-
-**Prevention (landed in `cron-notes-push.sh`):** the nightly push now (a) aborts if the working-copy parent is null/empty, and (b) aborts if the dirty-file count exceeds 300 — so it refuses to `commit -A` a corrupted tree instead of trying to commit ~875k files. It also pre-screens `.bak/.tmp/.swp/...` deny_files before committing.
-
-### Variant (2026-06-13b): `sl goto --clean` recovery ITSELF aborts on ACL
-
-When the broken checkout is a **non-EdenFS full clone** (e.g. created by
-`sl clone fb:notes` without `--eden`), the recovery above fails too:
-
-```
-'users/lmvasquezg/private' is restricted by ACL 'REPO_REGION:repos/hg/notes/=users/lmvasquezg'
-abort: error fetching files:
-```
-
-A full (non-eden) checkout eagerly fetches EVERY file including other users'
-ACL-restricted `users/<name>/private` dirs, which you can't read — so both the
-original clone AND `sl goto --clean remote/master` abort partway and leave the
-parent at the null commit. Step 3's `comm` proof still holds (nothing local-only),
-but you can't `goto` your way out.
-
-**Robust recovery — re-clone via EdenFS (verified 2026-06-13):**
-```bash
-# Broken clone has zero local commits, so moving it aside loses nothing.
-mv ~/notes ~/notes.broken-$(date +%s)
-cd ~ && fbclone notes          # EdenFS: lazy fetch, never trips other-users' ACLs
-# fbclone creates ~/local/notes and symlinks ~/notes -> it. Then verify:
-cd ~/notes && sl status | wc -l                       # expect 0
-sl log -r . -T '{node|short}\n'                       # expect a real hash, not 000000000000
-ls users/<unixname>/cheatsheets >/dev/null && echo "cheatsheets symlink target OK"
-rm -rf ~/notes.broken-*                               # background; large
-```
-
-**Root-cause prevention:** ALWAYS clone internal Mononoke repos with EdenFS —
-`fbclone <repo>` or `sl clone --eden <repo>` (fbsource/www/configerator/notes).
-`setup-claude.sh` was fixed 2026-06-13 to use EdenFS for all four, and its notes
-guard now checks the actual head (`sl log -r .` != null) instead of just `[ -d .sl ]`,
-so a null-commit broken clone self-heals on the next setup run.
-
-**Do NOT "commit and push" a broken clone:** the ~600k "untracked" files are
-byte-identical to `remote/master` (verify: `sl cat -r remote/master <file>`). A
-forced `sl add -A && commit` manufactures a giant duplicate and can push sensitive
-files to a repo that has "no expectation of privacy." Broken clone ≠ pending work.
 
 ## The public-commit rebase trap (and the revert-snapshot workaround)
 
@@ -390,4 +310,17 @@ Total time lost: ~90 min. Net result: all 7 important commits landed on master a
 - `~/.myclaw-ot-bot/RULES.md` § "Where state files live"
 - `cheatsheets/CHEATSHEET-INDEX.md`
 
-_Last updated: 2026-06-13 (EdenFS re-clone recovery for ACL-abort + clone-with-EdenFS prevention). Maintainer: dennyzhang._
+## Pushing notes (RUN THE SCRIPT)
+
+**After ANY notes edit, run `tools/notes-push.sh`** (in `mrs-ot-agent-src/tools/`) — do NOT hand-roll `sl commit` + `sl cloud sync`. It filters to dirty paths (a multi-path `sl commit -A` ABORTS on a no-match path, leaving files added-but-uncommitted while cloud-sync still says "synchronized"), then verifies BOTH sync-confirmed AND zero `A`/`M` left, and reports `PUSH_OK rev=… → commit-cloud` + how to view. "Push" = `sl cloud sync` to commit-cloud; `sl push` to remote/master is rejected by fb:notes by design (B2x). (operator 2026-06-25)
+
+## Getting a doc onto the ACTUAL remote notes repo (not just commit-cloud)
+
+**`sl cloud sync` / `notes-push.sh` only reach commit-cloud — NOT remote/master.** The live
+~/notes checkout can't `sl push` (900+ commits diverged from remote/default + .py/.db
+deny-hook). So a doc can be "committed + synced" yet absent from the repo others/you see.
+- **NEVER claim a doc is "in the notes repo" off commit-cloud — confirm `sl cat -r remote/master <path>`.**
+- To LAND a curated doc on remote: `tools/notes-push-to-remote.sh <notes-rel-path>...`
+  (isolated mirror `~/notes-remote-mirror` → doc-only commit, no .py/.db → `sl push --to master`
+  pushrebase → verifies each file via `sl cat -r remote/master`, reports `REMOTE_PUSH_OK rev=…`).
+- Only curated docs/references go to the shared remote; churning operational notes stay commit-cloud.

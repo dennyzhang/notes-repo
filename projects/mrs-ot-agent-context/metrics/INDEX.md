@@ -1,16 +1,14 @@
 # metrics/ — Prod Health Observability Index
 
-Top-level reference for OT prod health: user journeys, key metrics, canonical queries, detection patterns, and dependency routing.
-Six files, each owns one concern. No overlap.
+Top-level reference for OT prod health: user journeys, key metrics, canonical queries, and detection patterns.
+Four files, each owns one concern. No overlap.
 
 | File | Owns | Updated by |
 |---|---|---|
 | [user-journeys.md](user-journeys.md) | What matters to users, ranked by incident evidence | Bot after each incident (discovery protocol) |
-| [slick-data-pipeline.md](slick-data-pipeline.md) | SLICK SLO/SLI data-source reliability: how the fill works, known data gaps (daily-fill OOM + old mapping/def), POC — rule out a SLICK data artifact before triaging a SLICK-metric hole as an OT incident | Bot when SLICK data behavior/ownership changes |
 | [slo-recovery-metrics.md](slo-recovery-metrics.md) | Key metrics per component with thresholds, for health checks and SEV recovery | Bot when thresholds prove wrong or new metrics are discovered |
 | [queries.md](queries.md) | Exact queries (Scuba SQL, CLI, MCP tools, SLICK configs) for each metric | Bot when a query fails or a better one is found |
 | [detection-patterns.md](detection-patterns.md) | Temporal anomaly patterns (metric + duration + context = detection) | Bot when it finds an incident that thresholds alone couldn't catch |
-| [dependency-sla.md](dependency-sla.md) | Which upstream owns an OT outage + the per-job evidence to hand that oncall ("is it them?" routing) | Bot when a new dependency outage is triaged |
 
 **Cross-references:**
 - `user-journeys.md` UJ-NNN → `slo-recovery-metrics.md` KM-XX (which metrics express this journey)

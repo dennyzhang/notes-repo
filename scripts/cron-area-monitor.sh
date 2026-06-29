@@ -92,13 +92,22 @@ init_tab_description() {
 
     echo "$LOG_PREFIX  [step-0] Checking $tab_label for description ($marker)..."
     local tab_text
-    tab_text=$(gdocs content get "$GDOC_ID" --tab-id "$tab_id" 2>/dev/null || echo "")
+    # NOTE: gdocs CLI is `gdocs get` not `gdocs content get` — the latter silently errors,
+    # which used to fail the existence check and re-insert a Purpose paragraph every cron run
+    # (accumulating one per day across the tab). Use `gdocs get` with --untrusted-authors-mode.
+    tab_text=$(gdocs get "$GDOC_ID" --tab-id "$tab_id" --untrusted-authors-mode 2>/dev/null || echo "")
 
     local marker_count
-    marker_count=$(echo "$tab_text" | grep -c "$marker" || echo "0")
+    # Count only real body occurrences in <p> tags (not in comment data-quote metadata).
+    marker_count=$(echo "$tab_text" | grep -cE "<p[^>]*>(<i>)?(<b>)?(<u>)?Purpose" || echo "0")
 
-    if [ "${marker_count:-0}" -ge 1 ]; then
-        echo "$LOG_PREFIX  [step-0] $tab_label description present ($marker_count) — skipping"
+    if [ "${marker_count:-0}" -eq 1 ]; then
+        echo "$LOG_PREFIX  [step-0] $tab_label description present (1) — skipping"
+        return 0
+    fi
+
+    if [ "${marker_count:-0}" -gt 1 ]; then
+        echo "$LOG_PREFIX  [step-0] WARNING: $tab_label has $marker_count Purpose paragraphs (expected 1) — manual cleanup needed"
         return 0
     fi
 
@@ -115,6 +124,60 @@ init_tab_description() {
 
 init_tab_description "t.7p1pm5er8oet" "Org Monitor" "$ORG_TAB_DESC" "Nightly scan"
 init_tab_description "t.n3cgnazi5bxp" "AI Skill Monitor" "$SKILL_TAB_DESC" "Nightly scout"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 0.5: Departed-employee pre-flight (Denny review 2026-06-21)
+# Run `meta people.profile get --unixname <u>` for each peer; skip rendering rows
+# for anyone with status=former. Cache results in $WORK_DIR/departed-peers.json
+# so STEP 1 / Claude synthesis can read it and filter. Cap at 1 lookup per peer per
+# run (~24 calls × ~1s each = ~30s). On lookup failure, treat as ACTIVE (safe default).
+# ═══════════════════════════════════════════════════════════════════════════════
+DEPARTED_CACHE="$WORK_DIR/departed-peers.json"
+echo "$LOG_PREFIX  [step-0.5] Pre-flight: checking peer employment status..."
+python3 - "$CONFIG" "$DEPARTED_CACHE" "$LOG_PREFIX" <<'PYEOF'
+import json, subprocess, sys
+config_path, cache_path, log_prefix = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(config_path) as f:
+    cfg = json.load(f)
+departed, errors = [], []
+for peer in cfg.get("peers", []):
+    u = (peer.get("unixname") or "").strip()
+    if not u:
+        continue
+    try:
+        r = subprocess.run(
+            ["meta", "people.profile", "get", "--unixname", u, "-o", "json"],
+            capture_output=True, text=True, timeout=20,
+        )
+        if r.returncode != 0 or not r.stdout.strip():
+            errors.append(u); continue
+        prof = json.loads(r.stdout)
+        if (prof.get("status") or "").lower() == "former":
+            departed.append({"name": peer.get("name"), "unixname": u})
+    except Exception:
+        errors.append(u)
+with open(cache_path, "w") as f:
+    json.dump({"departed": departed, "lookup_errors": errors}, f, indent=2)
+if departed:
+    names = ", ".join(f"{d['name']} ({d['unixname']})" for d in departed)
+    print(f"{log_prefix}  [step-0.5] DEPARTED detected ({len(departed)}): {names} — will be filtered from render")
+else:
+    print(f"{log_prefix}  [step-0.5] All peers active (errors: {len(errors)})")
+PYEOF
+
+# Append a warning to ALERTS.md once per departed peer per quarter so Denny can
+# manually purge AREA-MONITOR.json (self-healing prompt, not a blocker).
+DEPARTED_NAMES=$(python3 -c "import json; d=json.load(open('$DEPARTED_CACHE'))['departed']; print(','.join(p['name'] for p in d))" 2>/dev/null || echo "")
+if [ -n "$DEPARTED_NAMES" ]; then
+    ALERTS_FILE="$HOME/work/claude/ALERTS.md"
+    QUARTER=$(date '+%Y-Q'$(( ($(date +%-m) - 1) / 3 + 1 )))
+    SENTINEL="$WORK_DIR/.departed-alert-$QUARTER"
+    if [ ! -f "$SENTINEL" ] && [ -w "$ALERTS_FILE" ]; then
+        echo "- **$(date '+%Y-%m-%d %H:%M')** [area-monitor:departed-peers] AREA-MONITOR.json contains former employees: $DEPARTED_NAMES — remove from config to clean up render." >> "$ALERTS_FILE"
+        touch "$SENTINEL"
+        echo "$LOG_PREFIX  [step-0.5] Wrote departed-peers alert to ALERTS.md (quarter $QUARTER)"
+    fi
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 1: Parallel data collection — org track + AI skill track
@@ -141,6 +204,23 @@ with open(config_path) as f:
     config = json.load(f)
 
 peers = config.get("peers", [])
+
+# DEPARTED-EMPLOYEE FILTER (Denny review 2026-06-21): step-0.5 wrote
+# departed-peers.json — drop any peer whose unixname is in that list so neither
+# diffs nor posts get fetched/rendered for them.
+departed_cache = os.path.join(work_dir, "departed-peers.json")
+departed_unixnames = set()
+if os.path.exists(departed_cache):
+    try:
+        with open(departed_cache) as f:
+            departed_unixnames = {p.get("unixname", "") for p in json.load(f).get("departed", [])}
+    except Exception:
+        pass
+if departed_unixnames:
+    before = len(peers)
+    peers = [p for p in peers if p.get("unixname") not in departed_unixnames]
+    print(f"  [collect_org] filtered {before - len(peers)} departed peer(s) from active set", flush=True)
+
 all_activity = []
 
 # Enrich peers with people profile data if available
@@ -838,6 +918,10 @@ People are organized into circles in the config:
 
 **ALL circles go into ONE {{TEAM_ACTIVITY}} table**, sorted by importance. There is NO separate skip manager section.
 
+## Departed Employees (DO NOT render — added 2026-06-21)
+The following peers have status=former in Workday and MUST be omitted from {{TEAM_ACTIVITY}} entirely (no row, not even in "Others"). Treat them as if they did not exist in the peer list:
+$(python3 -c "import json,os; p=os.path.join('$WORK_DIR','departed-peers.json'); d=json.load(open(p)).get('departed',[]) if os.path.exists(p) else []; print('\n'.join(f\"- {x['name']} ({x['unixname']})\" for x in d) if d else '- (none — all peers active this run)')" 2>/dev/null)
+
 ## Yesterday's Report (for deduplication)
 $(cat "$CACHE" 2>/dev/null | head -80 || echo "No prior report available.")
 
@@ -849,24 +933,24 @@ $(cat "$TEMPLATE")
 ## Placeholder Instructions
 Each {{PLACEHOLDER}} = markdown TABLE ROWS only (no header). Links IN first column. Keep cells compact.
 
-- **{{ORG_PULSE}}**: 2-3 rows. **3 COLUMNS:** \`| [signal description](source_URL) | Summary: Problem → what's wrong; Outcome → what happened/result; Solution → how it was resolved or what's needed | how Denny can help |\`. **Signal MUST be a clickable hyperlink** to the source post, diff, SEV, or workplace thread. Items without links are not actionable — omit them. The Summary column MUST use the structured format: "Problem: [1 sentence]. Outcome: [1 sentence]. Solution: [1 sentence]." — not a free-form paragraph. This lets Denny pre-read the post in 5 seconds without opening it. **ORG-LEVEL BAR**: Only include signals with multi-team or org-wide impact — leadership decisions, cross-team initiatives, strategic direction changes, org-wide wins. Individual IC task completions (shipping a CLI, fixing a bug, closing a task) belong in Team Activity, NOT here. Ask: "Would a director care about this?" If no, move it to Team Activity. **WORKPLACE GROUP COVERAGE**: ALL configured workplace groups that have posts MUST have at least one signal represented in Org Pulse or Opportunities. Do NOT silently drop an entire group's posts — if MVAI FYI has posts, at least one must appear.
-- **{{OPPORTUNITIES}}**: \`| [Description](URL) | benefit + action (one sentence) |\`. **2 columns only.** Action includes who to contact and what to say.
-- **{{TEAM_ACTIVITY}}**: **ALL circles merged into ONE table** — EM/TL, teammates, adjacent, leadership, collaborators. \`| [Person](URL) | activity + benefit (one sentence) |\`. **2 columns only — NO reach-out column.** **DIFF LINK FORMAT (MANDATORY):** Every diff reference MUST be a markdown link: \`[D12345678](https://www.internalfb.com/diff/D12345678)\`. Plain text like "D100220762" without a link is a formatting violation — wrap EVERY D-number. Sort by importance (most active/relevant first). Group inactive into ONE row at bottom. No activity: \`| Person | No visible activity. Monitor. |\`. **HARD RULE: NO reach-out suggestions for VP/Director level (Nan, Pete, Syamla, Santosh).** VPs will NOT engage with IC-level tactical details. **P0 priority peers (Paul Lu, Li Lu, Yabin Zhang) must always appear first in the table if they have any activity.**
+- **{{KEY_MESSAGE_LINE}}**: ONE sentence ≤200 chars — the single most-leverage org/peer signal Denny needs to act on today, picked from the data below. Name the person/team + the concrete next step (verb-first). NO bullet, NO label, NO link markdown brackets visible — just the sentence. Daily brief reads this verbatim. Examples: "Reply to Paul Lu on SEV S646785 thread — he's blocked on TMS state matrix question (Workplace MRS OT Users)." or "Catch Catalin in #mrs-ot-reliability today re: D107879131 — his magic-number cleanup pattern overlaps your TBE work."
+- **{{ORG_PULSE}}**: 2-3 rows. **3 COLUMNS:** \`| [signal description](source_URL) | Summary: Problem → what's wrong; Outcome → what happened/result; Solution → how it was resolved or what's needed | how Denny can help |\`. **Signal MUST be a clickable hyperlink** to the source post, diff, SEV, or workplace thread. Items without links are not actionable — omit them. The Summary column MUST use the structured format: "Problem: [1 sentence]. Outcome: [1 sentence]. Solution: [1 sentence]." — not a free-form paragraph. This lets Denny pre-read the post in 5 seconds without opening it. **ORG-LEVEL BAR**: Only include signals with multi-team or org-wide impact — leadership decisions, cross-team initiatives, strategic direction changes, org-wide wins. Individual IC task completions (shipping a CLI, fixing a bug, closing a task) belong in People & Opportunities, NOT here. Ask: "Would a director care about this?" If no, move it to People & Opportunities. **WORKPLACE GROUP COVERAGE**: ALL configured workplace groups that have posts MUST have at least one signal represented in Org Pulse or People & Opportunities. Do NOT silently drop an entire group's posts — if MVAI FYI has posts, at least one must appear.
+- **{{TEAM_ACTIVITY}}**: People-oriented table — ONE row per peer (or "Others (low activity)" catch-all at bottom). **3 COLUMNS:** \`| [Person](URL) | activity + benefit (one sentence) | opportunity: concrete action incl. who to contact and what to say (one sentence) |\`. **DIFF LINK FORMAT (MANDATORY):** Every diff reference MUST be a markdown link: \`[D12345678](https://www.internalfb.com/diff/D12345678)\`. Plain text like "D100220762" without a link is a formatting violation — wrap EVERY D-number. Sort by importance (most active/relevant first). No activity: \`| Person | No visible activity. Monitor. | — |\`. The Opportunity column is the merged "cross-team opportunity / how to act" — name a specific next step (ping in #channel, DM about X, review their D-number) or \`—\` if none. **HARD RULE: NO reach-out suggestions for VP/Director level (Nan, Pete, Syamla, Santosh).** VPs will NOT engage with IC-level tactical details — Opportunity column is \`—\` for them. **P0 priority peers (Paul Lu, Li Lu) must always appear first in the table if they have any activity.** **FORCE-SEPARATE ROWS (always their own row, never bundled into a catch-all even with thin activity)**: Shumin Wu (EM), Catalin Toda (TL), Nick Pallanez (TL), Shuguang Ye (SilverTorch EM). These four must each get their own row in every run. **NO COMMA-JOINED NAMES IN THE PERSON COLUMN — EVER.** The Person column contains exactly ONE name (or a single bracketed-link). Strings like "Gaurav Mitra, Trevor Mathisen, Shuguang Ye, Catalin Toda" or "all leadership" or "Shumin and Catalin" are FORMAT VIOLATIONS — split into N rows, one per person. The "Others (low activity)" catch-all is the ONLY exception, and it MUST exclude every person already named in {{TEAM_ACTIVITY}} above and the FORCE-SEPARATE list. **DEPARTED-EMPLOYEE EXCLUSION**: never render a row for anyone listed in the "Departed Employees" section above — not in their own row, not in "Others", not anywhere.
 - **{{SEV_RADAR}}**: **CONDITIONAL.** If there are active SEVs for \`pe_mrs_ml\` or \`mrs_online_training\`, output: \`## 4. SEV Radar\n\n| SEV | Status & My Benefit |\n|-----|-------------------|\n| [SEV](URL) | status + benefit |\`. If there are NO active SEVs, replace {{SEV_RADAR}} with an empty string — do NOT output the section header or "Nothing notable."
 
 Rules:
 - **Compact.** One sentence per cell. No filler.
 - **Links in first column. ALL diff IDs must be clickable links — [D12345678](https://www.internalfb.com/diff/D12345678).**
-- **STRICTLY follow the template columns.** Org Pulse = 3 columns. Opportunities = 2 columns. Team Activity = 2 columns. No exceptions.
+- **STRICTLY follow the template columns.** Org Pulse = 3 columns. People & Opportunities = 3 columns (Person | Activity | Opportunity). No exceptions.
 - **No boilerplate.** The \`> Source:\` lines are part of the template structure — keep them exactly as-is in the output. Do NOT add extra Source lines, but do NOT remove the ones in the template either. Keep the content lean.
 - Cap 5 rows per section. Replace {{DATE}} with $TODAY.
 - **DEDUPLICATION — CRITICAL:**
   1. Read "Yesterday's Report" above. Do NOT repeat signals that appeared yesterday unless there is a meaningful UPDATE (new status, new data, escalation). "Syamla posted about overdue tasks" appearing 5 days in a row is a failure. If the signal is the same, skip it.
   2. For Team Activity: only report NEW diffs/posts since the last scan. If Harry had 8 diffs yesterday and still has 8 diffs today (no new ones), write "No new activity." Do NOT re-report the same diffs.
 - **CRITICAL STRUCTURE RULES — VIOLATING ANY OF THESE MAKES THE OUTPUT UNUSABLE:**
-  1. The output MUST have EXACTLY 3 sections (Org Pulse, Opportunities, Team Activity) PLUS optional SEV Radar. NO section 5. NO "Skip Manager" section. NO "Leadership" section.
-  2. Column counts are FIXED: Org Pulse = 3 columns (Signal | Summary | How I Can Help), Opportunities = 2 columns, Team Activity = 2 columns. Do NOT add or remove columns from any table.
-  3. Team Activity MUST include ALL people — managers, teammates, leadership, adjacent, collaborators — in ONE table. Do NOT split by circle.
+  1. The output MUST have EXACTLY 2 sections (Org Pulse, People & Opportunities) PLUS optional SEV Radar. NO section 4. NO "Skip Manager" section. NO "Leadership" section. NO separate "Opportunities to Act" section — the opportunity now lives as a column inside People & Opportunities.
+  2. Column counts are FIXED: Org Pulse = 3 columns (Signal | Summary | How I Can Help), People & Opportunities = 3 columns (Person | Activity & My Benefit | Opportunity). Do NOT add or remove columns from any table.
+  3. People & Opportunities MUST include ALL people — managers, teammates, leadership, adjacent, collaborators — in ONE table. Do NOT split by circle.
 PROMPTEOF
 
 # --- Pre-render §5 (My Validated AI Practices) from config ---
@@ -964,6 +1048,7 @@ Each {{PLACEHOLDER}} = markdown TABLE ROWS only (no header). Links IN first colu
 
 **IMPORTANT: My Validated AI Practices is FIRST in the template (§1). Output sections in template order.**
 
+- **{{KEY_MESSAGE_LINE}}**: ONE sentence ≤200 chars — the single highest-priority AI technique, post, or skill Denny should adopt or read today, picked from the data below. Name the technique + the concrete action (verb-first). NO bullet, NO label, NO link markdown brackets visible — just the sentence. Daily brief reads this verbatim. Examples: "Adopt simonmar's `/loop` skill — replaces 3 of your cron-poll bash loops with one declarative command (workplace post, Jun 17)." or "Read travisbarton's CCSDK agent post — directly maps to the master-agent pattern you're building for OT."
 - **§1 (My Validated AI Practices)**: PRE-RENDERED from config — do NOT modify. Pass through exactly as it appears in the template.
 - **{{COMMUNITY_PULSE}}**: \`| [Trend](source_URL) | how it works (mechanism) | what's changing |\`. **3 columns.** Trend MUST be a clickable [link](URL) to the source post, diff, or thread. "How It Works" explains the mechanism briefly.
 - **{{TECHNIQUES}}**: Merged list of all techniques + adoption candidates, sorted by relevance score desc. \`| [Name by Author](URL) | how it works + how it helps Denny (one sentence) | **Priority** |\`. Priority column values: score +3 (SEV/OT/training) → \`**High**\`; score +2 (daily ops) → \`**Medium**\`; score +1 (team/skill) → \`**Low**\`. Only items with score >= 1. **Every technique name MUST be a clickable [link](URL) to the source post.** If no URL exists, omit the item. NEVER output literal "pending" — it's dead weight that never changes.
@@ -1000,6 +1085,53 @@ wait $ORG_SYNTH_PID || org_synth_exit=$?
 wait $SKILL_SYNTH_PID || skill_synth_exit=$?
 
 echo "$LOG_PREFIX  Synthesis done (org=$org_synth_exit, skill=$skill_synth_exit)"
+
+# --- Step 2.4: Peer profile drift check (Mondays only) ---
+# Calls `meta workplace.user lookup` on each peer's unixname. If status != "Current"
+# (departed, role changed, etc.), append to PEER-STATUS-DRIFT.md and raise a cron_alert
+# so Denny can review and prune config/AREA-MONITOR.json. Does NOT auto-remove — Workplace
+# lookups can lag actual departures, so the human confirms.
+if [ "$DOW" -eq 1 ]; then
+    echo "$LOG_PREFIX  Peer profile drift check (weekly)"
+    DRIFT_FILE="$REPO_DIR/context/cache/PEER-STATUS-DRIFT.md"
+    drift_lines=""
+
+    while read -r unixname name; do
+        [ -z "$unixname" ] && continue
+        status=$(meta workplace.user lookup -u "$unixname" -o json 2>/dev/null \
+            | python3 -c "import json,sys
+try:
+    d = json.load(sys.stdin)
+    print(d.get('status','UNKNOWN'))
+except Exception:
+    print('LOOKUP_FAILED')" </dev/null)
+        if [ "$status" != "Current" ] && [ "$status" != "LOOKUP_FAILED" ]; then
+            drift_lines="${drift_lines}- ${name} (\`${unixname}\`): status=${status} — consider removing from config/AREA-MONITOR.json"$'\n'
+        fi
+    done < <(python3 -c "
+import json
+c = json.load(open('$CONFIG'))
+for p in c.get('peers', []):
+    u = p.get('unixname','').strip()
+    n = p.get('name','?')
+    if u:
+        print(f'{u} {n}')
+")
+
+    if [ -n "$drift_lines" ]; then
+        {
+            echo "# Peer Status Drift — $TODAY"
+            echo ""
+            echo "Peers whose Workplace status is no longer 'Current'. Review and prune \`config/AREA-MONITOR.json\` if confirmed."
+            echo ""
+            echo "$drift_lines"
+        } > "$DRIFT_FILE"
+        cron_alert "area-monitor" "$(echo "$drift_lines" | wc -l) peer(s) no longer 'Current' — see context/cache/PEER-STATUS-DRIFT.md"
+    else
+        # Clean state — write a stamp so we know the check ran
+        echo "# Peer Status Drift — $TODAY"$'\n\nAll peers still show status=Current.' > "$DRIFT_FILE"
+    fi
+fi
 
 # --- Step 2.5: Cheatsheet drift check (Mondays only) ---
 if [ "$DOW" -eq 1 ]; then

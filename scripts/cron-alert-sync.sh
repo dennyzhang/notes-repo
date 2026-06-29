@@ -301,7 +301,7 @@ PROMPT_EOF
 # Set WORK_DIR for Claude to use
 export WORK_DIR
 
-run_llm "alert-sync" 300 "$WORK_DIR/llm-output.log" "WORK_DIR=$WORK_DIR
+run_llm "alert-sync" 540 "$WORK_DIR/llm-output.log" "WORK_DIR=$WORK_DIR
 
 $PROMPT" -- \
     --allowedTools Read Write Bash \
@@ -488,6 +488,9 @@ print(f'History updated: {len(history)} entries')
 "
 
 echo "$LOG_PREFIX === Alert sync complete ==="
+
+# Success heartbeat BEFORE the gdocs error propagation (workflow-design.md rule 2)
+write_heartbeat "alert-sync"
 
 # Tier 1+3: propagate accumulated gdocs errors.
 gdocs_exit_with_status "$(basename "$0" .sh)"

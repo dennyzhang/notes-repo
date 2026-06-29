@@ -25,34 +25,18 @@ Time budget: ~30s on no-drift, ~1 min when there's a commit to land.
 
    a. **Empty status** — no in-scope drift → respond HEARTBEAT_OK and stop. NO GChat message.
 
-   b. **Drift detected** — at least one file changed. Stage and commit:
+   b. **Drift detected** — at least one file changed. Commit + push via the reliable script (single source of truth, shared with interactive runs):
       ```
-      cd ~/notes
-      # Notes write-lock (Option B, 2026-06-14): serialize tree-mutating sl ops so
-      # concurrent sessions/crons can't clobber the shared notes tree. Read-only sl
-      # (status/log/diff) needs no lock; wrap add/forget/commit (+ cloud sync/pull below).
-      LK="$HOME/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/scripts/notes-sl-lock.sh"
-      bash "$LK" sl add  users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ 2>&1
-      bash "$LK" sl forget $(sl status users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ | awk '/^! / {print $2}')
-      bash "$LK" sl commit users/dennyzhang/projects/mrs-ot-agent-src/ users/dennyzhang/projects/mrs-ot-agent-context/ \
-        -m "[OT bot] notes auto-sync $(date -u +%Y-%m-%dT%H:%MZ)
+      bash ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/tools/notes-push.sh \
+        "[OT bot] notes auto-sync $(date -u +%Y-%m-%dT%H:%MZ)"
+      ```
+      It does dirty-path-filtered `sl commit -A` (addremove handles new + missing files) + `sl cloud sync`, then VERIFIES (cloud-sync confirmed AND zero added-but-uncommitted non-state files), printing `PUSH_OK rev=<hash> → commit-cloud` (**exit 0**) or `PUSH_INCOMPLETE …` (**exit 2**).
+      **Why the script, not inline `sl commit <src> <context>`:** a multi-path commit ABORTS the whole commit if one tree has "no match under directory" (clean), leaving files **added-but-uncommitted** while `sl cloud sync` still says "synchronized" — a silent push miss (fixed 2026-06-25; the script filters to dirty paths first).
+      ⚠️ DO NOT use `sl push --to remote/*` — fb:notes uses CommitCloud per-user draft chains; the script never sl-pushes. `sl cloud sync` (to `user/dennyzhang/default`) is the durable mechanism.
 
-Hourly auto-commit of bot-owned changes:
-- src: cron prompts, CLAUDE.md, scripts, config
-- context: state files, archives, learnings"
-      ```
-      Then sync to CommitCloud:
-      ```
-      sl cloud sync 2>&1
-      ```
-      ⚠️ DO NOT use `sl push --to remote/main` or `sl push --to remote/default`. The fb:notes repo uses
-      CommitCloud for per-user draft chains. Denny's notes live on a draft stack (not on remote/default).
-      `sl cloud sync` is the correct durable backup mechanism — syncs to `user/dennyzhang/default` in
-      CommitCloud, visible to all devservers under the same account.
+   c. **Push fails** (`notes-push.sh` exit 2 / `PUSH_INCOMPLETE`, or any error — network, auth, conflict, mid-operation working copy) — **DO NOT post yet**. Increment `consecutive_failures` (track in `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/ot-notes-commit-push-state.json` — `{"consecutive_failures": N, "last_failure_at": <epoch>, "last_failure_msg": "<one-line>", "last_alert_epoch": <epoch|null>}`). The next hourly run will retry. Only escalate after the bot's own retry attempts have failed (see step 4).
 
-   c. **Push fails** (network error, auth issue, conflict, mid-operation working copy) — **DO NOT post yet**. Increment `consecutive_failures` (track in `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/ot-notes-commit-push-state.json` — `{"consecutive_failures": N, "last_failure_at": <epoch>, "last_failure_msg": "<one-line>", "last_alert_epoch": <epoch|null>}`). The next hourly run will retry. Only escalate after the bot's own retry attempts have failed (see step 4).
-
-3. **On successful push: NO GChat post.** Operator value of "hourly housekeeping succeeded" = zero (per RULES.md § Signal-only operator messaging — operator: "would rather get alerted when your notes push has failed" 2026-05-17 thread `JFxkiKmeibI`). Reset `consecutive_failures=0` in state file. Respond `HEARTBEAT_OK {files_committed: N, commit: <hash>, pushed: true}`. Done.
+3. **On successful push (`notes-push.sh` exit 0 / `PUSH_OK rev=<hash>`): NO GChat post.** Operator value of "hourly housekeeping succeeded" = zero (per RULES.md § Signal-only operator messaging — operator: "would rather get alerted when your notes push has failed" 2026-05-17 thread `JFxkiKmeibI`). Reset `consecutive_failures=0` in state file. Respond `HEARTBEAT_OK {commit: <rev from PUSH_OK>, pushed: true}`. Done.
 
 4. **On failure: bot-first retry, then escalate.** When `consecutive_failures >= 1`:
    a. **Self-heal attempt** before alerting:
@@ -86,7 +70,7 @@ Hourly auto-commit of bot-owned changes:
 
 Operator clarified 2026-05-15 23:16 PT: "you should have cron job to push to notes repo". Today's near-miss: ~10h of bot edits (path renames, READ-ONLY rules, sync-script fix) sat uncommitted in the notes working copy alongside the morning's missing-files reorg leftovers. A devserver loss / restart would have lost all of it. Hourly auto-commit caps the loss window at ≤1h.
 
-Pairs with `ot-notes-fbcode-commit` (4×/day): notes-side cron commits/pushes the canonical changes; fbcode-side cron mirrors them out so devserver reinstalls bootstrapping from fbcode see fresh prompts. The two crons are independent — notes-push is the durable backup; fbcode-mirror is the discoverability layer.
+Pairs with `ot-notes-fbcode-sync` (4×/day): notes-side cron commits/pushes the canonical changes; fbcode-side cron mirrors them out so devserver reinstalls bootstrapping from fbcode see fresh prompts. The two crons are independent — notes-push is the durable backup; fbcode-mirror is the discoverability layer.
 
 ## Learned Rules (auto-appended)
 

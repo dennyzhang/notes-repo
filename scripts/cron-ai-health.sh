@@ -748,7 +748,7 @@ tab_content_detail=""
 # Post-merge (2026-06-01): area monitor is now tabs in the unified routine doc.
 # Dead tabs removed: GChat Intelligence + Signal-to-Opportunity (feeders deprecated 2026-05-30).
 content_checks_list=(
-    "routine|t.0|Routine > Routine|25"
+    "routine|t.8z9ivhphd8p7|Routine > Routine|25"
     "routine|t.7p1pm5er8oet|Routine > Org Monitor|25"
     "routine|t.n3cgnazi5bxp|Routine > AI Skill Monitor|25"
     "ai_playbook|t.0|AI Playbook > Health|25"
@@ -819,6 +819,38 @@ fi
 # All diffs in IMPACT.md (AI-assisted + human)
 all_diffs_total=$(grep -cP "^\- \*\*D\d+" "$impact_file" 2>/dev/null || echo 0)
 
+# 1b. Diffs landed in last 7d — pulled from Phabricator (authoritative).
+# IMPACT.md is curated by hand and lags reality (e.g. 32d stale on 2026-06-24);
+# the Phab query is the truth source for "Diffs landed this week" and the
+# top-10 recent diffs sub-section. (Added 2026-06-24 from AI Playbook comment.)
+diffs_week_count=0
+diffs_week_table=""
+if command -v meta &>/dev/null; then
+    _phab_json=$(timeout 30 meta phabricator.diff list --author-is-me --status-is=Committed \
+        --time-created-is-after="$seven_days_ago" --limit=50 --output=json 2>/dev/null || echo "[]")
+    if [ -n "$_phab_json" ] && [ "$_phab_json" != "[]" ]; then
+        diffs_week_count=$(echo "$_phab_json" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo 0)
+        # Top 10 rendered as a markdown table sub-section
+        diffs_week_table=$(echo "$_phab_json" | python3 -c "
+import json, sys
+diffs = json.load(sys.stdin)
+diffs.sort(key=lambda d: d.get('committed','') or d.get('created',''), reverse=True)
+top = diffs[:5]
+if not top:
+    sys.exit(0)
+print('| # | Diff | Title | Committed |')
+print('|---|------|-------|-----------|')
+for i, d in enumerate(top, 1):
+    num = d.get('number','?')
+    title = (d.get('title','') or '').replace('|',' ')[:80]
+    committed = (d.get('committed','') or '')[:10]
+    url = d.get('url','')
+    link = f'[{num}]({url})' if url else num
+    print(f'| {i} | {link} | {title} | {committed} |')
+" 2>/dev/null || true)
+    fi
+fi
+
 # NOTE: "Opportunities surfaced" metric retired 2026-06-01 — both feeders
 # (Signal-to-Opportunity tab + gchat-copilot state) deprecated 2026-05-30.
 
@@ -874,15 +906,24 @@ with open('$processed_cache') as f:
 print(sum(len(v) for v in d.values()))
 " 2>/dev/null || echo 0)
 fi
-# Count recent [Claude] replies from gdoc-comments log (fallback replies + LLM replies)
+# Count recent [Claude] replies from gdoc-comments log via real-replied= markers
 if [ -f "$HOME/logs/gdoc-comments-critical.log" ]; then
-    comments_week=$(awk -v since="$seven_days_ago" '/^[0-9]/ && $1 >= since && /comment.*processed|reply.*success|"id":/' "$HOME/logs/gdoc-comments-critical.log" 2>/dev/null | wc -l | tr -d ' ')
+    comments_week=$(awk -v since="$seven_days_ago" '
+        /BEGIN.*[0-9]{4}-[0-9]{2}-[0-9]{2}/ {
+            match($0, /[0-9]{4}-[0-9]{2}-[0-9]{2}/, d); in_range = (d[0] >= since) ? 1 : 0
+        }
+        in_range && /real-replied=[1-9]/ {
+            match($0, /real-replied=([0-9]+)/, m); sum += m[1]
+        }
+        END { print sum+0 }
+    ' "$HOME/logs/gdoc-comments-critical.log" 2>/dev/null || echo 0)
 fi
 
 # 4. Meetings prepped by AI — count from meeting-prep logs
 meetings_week=0
 if [ -f "$HOME/logs/meeting-prep.log" ]; then
-    meetings_week=$(awk -v since="$seven_days_ago" '$0 ~ /^[0-9]/ && $1 >= since && /Meeting prep:/ && !/skipped/' "$HOME/logs/meeting-prep.log" 2>/dev/null | wc -l | tr -d ' ')
+    # Match both "1:1 meeting prep" (real runs) and "Meeting prep:" patterns; exclude skipped lines
+    meetings_week=$(awk -v since="$seven_days_ago" '$0 ~ /^[0-9]/ && $1 >= since && (/1:1 meeting prep/ || /Meeting prep:/) && !/skipped/' "$HOME/logs/meeting-prep.log" 2>/dev/null | wc -l | tr -d ' ')
 fi
 
 # 5. Knowledge distiller outcomes — files distilled, tokens recovered
@@ -895,7 +936,36 @@ if [ -f "$HOME/logs/knowledge-distiller.log" ]; then
         | awk -F',' '{for(i=1;i<=NF;i++) if($i ~ /tokens recovered/) {gsub(/[^0-9-]/,"",$i); sum+=$i}} END{print sum+0}' 2>/dev/null || echo 0)
 fi
 
-# 6. Week-over-week trend for fleet pass rate (reuse existing data)
+# 6. AI Impact wins — user-flagged moments where Claude's tip/output moved a hard decision
+# Captured by Stop hook (~/work/claude/config/hooks/capture-coach-win.py) into
+# state/coach-wins.jsonl when user types canonical phrase "good AI impact win"
+# (also accepts "ai impact win" / "coach win" / "count as a win" near-equivalents).
+coach_wins_week=0; coach_wins_total=0; coach_wins_evidence=""
+coach_wins_file="$HOME/work/claude/state/coach-wins.jsonl"
+if [ -f "$coach_wins_file" ]; then
+    read coach_wins_week coach_wins_total coach_wins_evidence < <(python3 - <<PYEOF 2>/dev/null || echo "0 0 "
+import json
+from datetime import date, timedelta
+seven_ago = (date.fromisoformat("$TODAY") - timedelta(days=7)).isoformat()
+wins = []
+with open("$coach_wins_file") as f:
+    for line in f:
+        try:
+            wins.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+recent = [w for w in wins if w.get("date", "") >= seven_ago]
+ev = ""
+if recent:
+    last = recent[-1]
+    snippet = (last.get("signal") or "")[:60].replace("\n", " ").strip()
+    ev = f"latest: {snippet}"
+print(f"{len(recent)} {len(wins)} {ev}")
+PYEOF
+)
+fi
+
+# 7. Week-over-week trend for fleet pass rate (reuse existing data)
 wow_direction="—"
 wow_detail=""
 if [ -f "$AI_HEALTH_HISTORY" ]; then
@@ -1212,11 +1282,10 @@ if [ -f "$OUTPUT" ] && [ "$(grep -c 'Purpose:' "$OUTPUT" 2>/dev/null)" -ge 1 ]; 
     _purpose_preamble=""
 fi
 
-# Dashboard link — doc-top item (updated idempotently by the push's
-# ensure_doc_top_header_item). Read latest Collab Files URL from publish state.
+# Dashboard link — RETIRED 2026-06-28 (Denny comment AAAB9NXy4oU: "no need to
+# generate the dashboard any more. stop and remove it"). The cron-dashboard-
+# publish.sh entry is also disabled in setup-claude.sh + live crontab.
 _dashboard_line=""
-_dashboard_url="$(cat "$REPO_DIR/state/cron-dashboard-url.txt" 2>/dev/null || true)"
-[ -n "$_dashboard_url" ] && _dashboard_line="**Dashboard:** $_dashboard_url"
 
 # ── AI Impact week-over-week (operator 2026-06-14: track impact GROWTH) ──────
 # Snapshot today's cumulative metrics, compare to the row ~7 days ago. First
@@ -1262,7 +1331,7 @@ if [ "$wow_diffs" != "—" ]; then
     if [ "$_impact_delta" -gt 0 ]; then
         verdict_impact="📈 growing (+${_impact_delta} artifacts WoW)"
     else
-        verdict_impact="📉 not growing (${_impact_delta} WoW) — propose: review automation coverage / add a new automated output"
+        verdict_impact="📉 flat WoW (${_impact_delta})"
     fi
 fi
 
@@ -1282,7 +1351,7 @@ $([ -n "$delta_section" ] && echo "$delta_section")
 $(if [ -n "$action_rows" ]; then
     # operator 2026-06-14 (5pQ): split into what NEEDS DENNY vs what the system
     # already auto-handles, so "Action Required" is only human-owned items.
-    _AUTO='timeout|budget|unicode|repo-size|repo still|disk-cleanup|disk usage|stale heartbeat|stale cache|stale tab|cmd-not-found|recovered on retry'
+    _AUTO='timeout|budget|unicode|repo-size|repo still|disk-cleanup|disk usage|stale heartbeat|stale cache|stale tab|cmd-not-found|recovered on retry|DROPPED:|prepend insert failed'
     _rows=$(echo -e "$action_rows" | awk 'NF' | sort -t '|' -k2,2 -s)
     _needs=$(echo "$_rows" | grep -ivE "$_AUTO" || true)
     _auto=$(echo "$_rows" | grep -iE "$_AUTO" || true)
@@ -1311,12 +1380,19 @@ What AI automation actually produced — every number links to an artifact.
 
 | # | Metric | 7d | All Time | WoW | Evidence |
 |---|--------|----|----------|-----|----------|
-| 1 | Diffs auto-created (no prompts) | — | ${ai_diffs_total} | ${wow_diffs} | IMPACT.md (${all_diffs_total} total) |
-| 2 | Inbound reply drafted (mentions+DMs) | ${gchat_inbound_week} (today: ${gchat_inbound_today}) | ${gchat_inbound_total} | — | GCHAT-INBOUND-HISTORY — 0 when no inbound arrived |
-| 3 | gdoc auto-replied | ${comments_week} | ${comments_total} | ${wow_comments} | gdoc-comments cron |
-| 4 | Meetings prepped | ${meetings_week} | — | — | meeting-prep cron |
-| 5 | Knowledge distilled | ${distill_week} | ${distill_total} files (${distill_tokens} tokens) | ${wow_distill} | knowledge-distiller cron |
-| 6 | Autonomous AI pass rate | ${fleet_trend:-—} | ${wow_detail:-—} | ${wow_pass} | cron-runtime.csv |
+| 1 | Diffs landed | ${diffs_week_count} | ${all_diffs_total} all-time | ${wow_diffs} | Phab (committed by me, last 7d); IMPACT.md all-time count (AI-tagged distinction retired 2026-06-28 per comment AAAB9Oc5t1o — everything is AI-assisted now) |
+| 2 | gdoc auto-replied | ${comments_week} | ${comments_total} | ${wow_comments} | gdoc-comments cron |
+| 3 | Meetings prepped | ${meetings_week} | — | — | meeting-prep cron |
+| 4 | Knowledge distilled | ${distill_week} | ${distill_total} files (${distill_tokens} tokens) | ${wow_distill} | knowledge-distiller cron |
+| 5 | Autonomous AI pass rate | ${fleet_trend:-—} | ${wow_detail:-—} | ${wow_pass} | cron-runtime.csv |
+| 6 | Inbound reply drafted (mentions+DMs) | ${gchat_inbound_week} (today: ${gchat_inbound_today}) | ${gchat_inbound_total} | — | GCHAT-INBOUND-HISTORY — 0 when no inbound arrived |
+| 7 | AI Impact wins (you-flagged) | ${coach_wins_week} | ${coach_wins_total} | — | state/coach-wins.jsonl${coach_wins_evidence:+ — $coach_wins_evidence}; trigger phrase: "good AI impact win" |
+
+$(if [ -n "$diffs_week_table" ]; then
+    echo "### Top diffs landed (last 7d)"
+    echo ""
+    echo "$diffs_week_table"
+fi)
 
 ## Health Signals
 

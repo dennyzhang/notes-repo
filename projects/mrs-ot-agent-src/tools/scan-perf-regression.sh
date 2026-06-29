@@ -72,6 +72,13 @@ AGE_FLOOR_SECS=120        # ...but only if recent age also exceeds this (kill 0-
 QPS_FRAC=0.85             # recent QPS < QPS_FRAC x baseline → flag
 GPU_SLOPE_PP=5.0          # GPU mem-util slope over window > this many points → flag
 GPU_RECENT_MIN=80.0       # ...and only if recent GPU mem-util above this (matters)
+GPU_HIGH_PCT=90.0         # ABSOLUTE: recent GPU mem-util ≥ this → flag regardless of slope
+                          # (imminent-OOM; operator 2026-06-22 from S670887 OOM-zombie context)
+                          # ⚠ BACKTEST 2026-06-22: gpu_dyno_stats.gpu_memory_utilization_float
+                          # returns 0 for real models filtered by model_entity_id (400k samples,
+                          # value 0) — DEAD source, shared with gpu_mem_climb (also non-functional).
+                          # gpu_mem_high will NOT fire until this metric/filter is repointed to a
+                          # live GPU-mem source. FOLLOW-UP: fix the source, then both triggers work.
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -133,6 +140,7 @@ check_model() {
         AGE_J="${AGE_J}" QPS_J="${QPS_J}" QPSQ_J="${QPSQ_J}" GPU_J="${GPU_J}" \
         AGE_RATIO="${AGE_RATIO}" AGE_FLOOR_SECS="${AGE_FLOOR_SECS}" \
         QPS_FRAC="${QPS_FRAC}" GPU_SLOPE_PP="${GPU_SLOPE_PP}" GPU_RECENT_MIN="${GPU_RECENT_MIN}" \
+        GPU_HIGH_PCT="${GPU_HIGH_PCT}" \
         LIB_QPS_DIR="${LIB_QPS_DIR}" \
         python3 <<'PY'
 import os, json, statistics, sys
@@ -161,6 +169,7 @@ AGE_FLOOR = float(os.environ["AGE_FLOOR_SECS"])
 QPS_FRAC  = float(os.environ["QPS_FRAC"])
 GPU_SLOPE = float(os.environ["GPU_SLOPE_PP"])
 GPU_RMIN  = float(os.environ["GPU_RECENT_MIN"])
+GPU_HIGH  = float(os.environ["GPU_HIGH_PCT"])
 
 age = series("AGE_J", "data_age_at_publish_secs")
 gpu = series("GPU_J", "gpu_memory_utilization_float")
@@ -259,14 +268,32 @@ if g_slope is not None and g_recent is not None:
                       "recent_pct": round(g_recent, 1),
                       "h": f"GPU mem +{round(g_slope,1)}pp→{round(g_recent)}%"}
 
-if not (qps_low or gpu_climb):
+# trigger: GPU mem-util ABSOLUTE ≥ GPU_HIGH (imminent-OOM, fires regardless of slope —
+# a job already pinned ≥90% is at OOM risk even if flat). Uses a direct recent value
+# (mean of last ≤3 hourly-max buckets) so it does NOT need slope_pp's ≥6-sample floor.
+# Operator 2026-06-22 from S670887 (OOM-zombie; GPU-mem was the missing pre-failure probe).
+g_vals = [v for _, v in gpu]
+g_recent_abs = statistics.mean(g_vals[-3:]) if g_vals else None
+gpu_high = False
+gpu_high_detail = None
+if g_recent_abs is not None and g_recent_abs >= GPU_HIGH:
+    gpu_high = True
+    gpu_high_detail = {"signal": "gpu_mem_high", "recent_pct": round(g_recent_abs, 1),
+                       "threshold_pct": int(GPU_HIGH),
+                       "h": f"GPU mem {round(g_recent_abs)}% (≥{int(GPU_HIGH)}%, OOM risk)"}
+
+if not (qps_low or gpu_climb or gpu_high):
     print("OK")
     raise SystemExit
 
-fired = [d for d in (qps_detail, gpu_detail, age_detail) if d]
+fired = [d for d in (qps_detail, gpu_detail, gpu_high_detail, age_detail) if d]
 
 # Decision-matrix → likely subsystem (see cheatsheets/oncall/mast-debugging.md).
-if qps_low and gpu_climb:
+if gpu_high and qps_low:
+    sub = "GPU mem ≥90% WITH QPS drop — active OOM/memory-pressure stall; restart-risk, check trace-doctor + gpu_dyno_stats now"
+elif gpu_high:
+    sub = "GPU mem ≥90% (imminent-OOM) — reduce batch/activation memory or watch for OOM-zombie; trace-doctor memory analyzer"
+elif qps_low and gpu_climb:
     sub = "memory pressure / leak (early OOM-zombie warning) — check gpu_dyno_stats slope + trace-doctor"
 elif qps_low and age_up:
     sub = "trainer can't keep up (GPU throttle / straggler / PT2 recompile) — trace-doctor + per-rank QPS"

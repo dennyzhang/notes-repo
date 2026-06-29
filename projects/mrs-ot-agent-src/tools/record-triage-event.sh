@@ -99,6 +99,20 @@ sqlite3 "$DB" "SELECT 1 FROM pragma_table_info('triage_events') WHERE name='rout
 sqlite3 "$DB" "SELECT 1 FROM pragma_table_info('triage_events') WHERE name='ts_root_cause';" 2>/dev/null | grep -q 1 \
   || sqlite3 "$DB" "ALTER TABLE triage_events ADD COLUMN ts_root_cause TEXT;" 2>/dev/null || true
 
+# INLINE VALIDATOR FALLBACK (2026-06-22): the nested-Agent/codex validator can't reliably spawn
+# from the cron/daemon path, so monitors were passing validator_outcome="unavailable" (45/51 of
+# last-7d events == NO independent verification). When the caller couldn't validate, run the
+# DETERMINISTIC inline validator (lint + cited-SEV state recheck) so we record a REAL verdict
+# instead of "unavailable". Reasoning-level Agent/codex validation stays as the extra layer when
+# it CAN run; this guarantees a floor of verification on every cron triage.
+if { [ "${VOUT:-}" = "unavailable" ] || [ -z "${VOUT:-}" ]; } && [ -n "${NTEXT:-}" ]; then
+  _IV="$HOME/notes/users/dennyzhang/projects/mrs-ot-agent-src/tools/inline-triage-validator.sh"
+  if [ -x "$_IV" ]; then
+    VOUT="$(printf '%s' "$NTEXT" | bash "$_IV" 2>/dev/null)"
+    [ -z "$VOUT" ] && VOUT="unavailable"   # fail-soft: keep the honest "unavailable" if the inline check itself errors
+  fi
+fi
+
 sqlite3 "$DB" "INSERT INTO triage_events
   (sev_id, cron_job_id, signal, signal_class, confidence, auto_tag_applied,
    auto_tag_stuck, validator_outcome, suggested_owner, sev_final_status,

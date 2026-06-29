@@ -1,7 +1,5 @@
 [ot-notes-deletion-watch cron] Hourly. Detect unexpected file deletions AND draft-only orphans in `~/notes/users/dennyzhang/projects/mrs-ot-agent-{src,context}/` between recent commits. Catches the file-tracking casualty pattern (7+ instances 2026-05-16) where `sl rebase` / `sl goto` operations silently drop files from working tree + subsequent commits, AND the "draft-only orphan" pattern (2026-05-25) where a sibling cron created a file in a local draft that never landed in master and then the draft was abandoned/stripped.
 
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (`spaces/AAQAVOjYc80`) — added 2026-06-09 after team-chat audit flagged this cron's alerts as team-space noise.** Notes-repo health (casualties/orphans/baseline-reset) is operator plumbing with no team-wide value → it must NEVER reach the team space `spaces/AAQA2bZMw24`. Mechanism for EVERY non-quiet output (step 7 alerts, BASELINE RESET, CRITICAL): render it, send via an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"`, THEN respond EXACTLY `HEARTBEAT_OK` with NOTHING before it — so the daemon's default team-space auto-delivery posts nothing. NEVER let a `🛟`/`🔄`/`🚨` line BE the final response (the daemon would deliver it to the team channel).
-
 **Why this cron exists:** operator (thread `iqRw-QgzYjM` 2026-05-16): "should we add a cheatsheet for notes repo capability? today the notes repo push run into many issues." The cheatsheet (`~/notes/users/dennyzhang/cheatsheets/notes-repo-operations.md`) captures discipline; this cron catches violations.
 
 Manual discipline (RULES.md push procedure) has proven insufficient — 7 casualties in one session despite the rules being written. This cron is the safety net that detects casualties within 1h instead of waiting for operator to notice files missing.
@@ -53,7 +51,7 @@ Time budget: ~2 min per run.
 3b. **NEW (2026-05-25) — Enumerate draft-only files in sibling-cron output dirs.** These dirs are write-heavy from automated crons and the most-recent draft commit may not yet have been pushed:
    ```bash
    cd ~/notes && sl files -r 'draft() & ::.' \
-       users/dennyzhang/projects/mrs-ot-agent-context/learnings/ \
+       users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/ \
        users/dennyzhang/projects/mrs-ot-agent-context/mitigated-sevs/ \
        users/dennyzhang/projects/mrs-ot-agent-context/mitigated-alerts/ \
        users/dennyzhang/projects/mrs-ot-agent-context/mitigated-posts/ \
@@ -151,7 +149,7 @@ Source: ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/cron-jobs/ot
 
 ## Safety
 
-- **READ-MOSTLY on sl repo.** Allowed mutations: `sl add` (always), `sl commit -I <scoped paths>` (only under step 6c gating), `sl push --to master` (only after step-6c commit). NEVER `sl strip`, NEVER `sl goto --clean`, NEVER touch files outside the watched scope. **Notes write-lock (Option B, 2026-06-14):** wrap each allowed mutation as `bash "$HOME/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/scripts/notes-sl-lock.sh" sl …` so it serializes against concurrent sessions (read-only sl needs no lock).
+- **READ-MOSTLY on sl repo.** Allowed mutations: `sl add` (always), `sl commit -I <scoped paths>` (only under step 6c gating), `sl push --to master` (only after step-6c commit). NEVER `sl strip`, NEVER `sl goto --clean`, NEVER touch files outside the watched scope.
 - **NEVER auto-recover > 3 files in one run.** Large simultaneous casualty count is suspicious (likely a `sl pull` stale-snapshot event) — emit `🚨 CRITICAL: <N> files missing simultaneously, manual investigation needed` and DO NOT auto-recover.
 - **NEVER auto-recover > 3 times per ISO week.** Repeated need = a deeper bug in a sibling cron's commit flow; flag for operator instead of papering over.
 - **NEVER auto-recover from a commit with `[strip]`, `[abandon]`, or `[discard]` in its message** — operator intent was to drop the change.
@@ -166,7 +164,7 @@ Path globs:
 - `users/dennyzhang/cheatsheets/notes-repo-operations.md` (this cheatsheet, important)
 
 **Draft-only enumeration ADDITIONALLY watches** (write-heavy automated-cron output dirs):
-- `users/dennyzhang/projects/mrs-ot-agent-context/learnings/**`
+- `users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/**`
 - `users/dennyzhang/projects/mrs-ot-agent-context/mitigated-sevs/**`
 - `users/dennyzhang/projects/mrs-ot-agent-context/mitigated-alerts/**`
 - `users/dennyzhang/projects/mrs-ot-agent-context/mitigated-posts/**`
@@ -186,7 +184,7 @@ Path globs explicitly EXCLUDED:
 
 - ~~**v2:** auto-commit + push the recovered files (current v1 stages only).~~ DELIVERED 2026-05-25 — see step 6c.
 - ~~**v2.1:** detect draft-only orphans, not just deletions.~~ DELIVERED 2026-05-25 — see step 3b.
-- **v3:** integrate with `ot-cron-health-guard` to escalate when >1 casualty per week pattern emerges.
+- **v3:** integrate with `ot-cron-health-watch` to escalate when >1 casualty per week pattern emerges.
 - **v4:** detect file CONTENT silent-revert (not just deletion). E.g., file is present but content was rolled back to an older version.
 - **v5 (butterfly):** trigger an extra run 30s after `ot-notes-commit-push` completes — currently there's a window between curation writing → commit-push fails-silently → next deletion-watch hour. Tighter than `52 * * * *` for the typical race.
 

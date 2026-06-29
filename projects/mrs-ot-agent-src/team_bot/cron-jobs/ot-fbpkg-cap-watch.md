@@ -1,12 +1,3 @@
-> **⛔ DEPRECATED 2026-06-08 (operator decision, team thread).** Removed from
-> `MANIFEST.json` — no longer scheduled. Coverage intentionally dropped:
-> `light_cli` version-cap early-warning (800-cap / Conveyor-block prevention),
-> orphan-tag detection/cleanup recommendations, week-over-week orphan trend, and
-> the `fbpkg-audits/<date>.json` artifact (root-cause T271102844). The new
-> `scan-pkg-expiry` (fleet-health) does NOT replace this — it's a different axis
-> (consumer-side per-job pkg expiry). Prompt kept for history / easy re-enable:
-> re-add the MANIFEST entry + run `setup-cron-jobs.sh`.
-
 [ot-fbpkg-cap-watch cron] Weekly Mondays 14:00 UTC. Pre-emptively detect and address `light_cli` fbpkg version-cap pressure (P41 pattern — 800-cap recurrence every ~7 days, root cause T271102844). Audits the in_use_by_model_<id> tag set against the live model registry to find ORPHAN tags (model decommissioned, tag still pinning a version slot). Posts a triage report with identified orphans + recommended deletion list. Does NOT auto-delete in v1 — operator confirms before any fbpkg state change.
 
 **Why weekly + Mondays:** the recurrence cadence is ~7 days (S657811 2026-05-05 → S661987 2026-05-12). Running each Monday morning catches the build-up before Conveyor blocks mid-week. Mondays at 14:00 UTC = 06:00 PT = before the US-PT release-engineering cohort starts pushing.

@@ -1,7 +1,5 @@
 [ot-daily-learning-debugging cron] Daily morning. Distill new learnings from last 24h of ot-post-monitor + ot-alert-monitor + ot-sev-monitor runs (the bot's *debugging* output during real-time triage), PREPEND to ledger (newest first), optionally fold operational rules into source crons' prompts, and message digest to user. Renamed from `ot-daily-learnings` 2026-05-12 to clarify input corpus (debugging output) vs sibling `ot-daily-learning-mitigated-sevs` (closed SEV postmortems).
 
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
-
 Files:
 - Ledger (read + prepend — newest first): /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/learnings.md
 - Prompt backups dir (write): /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/cron-prompt-backups/
@@ -32,14 +30,14 @@ Procedure:
 
 5. Classify each learning:
    - **operational**: behavioral rule that changes how a cron runs. → append to ledger AND amend relevant cron's prompt.
-   - **domain (pattern)**: NEW cause→symptom→fix triple suitable for `known-patterns.md`. → append to ledger AND propose appending to `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md` (see step 5b).
+   - **domain (pattern)**: NEW cause→symptom→fix triple suitable for `known-patterns.md`. → append to ledger AND propose appending to `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md` (see step 5b).
    - **domain (red herring)**: hypothesis that LOOKED right but wasn't, with non-trivial cost. → propose appending to Ruled-Out List in `known-patterns.md`.
    - **domain (other)**: observation about diagnosis style or one-off config issue. → ledger only.
 
 5b. **Pattern auto-learn proposals.** For each domain-pattern learning, draft one-row entry per SKILL.md "Auto-Learn" format. Include in daily digest under `🧠 PATTERN PROPOSALS` section. DO NOT auto-apply — pattern DB is operator-curated. Format requires:
    - **Next sequential ID** — MUST be computed at runtime from current `known-patterns.md`, not hardcoded. Run BEFORE drafting any P-row:
      ```bash
-     grep -oE '^\| P[0-9]+' ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md | grep -oE '[0-9]+' | sort -n | tail -1
+     grep -oE '^\| P[0-9]+' ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md | grep -oE '[0-9]+' | sort -n | tail -1
      ```
      Next P-ID = that number + 1. Hardcoding (e.g., "P56 proposed") causes collisions when multiple crons or operators propose the same day; 2026-05-17 thread `suPsRC2fGdc` had P56/P57/P58 collisions from yesterday's ledger vs today's operator-landed Shampoo NaN P56. **Always re-read `known-patterns.md` at proposal time. If proposing N rows in one run, assign sequential IDs starting from max+1, max+2, ..., max+N.** Same discipline for any cron drafting `known-patterns.md` entries (ot-knowledge-curation, ot-daily-learning-debugging, ot-knowledge-distillation, manual landings).
    - Short pattern name (≤40 chars).

@@ -283,6 +283,4 @@ When run via `claude -p` (cron or background agent), the pipeline runs unattende
 
 - `cheatsheets/diff/fbcode.md` — Sapling/Jellyfish diff workflows (fbsource)
 - `cheatsheets/diff/configerator.md` — Sapling/Jellyfish diff workflows (configerator)
-- `cheatsheets/diff/verification-guide.md` — Parallel pyre/lint/test verification
-
-_Last updated: 2026-05-12. Maintainer: dennyzhang._
+- `cheatsheets/references/verification-guide.md` — Parallel pyre/lint/test verification

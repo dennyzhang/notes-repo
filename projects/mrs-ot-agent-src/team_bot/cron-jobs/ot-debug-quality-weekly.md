@@ -1,3 +1,5 @@
+**⛔ OUTPUT CONTRACT (read FIRST) — never output narration before the report.** Your FINAL response is delivered to chat VERBATIM unless it is exactly `HEARTBEAT_OK`. Emit EITHER (a) the accuracy-report block — which MUST carry a `[paste: P<id>]` link created BEFORE the body (verbose detail goes in the paste, not the chat block), OR (b) the literal token `HEARTBEAT_OK` for a no-op run. NO preamble/narration before the report block ("Composing…", "Records written…", "Audit complete…"). (Recurring leak flagged ×8 by ot-prompt-change-validator 2026-06-23.)
+
 [ot-debug-quality-weekly cron] Twice-weekly Mon+Thu 9:00 PT (will collapse to weekly after stabilization). Score the bot's debug quality by comparing each mitigated-issue's INITIAL triage (bot's first gchat post when issue opened) vs ACTUAL root cause (authoritative postmortem / operator-confirmed mitigation). Generate a weekly accuracy report with per-issue delta + aggregate stats + trend.
 
 State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/ot-debug-quality-state.json` — `{"last_run_epoch": <int>, "weekly_scores": [{"week": "2026-W21", "issues_scored": N, "match_pct": <float>, "cluster_accuracy": <float>, "owner_accuracy": <float>, "mitigation_pct": <float>, "miss_classes": {"cluster_wrong": N, "owner_wrong": N, "no_initial_triage": N}}], "scored_issue_ids": ["SEV-S<id>", "ALERT-A<id>", "POST-W<id>"]}`. Time budget: ~15 min per run.
@@ -135,12 +137,6 @@ Both exist; nobody has been measuring the delta. This cron closes the loop: how 
    
    📊 Per-issue scores: <paste_url>
    ```
-
-   **URL discipline — link by id-PREFIX, NEVER cross-map (2026-06-01 thread `QqRxpjmc1xE`).** Every `[<id>](url)` MUST use the URL form matching the id prefix:
-   - `S<digits>` → `https://www.internalfb.com/sevmanager/view/<digits>`
-   - `A<digits>` (ALERT, not a SEV) → resolve via `meta monitoring.alert metadata --alert-id=<full_alert_key> -o json | jq -r .url`; if only the numeric stem is known, `https://www.internalfb.com/onedetection/alert?alert_id=<digits>`. **NEVER render an A-id with the `/sevmanager/view/` path** — that's what 404'd (A1728833178491353 → `/sevmanager/view/1728833178491353`). If the alert url can't be resolved, render the bare `A<digits>` token WITHOUT a hyperlink rather than a 404 link.
-   - `W<digits>` → `https://fb.workplace.com/groups/<numeric_group_id>/permalink/<digits>/` · `D<digits>` → `https://www.internalfb.com/diff/D<digits>` · `T<digits>` → `https://www.internalfb.com/tasks/?t=<digits>`
-   Applies to the Wins/Misses lists AND the per-issue paste. See RULES.md § URL validity.
 
    Keep narrative under 3000 chars. Spill the per-issue detail table to paste.
 

@@ -1,6 +1,4 @@
-[ot-myclaw-weekly-restart cron] Weekly Saturday 00:00 PDT (`0 7 * * 6` UTC). Cron runs in UTC; 07:00 UTC Saturday = midnight PDT Saturday. Restart the myclaw daemon to clear accumulated session state, in-memory caches, and any session-state drift from prior days.
-
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output (incl. failures/escalations), make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, status, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
+[ot-myclaw-weekly-restart cron] Weekly Saturday 00:00 PT (`0 0 * * 6` local). Restart the myclaw daemon to clear accumulated session state, in-memory caches, and any session-state drift from prior days.
 
 **Rationale (2026-05-16):** Long-running daemon sessions accumulate cruft:
 - Tool-side cache staleness (`meta url.load` was observed serving stale content within a single session)
@@ -12,20 +10,6 @@
 A weekly Saturday-midnight restart provides a clean baseline for Monday morning operations. Saturday 00:00 PT = Friday night → Saturday morning local; no real-time triage demand at that hour, daemon downtime is minimal-impact.
 
 ## Procedure
-
-0. **BUSINESS-HOURS GUARD (HARD, 2026-05-29 thread `ft3uqm8w20o`: operator — "only restart in non-business hours").** The daemon restart causes ~60s downtime; it must NEVER happen during business hours, regardless of HOW this cron was triggered (scheduled, manual `myclaw jobs run`, daemon re-eval, or schedule drift). **Root cause of the 2026-05-29 17:01 PT Friday restart: cron runs in UTC, so the old `0 0 * * 6` expression = midnight UTC Saturday = 17:00 PT Friday (PDT, UTC-7) — squarely in business hours.** Operator corrected the schedule to `0 7 * * 6` (07:00 UTC Saturday = midnight PDT Saturday) across sqlite + notes + fbcode. This guard is the defense-in-depth backstop in case the schedule drifts again or a manual/anomalous trigger fires mid-day. NOTE: `date +%u`/`date +%H` below read LOCAL time (America/Los_Angeles) because the shell env is local even though the cron scheduler evaluates the cron expression in UTC. This guard makes the rule robust at execution time:
-   ```bash
-   DOW=$(date +%u)    # 1=Mon .. 7=Sun
-   HOUR=$(date +%H)   # 00-23, local (America/Los_Angeles)
-   # Business hours = Mon-Fri (1-5) AND 08:00-17:59 PT. Non-business = weekends OR weekday nights.
-   if [ "$DOW" -le 5 ] && [ "$HOUR" -ge 8 ] && [ "$HOUR" -lt 18 ]; then
-     echo "[ot-myclaw-weekly-restart] DEFERRED — business hours ($(date)); restart only runs non-business-hours."
-     # post to spaces/AAQAVOjYc80 with --as-meta-bot:
-     # "🦦 [ot-myclaw-weekly-restart] DEFERRED - business-hours trigger ($(date +%H:%M\ %a)); restart only runs non-business-hours. Next scheduled: Sat 00:00 PT."
-     exit 0
-   fi
-   ```
-   Respond HEARTBEAT_OK after deferring. Only proceed to step 1 if outside business hours.
 
 1. **Pre-flight checks** (don't restart if something critical is in flight):
    - Look at `sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db "SELECT id, datetime(next_run_epoch,'unixepoch','localtime') FROM jobs WHERE enabled=1 AND next_run_epoch < strftime('%s','now') + 120 ORDER BY next_run_epoch LIMIT 5;"` — any cron firing in the next 2 min should defer the restart.
@@ -67,7 +51,7 @@ A weekly Saturday-midnight restart provides a clean baseline for Monday morning 
 
 A systemd timer would be cleaner mechanism-wise (lives outside the daemon, no chicken-and-egg), but:
 1. Keeping the schedule in `MANIFEST.json` means the restart is visible/auditable alongside other crons.
-2. `ot-cron-health-guard` can detect missed restarts using the same machinery it uses for other crons.
+2. `ot-cron-health-watch` can detect missed restarts using the same machinery it uses for other crons.
 3. The `setup-cron-jobs.sh` flow already handles UPSERT — no new infra needed.
 4. The detached-subprocess pattern is well-tested elsewhere (e.g., `pastry create -d` jobs).
 

@@ -1,6 +1,6 @@
 # Document Analysis Cheatsheet
 
-Quick reference for speed-reading infrastructure documents (RFCs, post-mortems, one-pagers, tech specs) as a tech lead.
+Quick reference for speed-reading infrastructure documents (RFCs, post-mortems, one-pagers, tech specs) as a tech lead. Get a 30-second briefing instead of a 30-minute read.
 
 ## Document Type Detection
 
@@ -60,4 +60,19 @@ TL;DR for Leadership:
 - Optimistic assumptions
 - Testing gaps
 
-_Last updated: 2026-06-01. Maintainer: dennyzhang._
+## Key Talking Points (for discussing up/down/sideways)
+
+1. **Impact/value** — one sentence
+2. **Risk/cost** — one sentence
+3. **Your recommendation**
+
+## Constraints
+
+- Never be polite at expense of clarity
+- Quantify everything (no "fast" or "scalable")
+- If data is missing, flag as "Missing Signal"
+- Optimize for tech lead time
+
+## See Also
+
+`cheatsheet-design-linter.md` (design doc validation), `references/impact-metrics.md`

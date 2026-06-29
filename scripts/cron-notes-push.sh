@@ -91,6 +91,6 @@ if echo "$push_out" | grep -qiE "error|failed|abort"; then
 fi
 echo "$LOG_PREFIX [notes-push] $push_out" | tail -5
 
-# Heartbeat
-echo "$(date +%s)" > "$HEARTBEAT_DIR/cron-heartbeat-notes-push"
+# Heartbeat — canonical helper (per workflow-design.md rule 2)
+write_heartbeat "notes-push"
 echo "$LOG_PREFIX [notes-push] done"

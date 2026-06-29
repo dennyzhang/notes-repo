@@ -137,64 +137,6 @@ meta ods.metric query \
 | Recsys / IPnext | `ip_runtime` | Predictor, serving, snapshot transition |
 | Auth infra | `acl_checker` | Permission errors, Koski |
 
-## Escalation Quality Analysis (was the response well-coordinated?)
-
-Everything above routes a symptom to the right team. This section is the
-orthogonal dimension: **diagnosing how well the escalation itself went** —
-for SEV reviews, retros, and post-incident write-ups. Cherry-picked from
-imoc `fb-report-escalation-methodology.md` (2026-06-10).
-
-### Failure taxonomy — 10 categories to scan chat for
-
-| # | Category | Evidence pattern to search for |
-|---|----------|-------------------------------|
-| 1 | **Delayed initial response** | Alert fire time vs. first oncall chat message; gap > 15 min |
-| 2 | **Wrong first responder** | "this isn't my area", "page X instead", explicit handoff |
-| 3 | **Slow cross-team escalation** | First "we need team Y" message vs. when Y first responded; gap > 30 min |
-| 4 | **Missing war room** | No `#filevc`/zoom/VC at all on a 3+-team SEV |
-| 5 | **Delayed war room** | Second team joined vs. VC created; gap > 45 min |
-| 6 | **Insufficient seniority** | "should we revert?" / "is this a SEV2?" with no TL/senior weighing in; delayed level upgrade |
-| 7 | **Parallel-investigation gaps** | One person debugging sequentially while others only observe (vs. "I'll check X" / "I'll check Y" from different people) |
-| 8 | **Handoff failures** | "let me check previous messages", "what happened so far?", new responder repeating done work |
-| 9 | **Silent observers** | Experts from the owning team present in chat but zero investigation messages |
-| 10 | **Cross-SEV blindness** | Related concurrent SEV not connected for > 30 min, missing shared root cause |
-
-### Timestamp-gap benchmarks
-
-| Gap | Target | Flag if |
-|-----|--------|---------|
-| Alert → first response | < 5 min | > 15 min |
-| First response → SEV filed | < 15 min | > 30 min |
-| SEV filed → cross-team escalation | < 30 min | > 60 min |
-| Cross-team request → team engaged | < 15 min | > 30 min |
-| Multi-team → war room created | < 15 min | > 45 min |
-| Root-cause ID → mitigation started | < 15 min | > 30 min |
-
-For each gap in the timeline, compare measured duration to the benchmark;
-exceeding "Flag if" → call it out with the gap title, duration, TTM impact,
-and evidence quote.
-
-### Anti-hallucination rules (mandatory — violating any invalidates the analysis)
-
-- **Never call an oncall "late" without TWO timestamps:** when they were
-  first paged/requested AND when they first responded. Both timestamp-cited.
-- **"Not paged" vs "paged but didn't respond" are different failure modes
-  needing different fixes.** Not paged → fix the escalation *path*. Paged,
-  no response → fix the oncall *response process*. Never conflate them.
-- **Absence of chat ≠ absence of work.** People use DMs, phone, VC. Phrase
-  quiet periods as "no visible chat activity", never "no one investigated"
-  / "Person X didn't respond". When a request shows no reply, check whether
-  that person appeared later (they may have answered off-channel).
-- **Never characterize escalation as "smooth"/"effective" without measured
-  gap evidence.** "Escalation proceeded as follows…" is always safe;
-  "escalation was smooth" needs proof.
-- **Focus on process gaps, not individuals.** Tag any inference `[INFERRED]`.
-
-For multi-day SEVs additionally check: explicit shift-handoff messages,
-urgency decay (messages/hour dropping, >4h silent windows), and decision
-delays (a "should we revert?" debated for hours, or decisions blocked on
-one specific person).
-
 ## Lessons Learned
 
 ### S665454 (2026-05-21): DPP read lag causing daily example age spikes
@@ -210,5 +152,3 @@ one specific person).
   The scribe page's "read" section shows category-level lag — useful but
   insufficient. The `scribe_read_proxy` Scuba table filtered to the
   specific TW job name shows the actual per-consumer lag.
-
-_Last updated: 2026-06-10. Maintainer: dennyzhang._

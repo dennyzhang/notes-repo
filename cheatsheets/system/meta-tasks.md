@@ -2,38 +2,6 @@
 
 Quick reference for creating, updating, and tracking Meta Tasks. Covers the `meta` CLI (primary), the `/tasks` skill, and diff-to-task linking.
 
-## Task Content Quality — scannable + convincing (HARD, read FIRST)
-
-Operator rule (2026-06-05, thread `Thr_mFDIb2Q`: "the task is not scannable, and not convincing enough"): a task that isn't **scannable** AND **convincing** fails no matter how complete. Run this gate on EVERY task create/update before posting.
-
-**Scannable — reader gets it in ~10 seconds:**
-- BLUF first line: what + the one number that matters. No preamble, no "Tracking the…".
-- Structure, not prose: `BLUF → Why it matters → Evidence → Scope (checklist) → Done when → Refs`. Bold the labels; bullets/checkboxes over paragraphs.
-- No prose walls — any section >3 lines of running text → convert to bullets or cut. Abbreviate numbers (16.4K not 16,374).
-- **Easy to follow = one idea per line, plain words, narrative order** (problem → fix → done). Kill compound lines: no `->` arrows, no inline quotes mid-sentence, no parenthetical that smuggles a 2nd/3rd idea. (2026-06-05: a structured-but-compound rewrite STILL got "hard to follow" — the structure was right, the individual lines were overloaded. Scannable headers don't save an unreadable line.)
-
-**Convincing — reader cares + could act:**
-- Lead with COST/RISK, not the work: "pings 5 owners for 1 shared incident → real incidents get missed" beats "improve clustering."
-- ONE concrete example with a real number/SEV/date — not "sometimes it's noisy."
-- `Done when:` = verifiable acceptance criteria, never "improve X."
-- Scope = a checklist of concrete, individually-shippable items.
-
-**Template:**
-```
-BLUF: <what + killer number>.
-Why it matters: <cost/risk if unfixed — the hook>.
-Evidence: <one concrete example: real number / SEV / date>.
-Scope: [ ] item  [ ] item  [ ] item
-Done when: <verifiable criteria>.
-Refs: <files / SEV / thread>.
-```
-
-**Bad→good (real, 2026-06-05 — first draft of T274581215 WAS the bad one):**
-- BAD: ~20 lines of prose listing every weakness in paragraphs, impact buried mid-text, no acceptance criteria → operator: "not scannable, not convincing."
-- GOOD: BLUF + "pings 5 owners for 1 shared Scribe incident → incidents missed" + 4-box checklist + "Done when: shared-cause renders as ONE clustered line with the SEV ref."
-
-**Pre-post check (every create/update):** BLUF present? cost/impact in the first 2 lines? one concrete example w/ a number? scope is a checklist? done-when verifiable? Any "no" → rewrite before posting. (Deeper guidance: § Writing Compelling Task Descriptions + § Task Fields Checklist below.)
-
 ## CLI Reference — `meta tasks.*` (Primary)
 
 Use `meta tasks.*` commands directly — faster than the skill and always available. The object hierarchy is `meta tasks.<object> <action>`.
@@ -50,35 +18,35 @@ meta tasks.task create --title="Title" --description="..." --priority=HIGH --own
 # Workaround: meta tasks.comment list --task=T259215482
 
 # Update task fields
-meta tasks.task update --task=T259215482 --progress=IN_PROGRESS --priority=HIGH
-meta tasks.task update --task=T259215482 --description="Updated description"
+meta tasks.task update --number=T259215482 --progress=IN_PROGRESS --priority=HIGH
+meta tasks.task update --number=T259215482 --description="Updated description"
 
 # Add a comment (NOT meta tasks.task update --comment)
 meta tasks.comment create --task=T259215482 --text="Progress note"
 
 # Update + comment in one call
-meta tasks.task update --task=T259215482 --comment="Progress note" --progress=IN_PROGRESS
+meta tasks.task update --number=T259215482 --comment="Progress note" --progress=IN_PROGRESS
 
 # Close a task
-meta tasks.task update --task=T259215482 --close --comment="Landed D96084025"
+meta tasks.task update --number=T259215482 --close --comment="Landed D96084025"
 
 # Reopen a task
-meta tasks.task update --task=T259215482 --reopen --progress=IN_PROGRESS
+meta tasks.task update --number=T259215482 --reopen --progress=IN_PROGRESS
 
 # Link/unlink diffs
-meta tasks.task update --task=T259215482 --add-diff=D67890
-meta tasks.task update --task=T259215482 --remove-diff=D67890
+meta tasks.task update --number=T259215482 --add-diff=D67890
+meta tasks.task update --number=T259215482 --remove-diff=D67890
 
 # Add/remove tags
-meta tasks.task update --task=T259215482 --add-tag=mrs-reliability
-meta tasks.task update --task=T259215482 --remove-tag=old_tag
+meta tasks.task update --number=T259215482 --add-tag=mrs-reliability
+meta tasks.task update --number=T259215482 --remove-tag=old_tag
 
 # Add subscriber
-meta tasks.task update --task=T259215482 --subscriber=username
+meta tasks.task update --number=T259215482 --subscriber=username
 
 # Set dates
 meta tasks.task create --title="Task" --target-date=2025-06-30
-meta tasks.task update --task=T259215482 --target-date=2025-06-30
+meta tasks.task update --number=T259215482 --target-date=2025-06-30
 
 # List comments
 meta tasks.comment list --task=T259215482
@@ -95,60 +63,10 @@ meta tasks.task create --title="Fix bug" --description="..." --delegate-to-agent
 | ``meta tasks.*` CLI (or `/tasks` skill) comment T123 "text"` | `meta tasks.comment create --task=T123 --text="text"` | ``meta tasks.*` CLI (or `/tasks` skill)` is only available inside the `/tasks` skill runtime |
 | `meta tasks.comment create --message="..."` | `meta tasks.comment create --text="..."` | The flag is `--text`, not `--message` (learned 2026-04-23) |
 | `--status IN_PROGRESS` | `--progress=IN_PROGRESS` | Field is called `progress`, not `status` |
-| `--priority=NORMAL` (or MEDIUM) | `--priority=MID` | Valid values are HIGH/MID/LOW/WISHLIST only. NORMAL/MEDIUM are rejected and the create FAILS — easy to miss if you don't check the exit (silent no-task, 2026-06-05) |
-| `meta tasks.task update --number=T123` | `meta tasks.task update --task=T123` | `update` does NOT accept `--number` (that's only on `tasks.task archive`); use `--task` / `--task-number` / `--task-id`. `comment create` uses `--task` (2026-06-05) |
+| `--task-id T123` | `--number=T123` or `--task=T123` | `task update` uses `--number`, `comment create` uses `--task` |
 | `meta tasks.task show T123` | Use `knowledge_load` MCP with task URL | No `show` subcommand on `meta tasks.task` |
 | `meta tasks.task.tag add --task=T123 --tag=X` | `meta tasks.task update --number=T123 --add-tag=X` | `tasks.task.tag add` is deprecated (learned 2026-04-28) |
 | `meta google.docs.comment add --doc=... --untrusted-authors-mode=...` | drop the `--untrusted-authors-mode` flag entirely | The flag is not accepted by `comment add`; works without it (learned 2026-04-28) |
-
-## Auto-filed tasks (crons / workflows) — HARD rules for any job that files tasks
-
-Auto-filed tasks land in the operator's queue unattended, so they must be self-sufficient,
-traceable, and de-duped. Every cron/workflow that calls `tasks.task create`:
-
-1. **Set `--priority` — NEVER leave it UNKNOWN.** An UNKNOWN-priority task doesn't sort or
-   triage in the queue. Default by class: chronic/ongoing → `LOW`; a real shared-cause / fix
-   → `MID`; page-worthy → `HIGH`. (2026-06-07 audit: 5 bot tasks sat at UNKNOWN because the
-   filers omitted the flag.)
-2. **Verify the create RESULT before retrying — capture the returned `T<num>`.** A create that
-   *looks* failed (your grep/parse missed the id, output truncated) may have SUCCEEDED;
-   retrying then files a DUPLICATE. On any uncertain create, dedup-search by title before
-   re-filing. (2026-06-07: T274822960 ≡ T274823017 — identical task created twice from an
-   unverified retry. The verify-after-write rule, applied to task creation.)
-3. **N-correlated = ONE task, not N.** The same signal across ≥3 models/items is ONE systemic
-   event — file one task listing them, not one per item. Per-item filing fragments the queue
-   and hides the shared cause. (2026-06-07: four separate `[OT chronic] … training-age` tasks
-   for one signal; the systemic-gap collapse only fired at ≥5, so 3-4 clusters fragmented.)
-4. **Provenance — name the FILER (autonomous-workflow principle #19).** Title leads with / the
-   description names the originating job-id, so an orphan task traces to which cron filed it
-   (debug the filer; dedup its own items). `[ot-fleet-health] chronic: …`, not `[OT chronic] …`.
-5. **Owner = dennyzhang ONLY, handhold-first** — no other subscriber/assignee; the operator
-   routes it himself (auto-routing to another oncall lands on a confused stranger).
-
-## Auditing the queue — recognize non-actionable task classes
-
-When auditing dennyzhang's open tasks, classify before acting (and verify the marker, not
-just a heuristic — `author != dennyzhang` is NOT proof of any class):
-
-- **Workplace-post syncs — AUTO-CLOSE when >2 weeks old (operator rule 2026-06-07).** A
-  **Butterfly Rule** mirrors mrs.ot Workplace group posts (group `1084744250286987`) into tasks
-  (owner=dennyzhang, author = the WP poster). Marker: the description STARTS WITH
-  `Synced to internal group post`. These are redundant mirrors — the real discussion lives in
-  the WP post — so they're queue clutter. **Rule: a wp-synced task whose `created` (or last
-  `updated`) is >14 days ago can be AUTO-closed without per-task review** — by then the post's
-  discussion is long resolved and the mirror is pure stale clutter. (Recent <14d wp-syncs may
-  still be active → leave them.) Closing the task does NOT touch the WP post. **The generator
-  is the Butterfly Rule (operator's Workplace config), NOT a bot cron** — a bot can't fix the
-  source; if re-syncing is unwanted, the operator tunes/disables the rule. Mechanical
-  enforcement of the >14d auto-close (vs. doing it by hand each audit) is a thin task-hygiene
-  cron — the prose-vs-mechanical follow-on (flywheel contract #4). (2026-06-07: 17 closed in
-  one audit.)
-- **Don't blanket-close by author.** Confirmed-NOT-wp (despite external author): CI bots
-  (`generatedunixname…` "your diff broke tests"), `thriftbot`, and real human feature tasks
-  (e.g. dkotfis logging/test work) — all author≠dennyzhang but legitimately open. Check the
-  description marker.
-- **Stale real tasks** (operator's own, no activity 30–60d) → flag as close-candidates, don't
-  auto-close; closure of the operator's real tasks is the operator's call.
 
 ## `/tasks` Skill (Alternative)
 
@@ -199,26 +117,6 @@ Differential Revision: ...
 ```
 
 The `Tasks:` field goes in the commit message metadata block (after Test Plan, before Differential Revision). Phabricator uses this to show linked diffs on the task page.
-
-> **⚠ ANTI-PATTERN — task id in the title/summary does NOT link.** Putting
-> the task number in the diff *title* or *summary* as free text (e.g.
-> `PROPOSAL: dedupe X (T272497510)`) creates **zero** association — Phabricator
-> only links from the `Tasks:` commit-message field (or an explicit
-> `--add-diff`). The diff will look linked to a human reading the title while
-> the task shows **0 linked diffs**. (Source: D106049931 ↔ T272497510,
-> 2026-06-08 — title carried the Txxx, `tasks:` field was empty, no link.)
-> This bites hardest on **Unpublished / proposal** diffs that never go through
-> a submit flow that would surface the missing field.
-
-> **✅ VERIFY (do this every time a diff addresses a task):**
-> `meta phabricator.diff tasks --number=D<n>` MUST list the task. Empty output
-> = the `Tasks:` field was missing → fix it. (Pairs with the verify-before-claiming
-> rule: don't claim "filed a diff for the task" without this check.)
-
-> **🔧 RECOVERY (backfill a missing link — works even on Unpublished diffs):**
-> `meta tasks.task update --task=T<n> --add-diff=D<n>`. Creates the link from
-> the task side (bidirectional). Use when the `Tasks:` field was forgotten and
-> the commit is no longer in your local checkout to amend + re-submit.
 
 ### After Diff Lands: Update Task with Measured Impact
 
@@ -401,5 +299,3 @@ Keep them in sync: when `TASKS.md` changes status, update the Meta Task. When a 
 
 - `cheatsheets/diff/common.md` — diff workflows, commit message format, pre-submit checklist
 - `cheatsheets/system/task-execution.md` — executing multi-step tasks reliably
-
-_Last updated: 2026-06-08. Maintainer: dennyzhang._

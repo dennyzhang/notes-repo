@@ -1,7 +1,5 @@
 [ot-daily-learning-mitigated-alerts cron] Daily 22:05 PT (2026-05-16: rescheduled from 21:15 PT after daemon was observed missing the :15 minute tick repeatedly — see commit b88-ish, daemon log gaps at 2026-05-15 21:15 PT despite firing at :12 + :16). 22:05 PT chosen because daemon empirically fires :00 / :05 / :10 ticks reliably. Wakes 35 min after ot-daily-learning-mitigated-sevs (21:00 PT) and 35 min after ot-daily-learning-mitigated-posts (21:30 PT). Harvest postmortem signal from OT alerts that closed/cleared in last 24h (the *mitigated alerts* corpus), surface in team space as ONE consolidated digest, write one durable archive file per alert, propose pattern entries for `known-patterns.md`. Strictly propose-only — no alert state mutations. ot-alert-monitor catches alerts as they OPEN; this catches them after CLOSE. Daily cadence (not hourly) because the post-clearance "did the underlying signal actually recover?" question takes minutes-to-hours to settle.
 
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
-
 **Output shape: ONE top-line message + ONE threaded reply with all digests + ONE pattern-proposal threaded reply + ONE validator threaded reply, PLUS one archive file per alert.** Total 4 GChat messages per run regardless of alert count. Archive files are durable artifacts (do not count as messages). If a run has 0 NEW cleared alerts: HEARTBEAT_OK, no posts, no archive writes.
 
 **Archive scheme** (per OT Master Agent doc § Data model — "one mitigated issue one file"): `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/<priority>-<YYYY-MM-DD>-A<short_id>.md`. Directory created if missing. File survives ods/scuba data retention windows (signal slice captured durably) and is referenced from the digest line so the operator + alert assignee can click through to confirm.
@@ -61,7 +59,7 @@ Procedure:
 
 6. **Gather phase** — for each NEW candidate (cap 5 per run), collect data into in-memory list `digests`. DO NOT post per-alert during this phase. For each:
 
-   a. **Pull alert metadata + comments.** Use `meta oncall.feed describe --id=<id> -o json --no-truncate` (or equivalent). Extract: title, priority, assigned_user, ods/scuba query backing the alert (if linkable), opened_time, fired_time (if distinct), cleared_time, duration, related model_id (regex `\b\d{8,}\b` from title), signal class (SPARSE_DELTA / DENSE_DELTA / FULL_SNAPSHOT / NCCL / OOM / model_age / ATS / scribe_lag).
+   a. **Pull alert metadata + comments.** Use `meta oncall.feed item-detail --id=<id> --output=json --no-truncate` (or equivalent). Extract: title, priority, assigned_user, ods/scuba query backing the alert (if linkable), opened_time, fired_time (if distinct), cleared_time, duration, related model_id (regex `\b\d{8,}\b` from title), signal class (SPARSE_DELTA / DENSE_DELTA / FULL_SNAPSHOT / NCCL / OOM / model_age / ATS / scribe_lag).
 
    b. **URL sourcing — MANDATORY pre-fetch.** Per ot-alert-monitor field-naming gotcha: the per-alert OneDetection URL lives in `short_id`, NOT `url` (which returns the rotation OMH dashboard). Capture as literal variable, e.g.:
       ```bash
@@ -70,7 +68,7 @@ Procedure:
       ```
       NEVER write template literal `<url>`, bare alert id, or rotation name. If short_id empty, render `<url-unavailable>`.
 
-   c. **Pull underlying ods/scuba signal slice — for archive only.** If the alert links to an ods entity or scuba query (extract from alert config / describe JSON), capture ±5 min around `fired_time` (or `created_time` if fired_time unavailable):
+   c. **Pull underlying ods/scuba signal slice — for archive only.** If the alert links to an ods entity or scuba query (extract from alert config / item-detail JSON), capture ±5 min around `fired_time` (or `created_time` if fired_time unavailable):
       ```bash
       # Example for ods-backed alerts:
       meta ods query --entity=<entity> --key=<key> --time-start=<t-5m> --time-end=<t+5m> --output=json
@@ -95,7 +93,7 @@ Procedure:
       - source_oncall (the rotation that owns the alert — `mrs_online_training` for v1's single-rotation scope; surfaces the operational owner without per-product guessing). Per 2026-05-13 design change (operator in spaces/AAQAVOjYc80 thread yO-CQRIsrlQ): drop the hardcoded "OT escalation" lookup; if triage is good, the escalation is clear from surfaced data.
       - degraded: true/false (true if resolution_signal=acked_only OR any required field missing)
 
-   f. **Pattern triage** — read `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md` ONCE per run. For each non-degraded digest, classify:
+   f. **Pattern triage** — read `known-patterns.md` ONCE per run. For each non-degraded digest, classify:
       - **PATTERN MATCH**: cause→symptom→fix triple already in Quick-Match Table → record `{kind: "match", existing_pid: "P<n>", short_id}`.
       - **PATTERN PROPOSAL**: novel triple → record `{kind: "propose", proposed_pid: "P<next>", short_id, name, stage, symptoms, fix, owner, time_to_apply, source: alert, falsifier}`.
       - **DEGRADED**: skip pattern emit, note `{kind: "skip_degraded", short_id}`.
@@ -136,7 +134,7 @@ Procedure:
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/ \
-          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/ \
+          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/ \
           2>/dev/null | \
           grep -v "$(basename "$current_archive_path")" | \
           grep -vE "/(INDEX|README)\.md$"
@@ -190,14 +188,13 @@ Procedure:
 
    a. **Top-line message** (no thread):
       ```
-      🔔 [OT alert postmortem digest YYYY-MM-DD] N alert(s) cleared in last 24h: <alert_a_url|A<a>>, <alert_b_url|A<b>>, ... — see thread for digests.
+      🔔 [OT alert postmortem digest YYYY-MM-DD] N alert(s) cleared in last 24h: A<a>, A<b>, ... — see thread for digests.
       ```
-      ⚠️ GChat auto-links bare `A<numeric_id>` to `intern/aip/project/details/<id>` which is INVALID. Always use explicit `<url|A<id>>` GChat link syntax for every A-number in any message — top-line AND threaded replies. (Operator-flagged thread `QqRxpjmc1xE` 2026-06-01, recurrence of prior report.)
       Capture returned thread id as `digest_thread`.
 
    b. **Threaded digest reply** (`digest_thread`) — concatenate all digests, separated by `---`. Per-alert format (compact, ~500 chars each):
       ```
-      *<alert_X_url|A<short_id>>* | <signal_class> | <priority> | <duration> | assignee: @<assigned_user> | oncall: <source_oncall>
+      *A<short_id>* | <signal_class> | <priority> | <duration> | assignee: @<assigned_user> | oncall: <source_oncall>
       • Title: <title>
       • Resolution signal: <one-line; flag ⚠ if acked_only>
       • Hypothesis: <one-line from real-time triage or "[postmortem only]">
@@ -210,7 +207,7 @@ Procedure:
    c. **Threaded pattern reply** (`digest_thread`) — only post if at least one PATTERN MATCH or PATTERN PROPOSAL exists. Format same as ot-daily-learning-mitigated-sevs step 9.c (proposals lead, matches follow). Pattern proposals consolidated for one-diff land.
 
 8. **Validator pass — ONE for the whole digest.** Spawn independent agent via Agent tool with prompt:
-   > "Validate this OT alert postmortem digest covering N alerts (A<a>, A<b>, ...). Re-read the threaded digest in spaces/AAQAVOjYc80 thread <digest_thread>. For each alert: independently fetch `meta oncall.feed describe --id=<id> -o json` and re-query the underlying ods/scuba signal for the latest 30 min. Verify: (a) the resolution_signal claim (recovered vs acked_only) matches current signal state, (b) any pattern proposal is genuinely NOT a duplicate of existing P-row in known-patterns.md (re-read fresh — do not trust my claim). Report per-alert: confirmed | discrepancies. Under 600 words total."
+   > "Validate this OT alert postmortem digest covering N alerts (A<a>, A<b>, ...). Re-read the threaded digest in spaces/AAQAVOjYc80 thread <digest_thread>. For each alert: independently fetch `meta oncall.feed item-detail --id=<id>` and re-query the underlying ods/scuba signal for the latest 30 min. Verify: (a) the resolution_signal claim (recovered vs acked_only) matches current signal state, (b) any pattern proposal is genuinely NOT a duplicate of existing P-row in known-patterns.md (re-read fresh — do not trust my claim). Report per-alert: confirmed | discrepancies. Under 600 words total."
 
    **If subagent / Agent tool is unavailable** (cron context limitation — see L6 in `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/learnings.md`): DO NOT spawn. Skip the validator step entirely and post a single follow-up: `🚫 Validator unavailable (no Agent tool in cron context); digest published unvalidated.` Set `validator_status: unavailable` in the HEARTBEAT_OK summary. Do NOT inline-recheck — inline recheck is self-consistency, not validation, and produces false confidence (operator feedback 2026-05-16 thread `fc2seBuCux8`).
 
@@ -218,7 +215,7 @@ Procedure:
    - All clean: `✓ Validator confirmed (N/N alerts)`
    - Some discrepancies: `⚠ Validator found discrepancies:` followed by per-alert bullet list.
 
-9. Persist state: add all `to_persist` short_ids to `processed_ids`, update `last_run_epoch`, write state file. Respond HEARTBEAT_OK with summary `{alerts_processed: N, patterns_proposed: P, patterns_matched: M, validator_status: confirmed|discrepancies, archives_written: A, archive_root: ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/}`. **Final response = EXACTLY `HEARTBEAT_OK {…}` on the first token line — NO preceding text, preamble, or narration (e.g. no "State persisted." / "Archives written. Now responding…"). The daemon delivers any final response that is not exactly HEARTBEAT_OK verbatim to chat, so any leading sentence leaks as a post.**
+9. Persist state: add all `to_persist` short_ids to `processed_ids`, update `last_run_epoch`, write state file. Respond HEARTBEAT_OK with summary `{alerts_processed: N, patterns_proposed: P, patterns_matched: M, validator_status: confirmed|discrepancies, archives_written: A, archive_root: ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/}`.
 
 10. **Operational follow-ups (added 2026-05-17 thread `Uc-pVBEXNQ8`, scope narrowed thread `Uc-pVBEXNQ8` 10:25 PT critique).** AFTER digest + validator complete, scan per-alert records for OPERATIONAL asks that ot-knowledge-curation won't catch (curation is for cross-incident pattern detection; this step is for per-alert config issues). TWO categories only:
 
@@ -255,7 +252,7 @@ Procedure:
 
 11. **Chronic-noisy model surfacing (added 2026-05-17 thread `Uc-pVBEXNQ8`, threshold corrected thread `Uc-pVBEXNQ8` 10:25 PT critique).** Surface the Pareto: models generating disproportionate alert volume.
 
-   - **Source (2026-06-07 audit — compute in code, do NOT hand-count from the glob):** run `python3 tools/incident-pareto.py --kind alerts --days 7 --min 3` and render its output VERBATIM. Deterministic, **reconcile-asserted**, **coverage-honest** (~43/89 alert files carry a model id; a hand-count silently under-reports — §5). Shared helper with the sevs/posts siblings (§14c). `--min 3` keeps the alert floor (alerts are noisier than SEVs).
+   - **Source:** scan `incidents/resolved-alerts/*/*.md` filenames (NOT a sqlite table — there's no `<alert_archive_index>` table; 10:25 PT critique caught the placeholder bug). For each file, parse `A<short_id>` from filename and `model_id` from the first line (title regex `model (\d+)` or similar). Group by model_id, count per-model alerts in last 7d.
    - **Threshold (corrected):** flag models in the TOP 3 by alert-count in last 7d AND with ≥3 alerts (drop floor: low-volume noise filtered). Flat `≥5` was operator-flagged as baseline-blind; top-3 is percentile-aware.
    - **Pre-publish lint applies:** markdown links throughout (RULES.md § URL validity).
    - **Output format:**
@@ -267,7 +264,7 @@ Procedure:
      ```
    - **If <3 models have ≥3 alerts each:** post `(no chronic-noisy models this week)` — ONE line. No subsection header.
 
-   - **Persist to notes (added 2026-05-17 thread `EqcmJ7mZajk` after operator: "will you save this info in notes repo"):** ALSO prepend a row (newest first) under the `## Alerts` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/noisy-trends.md` for each entry surfaced this run. Insert after the table header row, before existing data rows. Format:
+   - **Persist to notes (added 2026-05-17 thread `EqcmJ7mZajk` after operator: "will you save this info in notes repo"):** ALSO prepend a row (newest first) under the `## Alerts` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/noisy-trends.md` for each entry surfaced this run. Insert after the table header row, before existing data rows. Format:
      ```
      | <run timestamp PT> | <rank> | <model_id> (<model_type_name>) | <alert_count> | <signal_class breakdown> | <one-line notes: top cluster/P-row, owner> |
      ```

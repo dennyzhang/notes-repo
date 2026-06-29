@@ -202,7 +202,7 @@ Procedure:
          3. `grep -lr "<MODEL_ID>" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-{sevs,posts,alerts}/ | grep -vE "/(INDEX|README|MISSING|NOISY-MODELS)\.md$"` — each hit = prior bot triage.
 
          **S4 — Mega-learnings cluster evidence (first-class signal):**
-         4. `grep -lr "<MODEL_ID>" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/`. Hits in `failure-patterns.md` = bot already canonical-mapped this model to CL-NNN. Surface even if no per-incident archive exists.
+         4. `grep -lr "<MODEL_ID>" ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/`. Hits in `failure-patterns.md` = bot already canonical-mapped this model to CL-NNN. Surface even if no per-incident archive exists.
 
          For each hit: extract identifier, time_created, status, mitigation. If 2+ prior incidents had SAME mitigation → strong signal recurring; short-circuit hypothesis.
 
@@ -217,7 +217,7 @@ Procedure:
       ii-b. **R21 mandatory pre-step — CROSS-WORKLOAD PATTERN check.** History also repeats across related workloads. After R20:
          1. Extract `model_type_name` from `meta ai.model-series metadata --model-id=<MODEL_ID>`.
          2. Active-SEV/alert sweep on family: `meta sevmanager.sev list --tags=mvai-online-training --in-progress --title-contains="<family_keyword>"`.
-         3. Symptom-cluster sweep: map current symptom to CL-NNN in `mrs-ot-agent-context/learnings/patterns/failure-patterns.md`. If matched, query cluster Evidence list for sibling instances.
+         3. Symptom-cluster sweep: map current symptom to CL-NNN in `mrs-ot-agent-context/auto-learnings/patterns/failure-patterns.md`. If matched, query cluster Evidence list for sibling instances.
          4. **Pattern-match:** 2+ sibling models in same family with SAME symptom in 24h → shared infra root (escalate family-wide); symptom matches CL-NNN with N≥3 → cite cluster + documented mitigation; siblings healthy → per-model (R20 more likely).
          **Cite verbatim:** `[VERIFIED: family=<model_type_name>, sibling_alerts_24h=<N>, sibling_sevs_7d=<N>, matching_cluster=<CL-NNN or none>]`. Source: operator 2026-05-17 thread `r70kC-3eghA` — "the same problem may happen in multiple workloads."
       iii. Owner correction — verify model owner if relevant; vs SEV owner_unixname.
@@ -305,7 +305,7 @@ Procedure:
         11. `sev_type=Storage` / `Data Warehouse` / `AI Infra` / `Integrity` → `pg="other"` (tag-noise; R18 should drop)
         12. sev_type missing / unrecognized → `pg="unknown"`
 
-        Source: 2026-05-16 thread `ZP2y-6Bdpwk` operator-driven design — verified that `sev_type=Instagram` covers IG+Threads+Reels (org tree), and most FB SEVs come in as `sev_type=Production` with cfr_main_feed/ifr_main/fbr titles. Title-regex layer separates them into operator-meaningful PG buckets. PG reference table with full data at `mrs-ot-agent-context/learnings/patterns/failure-patterns.md` § "PG (Product Group) reference".
+        Source: 2026-05-16 thread `ZP2y-6Bdpwk` operator-driven design — verified that `sev_type=Instagram` covers IG+Threads+Reels (org tree), and most FB SEVs come in as `sev_type=Production` with cfr_main_feed/ifr_main/fbr titles. Title-regex layer separates them into operator-meaningful PG buckets. PG reference table with full data at `mrs-ot-agent-context/auto-learnings/patterns/failure-patterns.md` § "PG (Product Group) reference".
 
       **CRITICAL — distinguish "alert/monitoring issue" from "real incident".** The verdict header MUST make this unambiguous via the `class` field. `THRESHOLD_MISFIT` / `DETECTOR_BROKEN` / `MISCONFIG_AGG` / `ZOMBIE_SEV` = monitoring-side issue (no real problem). `REAL_OT_FAILURE` / `UPSTREAM_INFRA` / `CONVEYOR_REGRESSION` = real issue. Operator should NEVER have to read past line 1 to know which it is. Source: 2026-05-16 operator feedback thread `aT_6RlZgMwg`.
 

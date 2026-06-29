@@ -1,22 +1,22 @@
 {
  "window": [
-  "2026-04-13",
-  "2026-06-12"
+  "2026-04-20",
+  "2026-06-19"
  ],
- "suggested": 205,
- "landed": 128,
- "land_rate": 0.624,
- "abandoned": 71,
+ "suggested": 208,
+ "landed": 130,
+ "land_rate": 0.625,
+ "abandoned": 73,
  "reverted": 2,
- "open": 4,
+ "open": 3,
  "by_category": {
-  "other": {
-   "suggested": 81,
-   "landed": 53
-  },
   "detector/alert-fix": {
-   "suggested": 27,
-   "landed": 16
+   "suggested": 29,
+   "landed": 19
+  },
+  "other": {
+   "suggested": 82,
+   "landed": 52
   },
   "knowledge": {
    "suggested": 38,

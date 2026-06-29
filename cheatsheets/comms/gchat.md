@@ -30,96 +30,16 @@ Operational rules for GChat — Claude sessions, MyClaw/MetaClaw daemons, and `c
 - Alternative: `messageReplyOption: REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD` when threading by `threadKey`
 - Dropping `thread.name` posts to the main space → looks like the bot ignored the user's thread
 
-**Fold same-topic messages (2026-05-29):** when answering MULTIPLE messages on the same topic, fold into ONE reply in the most-relevant existing thread — do not post several top-level messages. Scattered replies across many threads (38 in one day on 2026-05-28) was the root cause of a "115 messages from you" volume complaint. Threading is the third volume lever after brevity + noise-suppression.
-
-**Harness enforcement — the rule is NOT memory-only anymore (2026-05-29, thread `GSSYzY7flFQ`):** memory/cheatsheet discipline alone kept failing because the lapse happens exactly when attention is on the substantive work. So RULE #1 is now backstopped by a `PreToolUse` Bash hook in each space's `.claude/settings.json` that BLOCKS any `meta google.chat.message send ... spaces/<MY_SPACE>` lacking `--reply-in-thread`. The harness fails the tool call with a reminder — a bare top-level send cannot happen by accident.
-- **Escape hatch:** append `# new-topic` to the command to consciously confirm a genuinely-new top-level thread.
-- **Install / restore (any MyClaw instance, space-agnostic):** `python3 <bootstrap-dir>/apply-space-hooks.py ~/.myclaw-<INSTANCE>/spaces/<SPACE_ID>/.claude/settings.json` (idempotent; derives space id from the path; backs up before mutate). Re-applied on every reinstall by `bootstrap.sh` `apply_space_hooks()`.
-- **Raw payload (manual copy-paste, no script):** add this object to `.claude/settings.json` → `hooks.PreToolUse[]` (replace `<MY_SPACE>` with the instance's home space id, e.g. `AAQAVOjYc80`):
-  ```json
-  {
-    "matcher": "Bash",
-    "hooks": [
-      {
-        "type": "command",
-        "command": "cmd=$(jq -r '.tool_input.command // empty'); case \"$cmd\" in *\"google.chat.message send\"*\"spaces/<MY_SPACE>\"*) case \"$cmd\" in *\"--reply-in-thread\"*) : ;; *\"# new-topic\"*) : ;; *) echo \"BLOCKED: send to home space without --reply-in-thread. Fold into the relevant existing thread (--reply-in-thread=spaces/<MY_SPACE>/threads/<id>). If genuinely a NEW topic, append '# new-topic' to confirm. (feedback_fold-messages-into-threads)\" >&2; exit 2 ;; esac ;; esac"
-      }
-    ]
-  }
-  ```
-  Merge into the existing `PreToolUse` array (don't replace it). `exit 2` is what blocks the send; the message goes to stderr. Validate after: `python3 -m json.tool .claude/settings.json`.
-- Detail + problem/goal framing: `~/.myclaw-ot-bot/RULES.md` §"Enforcement: Thread-reply PreToolUse hook"; backstop metric in `ot-bot-volume-watch` step 11 (daily distinct-thread count ≤10).
-
-## RULE #2 — BLUF: lead with the bottom line, then the details
-
-**Operator-set reply protocol (2026-05-30):** *"start with simple and more important msg, then critical details."* Every reply is an inverted pyramid — the reader gets the answer in the first line; supporting detail is layered below for whoever needs to drill in.
-
-| Position | Content |
-|---|---|
-| **Line 1** | The bottom line — the answer / status / decision in the plainest words. Readable standalone; a busy reader can stop here. |
-| **Middle** | The critical details that back the bottom line (what changed, the numbers, the why). |
-| **End** | Any open question or the one ask, clearly marked. |
-
-**Why:** the operator reads the first line and decides whether to drill in. Burying the answer under setup, methodology, or caveats forces them to parse the whole message to extract the point — the inverse of signal-first. A reply where the reader has to reach paragraph 3 to learn the status failed this rule (2026-05-30: operator said *"I don't understand what's the status"* after a detail-first reply).
-
-**How to apply:**
-- Open with the conclusion, not the journey. ❌ "I checked X, then Y, then Z, so the result is DONE." ✅ "✅ Done. (checked X/Y/Z)."
-- One bottom-line sentence first, even for complex multi-part work — then expand.
-- Caveats, methodology, and provenance go LAST, never before the answer.
-- Pairs with § Brevity discipline: BLUF decides *order*; brevity decides *how much*. Lead-with-marker (§ Visual marker vocabulary) makes line 1 scannable.
-
 ## Send vs Read — who can do what
-
-> ✅ **2026-06-12: CLI read RESTORED.** `meta google.chat.message list --space spaces/<id>` again returns the true latest messages (verified interactive, returned msgs through the current minute). The `agent_role_myclaw` ACL block below (2026-06-10→06-11) is resolved for reads. CLI is the **primary** read path again — it's the only one that reliably returns the *latest* tail.
->
-> ⚠️ **History — 2026-06-10/11: all `meta google.chat` CLI access (read + send) was ACL-blocked under `agent_role_myclaw`** — see § "GChat blocked by agent_role_myclaw ACL" below. Kept because a **security rollout can wipe the role ruleset again at any time** (Denny, 2026-06-12: "yesterday there was a security rollout, consequently AI can't read all available gchats"). When it recurs, see the read-fallback ranking in that section — and note the MCP fallback is NOT a latest-read substitute.
 
 | Surface | Read | Send |
 |---------|------|------|
-| Claude session (this CLI) | **YES via CLI** (restored 2026-06-12); on ACL outage → GraphQL-direct, then MCP `knowledge_load` (stale, last resort) | **NO** — hook-blocked (`gchat send/post`, `SendMessage`) |
-| MyClaw daemon (`myclaw-*`) | YES via CLI (restored 2026-06-12) | YES — replies to user messages in mapped space |
-| MetaClaw daemon (`metaclaw-daemon`) | YES (separate role) | YES — replies in `spaces/AAQAAlR6e34` |
+| Claude session (this CLI) | YES — `gchat read/search`, MCP read tools | **NO** — hook-blocked (`gchat send/post`, `SendMessage`) |
+| MyClaw daemon (`myclaw-*`) | YES | YES — replies to user messages in mapped space |
+| MetaClaw daemon (`metaclaw-daemon`) | YES | YES — replies in `spaces/AAQAAlR6e34` |
 | `cron-morning-gchat.sh` | — | YES — daily error summary to MetaClaw space, only on red days (no green-day spam) |
 
 **Why:** GChat write APIs authenticate as Denny (or as the bot account that the daemon owns). A Claude session sending = Denny's name on a message Denny didn't write. Zero exceptions, no flag override.
-
-## GChat blocked by `agent_role_myclaw` ACL (2026-06-10)
-
-**Symptom — every `meta google.chat.*` command fails (read AND write), in cron AND interactive:**
-```
-PERMISSION_DENIED error_code=META_CLI_AGENT_ROLE_ACCESS_DENIED agent_role=myclaw
-acl=AGENT_ROLE:myclaw reason="Denied by agent_role_myclaw: op=READ, sens=CONFIDENTIAL, risk=NONE does not match any rule"
-abac_error_code=ABAC_AGENT_ROLE_DENIED
-```
-Hit `op=READ` (search/list/recent) and `op=UPDATE` (post card). Broke daily-brief Inbox + gchat-copilot (run 551).
-
-**Key facts (learned the hard way):**
-- **Interactive vs cron makes NO difference** — both run under `agent_role=myclaw`, the role is on the meta-CLI credential. Tested both; identical denial. "Let Claude read it directly via `meta`" does NOT work.
-- **Root cause = the role's ruleset is `rules=[]` (empty)** → falls through to "no rule matched → deny." Not myclaw-specific: a **fleet-wide agent-role v2 re-materialization** (~Jun 5–10, owner `meta_cli_trust`) wiped it. D107671387/D107893601 also bumped Google read commands' sensitivity to CONFIDENTIAL, so a role with no CONFIDENTIAL allowance is fully locked out.
-
-**Read-fallback ranking when the CLI is ACL-blocked (best → worst):**
-
-1. **GraphQL-direct** *(durable bypass — team tip, Trevor Mathisen 2026-06-12: "check how Rovert gets SEV chats. We hit GraphQL directly iirc").* Goes through the data graph, **NOT** the `meta google.chat` meta-CLI ACL — so it survives the security-rollout wipes that break the CLI. **Scope (worked out + verified 2026-06-13): this path covers SEV war-room chat ONLY, not general spaces** (see boundary below).
-
-   **✅ SEV chat — CONFIRMED WORKING** (returned real messages from S674219 / S673655 / S664106). This IS the Rovert path — the canonical stored query is literally named `RaiSevChat` (hash `19bdba1d…`, ~19k uses/7d). Run by hash, or inline:
-   ```bash
-   meta graphql.query execute -q 'query($n:Int!,$l:Int!){
-     sev_event_from_number(number:[$n]){ sev_number
-       chat_messages(limit:$l, load_as_viewer:false){
-         is_list_truncated
-         messages { author { unixname } timestamp body } } } }' \
-     -V '{"n":674219,"l":50}'
-   ```
-   `number` is a **list** `[N]`; `load_as_viewer` true/false both return the same content for a member. `body` carries the message text. Use this in SEV-triage crons (`ot-sev-monitor`, `sev-gchat-catchup`) as the ACL-proof reader.
-
-   **❌ General spaces / DMs — NO GraphQL message-body edge exists.** Checked the whole `google_chat_*` / `XFBGoogleChatSpaceResource` surface: only **metadata** is exposed (`google_chat_resolve_space(identifier:"spaces/<AAQA-id>"){ id display_name }` resolves the `AAQA…` resource name → numeric FBID, e.g. `spaces/AAQAyljyimc` → `24929022596798509` "PE MRS ML Internal"). The one body-bearing edge, `sev_manager_google_chat_thread_messages(gchat_space_id: <FBID>, limit, load_as_viewer)`, **accepts a general space's FBID but returns empty** — it's indexed for SEV war-rooms only. So for the team space / post-monitor reads there is **no GraphQL fallback**; the restored meta-CLI is the sole path, and if its ACL breaks again those reads are blocked until the role is fixed (see Fix below).
-2. **MCP `knowledge_load`** *(LAST RESORT — returns a STALE/capped snapshot, NOT the latest).* On 2026-06-12, `knowledge_load` on this space returned content only through **2026-03-10** (message_count 496) while the CLI showed live messages through the same day — it missed **3 months**. Use only to load a *known* doc/older context; do **NOT** trust it for "the latest N messages" or a recency-sensitive read. Load-by-URL only (no cross-space search), **read-only — cannot post**.
-
-**Fix (restores everything cleanly):** the policy is auto-generated by the InfraCloud Agent Roles wizard — do NOT hand-edit the `.cconf`. Amend the role at:
-`https://www.internalfb.com/infracloud/objects/agent.role/myclaw/security` → add a CommandAccessRule. Read-only: `operation_types=[READ], max_sensitivity_ceiling=CONFIDENTIAL`. Full restore (incl. posting): `operation_types=[READ,CREATE,UPDATE], max_sensitivity_ceiling=CONFIDENTIAL, max_mutation_risk_ceiling=LOW` (mirrors `agent_role_data_analyst.cconf`).
-- **Files:** policy `configerator/source/service_authorization_platform/metacli/agent_role_myclaw.cconf`; schema `meta_cli/trust/security/command_access_rules/command_access_rules.thrift` (enums: op READ=1/CREATE=2/UPDATE=3/DELETE=4; sens INTERNAL=1/CONFIDENTIAL=2/PRIVATE=4).
-- **Owner / who can land:** oncall `meta_cli_trust` (`oncallteam-meta-cli-trust`); the `agent.role/myclaw` object owner (likely Denny) can self-serve via the wizard.
-- **Degrade gracefully meanwhile:** crons that read gchat should catch `META_CLI_AGENT_ROLE_ACCESS_DENIED`, note `⚠️ gchat blocked (agent_role ACL)`, and continue — never hard-fail the whole job on it.
 
 ## Thread discipline (daemon replies) — expanded patterns
 
@@ -147,12 +67,11 @@ Hit `op=READ` (search/list/recent) and `op=UPDATE` (post card). Broke daily-brie
 
 Default state is no-message. Every bot reply must earn its line in the operator's GChat — if unsure, don't send.
 
-**4 anti-patterns to cut:**
+**3 anti-patterns to cut:**
 
 1. **Status-during-work.** Don't post "🔁 Working on X, ETA 10 min" then "✓ done". Stay silent during work; post ONCE when done. Exception: work >15 min AND operator waiting on the specific deliverable → ONE brief "still on it, ETA N min" is OK.
 2. **Post-action self-confirms on pre-authorized moves.** Don't post "✓ Shipped X" / "✓ Memory saved" / "✓ Sync verified" after pre-authorized reversible work. The action speaks for itself. Reserve ✓ for "you asked me to verify, here is the verification."
 3. **Multi-section walls.** Default to ONE bullet + visual marker, not 3 paragraphs. Multi-step progressions (A → B → C of related fixes) should be ONE summary message, not 3 separate messages with full reasoning.
-4. **Post-close recap / re-confirmation.** Once a thread is closed, or work is done-and-verified (possibly already confirmed elsewhere), do NOT send a "✓ everything's consistent and done" / "still good" summary — **silence IS the close.** Re-confirming a settled state adds zero signal. (2026-05-30 thread `cAYCph-1ob0`: operator — *"what's the point of proactively sending this msg?"* — after a redundant post-close verification recap.)
 
 **Discipline rules:**
 
@@ -206,16 +125,33 @@ Source: 2026-05-28 operator positive feedback in MyClaw 1:1 — *"I like the way
 |---|---|---|
 | `gchat send` from Claude session | Draft text in session output; Denny pastes | Hook-blocked. Authenticates as Denny. |
 | Bot reply with no `thread.name` to a threaded user message | Echo `thread.name` from incoming payload | Splits thread, looks like bot ignored thread |
-| `@-mention` using `@Name` or `<users/unixname>` as the token | Mention as `<users/NUMERIC_ID>`; get the id from `gchat space members -o json` (`members/<ID>`) or the `sender` of `message list`; never fabricate | `@Name`/`<users/unixname>` render as **plain text, not a clickable mention** — silently pages no one (the failure this row prevents). Numeric-id requirement + example: `gchat` skill §"@-Mentions". Past incident: invented "huiminz" → wrong person tagged |
+| Guessing unixname for `@-mention` | `gchat space members` or employee search first; never fabricate | Past incident: invented "huiminz" → wrong person tagged |
 | `WebFetch` on chat.google.com / Workplace | Use `gchat` / `meta` CLI | Meta-internal domains always fail WebFetch |
 | Cron posting to MetaClaw space on green days | Only send when unresolvable problems exist | No green-day spam in shared space |
-| Bot replies in EVERY group chat message | Only when mentioned, adding value, or correcting misinfo | Quality > quantity (group chat rules) |
+| Bot replies in EVERY group chat message | Only when mentioned, adding value, or correcting misinfo | Quality > quantity (`system/myclaw.md` group chat rules) |
 
 ## References
 
+- `system/myclaw.md` — three-instance model, session startup, heartbeats, group chat rules
 - `comms/gchat-coaching.md` — message tone, recipient playbook (content, not transport)
 - `scripts/cron-morning-gchat.sh` — only cron sender, gated on red days
 - `feedback_never_guess_unixname.md` (memory) — resolve via space members first
 - `gchat-big-space-read` skill — workaround for spaces where bot tokens lack read perm
 
-_Last updated: 2026-06-10. Maintainer: dennyzhang._
+## Reading SEV war-room chat via GraphQL (fallback when meta-CLI ACL breaks)
+
+The `meta google.chat.message list` CLI is ACL-gated and can break. For SEV war-room chats specifically, use GraphQL directly — it is ACL-proof.
+
+**Exact working command (verified 2026-06-22):**
+```
+meta graphql.query execute --schema=intern \
+  --query='{ sev_event_from_number(number: N) { id gchat_space_resource_id chat_messages(limit: 200) { title is_list_truncated messages { author { name } timestamp body } } } }'
+```
+
+**Gotchas learned the hard way:**
+- `--schema=intern` is required (`facebook` schema returns "No such field" error)
+- Field is `author { name }`, NOT `sender { name }`
+- `chat_messages` requires a `limit` arg (omitting it gives a validation error)
+- Nested field is `messages` (NOT `nodes`)
+- `is_list_truncated: true` means more messages exist — increase limit (max tested: 200)
+- This path works for SEV chats ONLY; general GChat spaces have no GraphQL message-body edge

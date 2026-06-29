@@ -23,7 +23,11 @@ LOCK_FILE="/tmp/cron-gdoc-comments-critical.lock"
 # Docs to scan, by config doc-key (resolved via get_doc_id). Keep this list SMALL —
 # only docs Denny actively comments on. The broad "all generated docs" version was
 # deliberately deprecated; do not re-add every doc here.
-DOC_KEYS=("ai_playbook")
+# routine added 2026-06-27: Denny actively comments on the routine doc (had 7 open
+# comments, one unaddressed for days) but it was missing here, so this cron never
+# saw them — only ai_playbook was scanned.
+# ai_infra_miner ("Domain — AI Infra Reliability") added 2026-06-27 per Denny.
+DOC_KEYS=("ai_playbook" "routine" "ai_infra_miner")
 
 unset CLAUDECODE CLAUDE_CODE_CURRENT_SESSION_ID 2>/dev/null || true
 

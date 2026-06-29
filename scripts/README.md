@@ -26,8 +26,7 @@ store for the `~/work/claude/scripts` **symlink** (same model as `cheatsheets`).
 | Script | Purpose |
 |---|---|
 | `cron-diff-signal-monitor.sh` | Asymmetric-autonomy diff signal monitor (Posture B) |
-| `cron-diff-reviewer-comment.sh` | auto-review-bot daemon (Phase 0/1) |
-| `cron-diff-reviewer-routine-digest.sh` | Daily morning digest of reviewer activity |
+| `cron-ai-diff-review.sh` | Twice-daily multi-LLM (Claude+Codex+Gemini) review of reviewer queue → Routine gdoc |
 | `cron-diff-autolearn.sh` | Weekly reviewer-comment → cheatsheet updates |
 
 ### Project, people & knowledge
@@ -82,7 +81,7 @@ store for the `~/work/claude/scripts` **symlink** (same model as `cheatsheets`).
 | `enforcement-log.sh` | Shared enforcement metrics logging |
 | `fetch-cache.sh` | Shared cache for expensive API calls |
 | `file-lock.sh` | Atomic file-level locking for concurrent sessions |
-| `lib/` | Shared `.sh` helpers (`gdocs_lib.sh`, `llm-dispatch.sh`, `cron-helpers.sh`). Python helpers (`gdocs_helper.py`, `llm-dispatch.py`, `ai_health*.py`, `diff_reviewer_*.py`) live in `private_scripts/lib/`. |
+| `lib/` | Shared `.sh` helpers (`gdocs_lib.sh`, `llm-dispatch.sh`, `cron-helpers.sh`). Python helpers (`gdocs_helper.py`, `llm-dispatch.py`, `ai_health*.py`, `diff_multi_llm_review.py`) live in `private_scripts/lib/`. |
 
 ## Google Docs helpers
 | Script | Purpose |

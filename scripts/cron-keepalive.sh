@@ -277,10 +277,11 @@ gdoc_staleness_check() {
     # Tab registry: sentinel_key | display_name | max_age_hours | cron_schedule
     local -a tabs=(
         "routine-daily-digest|Routine > Daily Digest|8|2 AM daily"
-        "routine-workflow-eval|Routine > Workflow Eval|8|2 AM daily"
         "area-org-monitor|Routine > Org Monitor|28|3 AM daily"
         "area-ai-skill-monitor|Routine > AI Skill Monitor|28|3 AM daily"
     )
+    # 2026-06-21 (Denny review): removed routine-workflow-eval probe — tab deleted
+    # from the routine gdoc (comment AAAB9yFUl5Y); no producer remains.
     # 2026-06-01 (Denny: only routine gdoc updates now): removed probes for tabs fed
     # by retired crons — ai-playbook-health (ai-health), project-* (project-gdoc-sync),
     # shared-doc-scanner. Only routine + area-monitor tabs are still maintained.
@@ -337,11 +338,19 @@ case "${1:-}" in
     --ssh-status) ssh_status_only ;;
     --ssh-kill)   ssh_kill_all ;;
     *)
-        ssh_ensure_connections
-        cert_ensure_fresh
-        cert_ensure_agent_x509
-        gmux_ensure_daemon
-        gdoc_staleness_check
-        write_heartbeat "keepalive"
+        # Gate the heartbeat on actual success of every step (workflow-design.md rule 2):
+        # without `set -e`, individual function failures don't stop control flow,
+        # so we accumulate exit codes and only beat on a fully-clean run.
+        status=0
+        ssh_ensure_connections    || status=$?
+        cert_ensure_fresh         || status=$?
+        cert_ensure_agent_x509    || status=$?
+        gmux_ensure_daemon        || status=$?
+        gdoc_staleness_check      || status=$?
+        if [ "$status" -eq 0 ]; then
+            write_heartbeat "keepalive"
+        else
+            cron_alert "keepalive" "one or more checks failed (last_status=$status)"
+        fi
         ;;
 esac

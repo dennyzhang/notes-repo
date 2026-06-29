@@ -1,1 +1,23 @@
-{}
+{
+  "input-bound-data-stall-dpp-readers-datal": {
+    "task": "T276319201",
+    "epoch": "2026-06-18T03:03:12Z",
+    "models": [
+      "2122112224",
+      "2123426413",
+      "2124428748",
+      "2125913074",
+      "2126030135",
+      "2126189932",
+      "2126294138",
+      "2130324829",
+      "2136304504",
+      "2137792444",
+      "2139705840",
+      "2140425308",
+      "2145336177",
+      "2145336287"
+    ],
+    "subsystem": "input-bound / data stall (DPP readers / dataloader / partitions) \u2014 trace-doctor critical-path"
+  }
+}

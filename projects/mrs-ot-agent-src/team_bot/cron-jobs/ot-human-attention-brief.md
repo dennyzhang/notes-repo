@@ -1,11 +1,3 @@
-> **⛔ DEPRECATED 2026-06-09 (operator: "address duplication … avoid being spammed").**
-> Removed from MANIFEST. Fully redundant with `daily-brief`, which is a SUPERSET: its
-> §4 "🤖 WHERE AI NEEDS HELP" already covers this brief's purpose #1 (low-confidence /
-> UNKNOWN / validator-flagged triages — same corpus) and its §6 "🧠 AI learnings"
-> covers purpose #2 (key daily learnings). `daily-brief` was made daily (was weekday)
-> to absorb this brief's every-morning cadence, so nothing is lost. Prompt kept for
-> history / easy re-enable (re-add MANIFEST entry + setup-cron-jobs.sh).
-
 [ot-human-attention-brief cron] Daily 8:00 AM PT. The ONE thing the operator should read every morning to know:
 
 1. **Where AI needs human help** — bot triages from the last 24h where confidence was low / verdict was UNKNOWN / validator flagged misattribution / pattern unmatched
@@ -44,15 +36,15 @@ Existing crons each emit per-event posts (per-alert triage, per-SEV postmortem, 
 
 3. **Collect key daily learnings from last 24h** — multi-source:
 
-   a. **Cluster registry changes** — diff `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/patterns/failure-patterns.md` against 24h ago:
+   a. **Cluster registry changes** — diff `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/patterns/failure-patterns.md` against 24h ago:
       ```bash
-      sl --cwd=~/notes log -r 'date(-1, now) and modifies("users/dennyzhang/projects/mrs-ot-agent-context/learnings/patterns/failure-patterns.md")' -T '{node|short}|{date|isodate}|{desc|firstline}\n'
+      sl --cwd=~/notes log -r 'date(-1, now) and modifies("users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/patterns/failure-patterns.md")' -T '{node|short}|{date|isodate}|{desc|firstline}\n'
       ```
       Extract: new CL-NNN added, status changes (🟡→🔴 etc.), cadence escalations.
 
-   b. **Known-patterns.md changes** — same diff for `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md`. Extract: new P-rows landed.
+   b. **Known-patterns.md changes** — same diff for `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input-domain/how/known-patterns.md`. Extract: new P-rows landed.
 
-   c. **Mega-learning weekly file changes** — `mrs-ot-agent-context/learnings/digests/2026-W<NN>.md` for this week. Extract: new entries that match the ≥3-instance D1-eligibility threshold.
+   c. **Mega-learning weekly file changes** — `mrs-ot-agent-context/auto-learnings/digests/2026-W<NN>.md` for this week. Extract: new entries that match the ≥3-instance D1-eligibility threshold.
 
    d. **ot-knowledge-curation cron output** — last 24h run's `raw_response`. Extract: drafted-diffs count, mega-learnings appended count, validator-status.
 
@@ -79,7 +71,7 @@ Existing crons each emit per-event posts (per-alert triage, per-SEV postmortem, 
    - **For triage cron run** (`ot-sev-monitor`, `ot-alert-monitor`, `ot-post-monitor`): the cron raw_response now includes per-cluster `Bot reply: <url>` + `Original alerts: <url>` lines (mandatory as of 2026-05-17 thread `Y3qbdh2hC20`). Extract these directly. Wrap them as `[model <id>](<bot_reply_url>)` for the human bullet.
    - **For validator cron** (`ot-postmortem-validator`): the validator output cites the parent thread URL. Wrap as `[validator pass](<thread_url>)`.
    - **For knowledge-curation** (`ot-knowledge-curation`): cite the commit hash. Wrap as `[commit <short_hash>](<commit_url>)`.
-   - **For SEV/alert/post mentioned by ID** in any source: render markdown-linked: `[S<id>](<sev_url>)` / `[A<id>](<alert_url>)` / `[post W<id>](<workplace_url>)`. **For `[A<id>]` the `<alert_url>` MUST come from `meta monitoring.alert metadata --alert-id=<full_alert_key> -o json | jq -r .url` — NOT the bare-numeric `?alert_id=<numeric>` form, which does NOT resolve for [AGG]/SUM alerts (2026-05-29 thread `HJG9Ec2LuX4`: bare `A2449443538836650` flagged as invalid link). If the full alert key isn't available, omit the link rather than emit a non-resolving one.**
+   - **For SEV/alert/post mentioned by ID** in any source: render markdown-linked: `[S<id>](<sev_url>)` / `[A<id>](<alert_url>)` / `[post W<id>](<workplace_url>)`.
    - **For cluster / pattern changes**: `[CL-<NNN>](<cluster_anchor_url>)` / `[P<NN>](<known_patterns_url>)`.
 
    **If multiple IDs in one raw_response (cluster of N alerts):** use the FIRST/PRIMARY alert URL. Cluster context can be a parenthetical.
@@ -139,20 +131,10 @@ Existing crons each emit per-event posts (per-alert triage, per-SEV postmortem, 
 
    If derivation URL not findable from cron raw_response, fall back to: `(derivation: cron-job-run sqlite id <N>)` — BUT only as last resort. Sqlite-only learnings are operator-hostile.
 
-   ━━━ 📊 What the bot handled (last 24h) ━━━
+   ━━━ 📊 Bot autonomy stats (last 24h) ━━━
 
-   Error patterns triaged: <N> ┃ Handled confidently: <N (%)> ┃ Needed you: <N>
-   <CRON_STATS_LINE>
-
-   **The cron-health line MUST be the verbatim stdout of `python3 tools/cron-stats.py`
-   — do NOT hand-compute it (2026-06-05: the hand-rendered line showed "86% clean ·
-   <1% failed", which doesn't sum to 100 — it silently dropped the `missed`/`error`
-   buckets; operator: "shouldn't 14% be missing?"). The helper buckets clean/missed/
-   failed so they RECONCILE to the total (asserted) and labels `missed` honestly as
-   restart artifacts. The LLM does ZERO arithmetic on these — it runs the helper and
-   pastes the line.** (Plain-language labels are MANDATORY — no internal jargon:
-   "clusters"→"error patterns", "operator-touched"→"needed you", "confident"→
-   "handled confidently". 2026-06-05 operator: readability.)
+   Triages: <N total> ┃ Confident: <N (%)> ┃ Operator-touched: <N>
+   Crons: <N total fires> ┃ Clean: <N (%)> ┃ Failures: <N>
 
    _Brief id: <sqlite job_runs.id> · State: ~/notes/.../state/ot-human-attention-brief-state.json_
    ```
@@ -222,12 +204,12 @@ If the lint fails: re-compose the offending bullet using markdown link syntax `[
 
 - Single post per day. Suppress repeats if rerun within 12h.
 - De-dup against state file — items already surfaced yesterday don't re-appear today unless materially changed (new evidence, status flip).
-- If both 🔴 and 📚 sections are empty AND no cron failures → still post the brief (signals "yesterday was clean," gives operator confidence the cron is alive). But shorten to 1-line: "☕ Morning brief — <date> · Clean day. ✓ <N> error patterns handled, <N>% confidently. 0 job failures."
+- If both 🔴 and 📚 sections are empty AND no cron failures → still post the brief (signals "yesterday was clean," gives operator confidence the cron is alive). But shorten to 1-line: "☕ Morning brief — <date> · Clean day. ✓ <N> triages, <N>% confident. 0 failures."
 
 ## Self-escalation
 
 - If 🔴 section >5 items: prefix brief with `⚠️ ATTENTION — N items need human` so it stands out in gchat.
-- If brief itself fails 2+ days: ot-cron-health-guard escalates per persistent-failure rule.
+- If brief itself fails 2+ days: ot-cron-health-watch escalates per persistent-failure rule.
 
 ## Distinct from sibling crons
 

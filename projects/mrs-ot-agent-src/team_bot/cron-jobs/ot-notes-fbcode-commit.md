@@ -26,7 +26,7 @@ Time budget: ~2 min on no-drift, ~3 min when there's drift to commit.
       && [ "$(sl log -r "$PRIOR_HASH" -T '{obsolete}' 2>/dev/null)" != "obsolete" ]; then
      AMEND="--amend-commit=$PRIOR_HASH"
    fi
-   OUT=$(bash ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/notes-to-fbcode-sync.sh --no-submit $AMEND --week="$CUR_WEEK" 2>&1)
+   OUT=$(bash ~/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/notes-to-fbcode-sync.sh $AMEND --week="$CUR_WEEK" 2>&1)
    echo "$OUT"
    ```
    The script already titles the commit `[OT bot weekly sync] notes->fbcode <week>` (no message rewrite needed). `[no drift]` in `$OUT` → no commit → `HEARTBEAT_OK` (skip step 2).
@@ -44,7 +44,7 @@ Time budget: ~2 min on no-drift, ~3 min when there's drift to commit.
 
    a. **No drift** — script exits `[notes-to-fbcode-sync] no drift; fbcode mirror is up to date.` → respond `HEARTBEAT_OK`. NO GChat message.
 
-   b. **Drift + local commit** — script copies N files, runs `sl commit` (NO `jf submit` because `--no-submit`). After commit-message rewrite (step 2), respond `HEARTBEAT_OK {committed: N, rev: <node|short>}`. **NO GChat message** (silent — internal mechanics).
+   b. **Drift + local commit** — script copies N files, runs `sl commit` (NO `jf submit` — this cron commits only; submission is the weekly cron's job). After commit-message rewrite (step 2), respond `HEARTBEAT_OK {committed: N, rev: <node|short>}`. **NO GChat message** (silent — internal mechanics).
 
    c. **Auto-recovery applied (script stderr contains `auto-recovery: N dirty file(s) match notes`)** — script succeeded after silently reverting N stray fbcode writes that matched notes. Respond `HEARTBEAT_OK {auto_recovered: N, committed: M}`. **NO GChat message** (silent).
 

@@ -1,7 +1,5 @@
 [ot-knowledge-curation cron] Nightly 23:00 PT (90 min after the three mitigated-* crons finish at 21:00/21:15/21:30). Consume postmortem archives written by `ot-daily-learning-mitigated-{sevs,posts,alerts}`; produce three deliverables: (D1) up to 2 engineering diffs for immediate small gaps, (D2) up to 5 "mega learnings" appended to a weekly curated digest, (D3) one systemic-gap report per month. Complementary to `ot-knowledge-distillation` which operates on real-time triage records — this cron operates on postmortems.
 
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
-
 State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/knowledge-curation-state.json` —
 ```
 {
@@ -14,13 +12,13 @@ State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/knowledge-
 ```
 Time budget: ~10 min on D1+D2-only nights, ~25 min when D3 fires (monthly).
 
-Inputs (three corpora, all written by sibling crons). **Paths fixed 2026-06-07 audit: were `mitigated-{sevs,posts,alerts}/` which DO NOT EXIST — the writers (ot-triage-summary) use `incidents/resolved-*/`, so this cron had been globbing dead paths → always-empty corpus → silent no-op. FAIL-LOUD: if all three globs return 0 files over the 7d window, emit a one-line "corpus empty: globbed <paths>, 0 files — path regression?" to the 1:1 (a populated fleet producing 0 resolved incidents is suspicious, not a quiet week).**
-- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/<YYYY-MM>/SEV-<id>-<date>.md`
-- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/<YYYY-MM>/POST-<id>-<date>.md`
-- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/<YYYY-MM>/ALERT-<id>-<date>.md`
+Inputs (three corpora, all written by sibling crons):
+- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/mitigated-sevs/<YYYY-MM>/L<level>-<date>-S<sev>.md`
+- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/mitigated-posts/<YYYY-MM>/<lane>-<date>-W<post>.md`
+- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/mitigated-alerts/<YYYY-MM>/<class>-<date>-A<id>.md` (cron may produce 0 — directory may not yet exist; treat as empty corpus, do not error)
 
 Existing knowledge bases to read fresh on every run (for dedup):
-- `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/human-input/knowledge/known-patterns.md` (P-rows)
+- `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/known_patterns.md` (P-rows)
 - `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/human-input/triage-discipline.md` (R-rules)
 - `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/human-input/ot-failure-mode-catalog.md` (catalog entries)
 
@@ -57,7 +55,7 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
    For each cluster of size ≥2, score:
    - `signal_strength = cluster_size + cross_corpus_bonus` (cross_corpus_bonus = +2 if cluster spans ≥2 of {sev, post, alert}, else 0)
-   - `novelty = 0 if any keyword matches an existing P-row in known-patterns.md, else 1`
+   - `novelty = 0 if any keyword matches an existing P-row in known_patterns.md, else 1`
    - `actionability = 1 if cluster has a clear fix mechanism in mitigation text, else 0`
 
    Rank clusters by `(novelty * 2 + actionability + signal_strength)`. Take top 5 → MEGA_CANDIDATES.
@@ -73,11 +71,11 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
    For each diff:
    - Determine target file:
-     - New pattern → `known-patterns.md` (append next P-row at end of Quick-Match Table)
-     - New triage rule → `human-input/triage-discipline.md` (append next R-rule) — was `references/triage-discipline.md` (nonexistent → dedup-read returned nothing, every rule looked novel + edits targeted a dead path); fixed 2026-06-07 audit
+     - New pattern → `known_patterns.md` (append next P-row at end of Quick-Match Table)
+     - New triage rule → `references/triage-discipline.md` (append next R-rule)
      - Cron prompt fix → `team_bot/cron-jobs/<cron>.md` (targeted edit)
    - Apply edit locally in `~/notes/`.
-   - `cd ~/notes && LK="$HOME/notes/users/dennyzhang/projects/mrs-ot-agent-src/team_bot/scripts/notes-sl-lock.sh"` then `bash "$LK" sl add <path>` + `bash "$LK" sl commit -m "[OT bot] <one-line> from <archive ids>"`. (Notes write-lock, Option B 2026-06-14 — serialize tree-mutating sl so concurrent sessions can't clobber the shared tree.)
+   - `cd ~/notes && sl add <path>` + `sl commit -m "[OT bot] <one-line> from <archive ids>"`.
    - Skip `jf submit` for now (notes is not a Phab-tracked repo; commits are surfaced via the new `ot-notes-commit-push` cron to fb:notes). If the file lives in fbcode (it doesn't — bot only writes to notes-side per the canonical split), `jf submit --draft --publish-when-ready` would apply there.
    - Record commit hash; surface in GChat output.
 
@@ -85,7 +83,7 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
 ## Deliverable 2 — Mega Learnings (≤5 per run)
 
-6. **Mega-learnings file.** `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/<YYYY>-W<ISO_WEEK>.md` (one file per ISO week; create if missing with header).
+6. **Mega-learnings file.** `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/<YYYY>-W<ISO_WEEK>.md` (one file per ISO week; create if missing with header).
 
    For each of the top 5 MEGA_CANDIDATES (regardless of whether also became a diff), append a 5-line entry:
    ```
@@ -105,7 +103,7 @@ Existing knowledge bases to read fresh on every run (for dedup):
 ## Deliverable 3 — Systemic Gap Report (monthly)
 
 7. **Monthly trigger.** If `state.last_systemic_gap_month != current month (YYYY-MM)` AND today's date >= 25 (give the month enough resolved corpus), generate report:
-   - File: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/system-fixes/systemic-gaps/<YYYY-MM>.md`
+   - File: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/systemic-gaps/<YYYY-MM>.md`
    - Read ALL archive files from the current month (not just last 7d) across all 3 corpora.
    - Compute aggregations:
      - Top 5 recurring root-cause keyword clusters (sev count)
@@ -151,21 +149,13 @@ Existing knowledge bases to read fresh on every run (for dedup):
 
 ## GChat output
 
-9. **POST ONLY IF ACTIONABLE (2026-05-30, operator: "what's the point of sending me this msg?").** Send a GChat message to spaces/AAQAVOjYc80 **only when the run produced something the operator must see or act on** — i.e. `diffs_drafted > 0` OR `systemic_gap_generated == true` OR a D1 diff was HELD on a validator discrepancy. A mega-learnings-only run (0 diffs, 0 gaps) is **silent**: still append the mega-learnings to the ledger/archive per steps 5–7, just respond `HEARTBEAT_OK` and post nothing. Mega-learnings are reference material, not an interrupt — the operator reads them from the ledger or the daily-learning-digest, not from a per-run ping.
-
-   When a post IS warranted, **one consolidated message** to spaces/AAQAVOjYc80 (the bot's home space), leading with the actionable item:
+9. **One consolidated message to spaces/AAQAVOjYc80** (the bot's home space) summarizing the run:
    ```
-   📚 ot-knowledge-curation: <N> diff(s) drafted<, K systemic gap(s) surfaced if any>
+   📚 ot-knowledge-curation: <N> diffs drafted, <M> mega-learnings appended, <K> systemic gaps surfaced
    ```
-   Then ONE threaded reply with the mega-learnings block (titles only, with archive paths) for context. NO inline diffs, NO inline full text — just titles and file links. Operator clicks through to read.
+   Then ONE threaded reply with the mega-learnings block (titles only, with archive paths). NO inline diffs, NO inline full text — just titles and file links. Operator clicks through to read.
 
-   **IDENTIFIER RENDERING — MANDATORY (2026-05-29 thread `HJG9Ec2LuX4`: operator flagged bare `A2449443538836650` as an "invalid link"):** when the mega-learnings block cites evidence, the source items are archive FILENAME stems like `high-2026-05-28-A2449443538836650.md`. Do NOT paste the bare `A<numeric>` token into GChat — bare alert IDs do NOT auto-linkify (unlike `S###`/`D###`/`T###`), so they render as broken-looking plain text. Two correct renderings:
-   - **Preferred (clickable):** resolve each alert id to its real URL via `meta monitoring.alert metadata --alert-id="<full_alert_key>" -o json | jq -r .url` and emit `<url|A<id>>`. (The full alert key — `<numeric>@#$<entity>@#$<key>@#$<name>` — is stored in the archive file frontmatter; if only the numeric stem is available and the full key can't be reconstructed, fall back to the next option.)
-   - **Fallback (explicit non-link):** render as a code-span archive reference `` `resolved-alerts/2026-05/high-2026-05-28-A<id>.md` `` so it`s visibly a FILE PATH, not a clickable link. NEVER emit a bare `A<id>` that looks like it should be clickable but isn`t.
-   - Same rule applies to the mega-learnings markdown FILE written in step 6 — use code-span file refs or resolved URLs, never bare `A<id>`.
-   - `S###` / `D###` / `T###` / `W###` auto-linkify in GChat — those can stay bare. Only `A###` (alerts), `m###`/model-ids, and `f###` (FBLearner) need explicit wrapping.
-
-   If no NEW archives, OR a mega-learnings-only run (0 diffs, 0 systemic gaps, no held diff), NO GChat message. Just respond `HEARTBEAT_OK`.
+   If only HEARTBEAT_OK (no NEW archives), NO GChat message. Just respond `HEARTBEAT_OK`.
 
 10. **Persist state.** Append processed archive paths to `distilled_archive_paths`, append diff commit hashes, bump mega_learnings_count, set last_run_epoch, write state file. Respond HEARTBEAT_OK with summary `{archives_processed: N, diffs_drafted: D, mega_learnings: M, systemic_gap_generated: bool, validator_status: confirmed|partial|unavailable}`.
 

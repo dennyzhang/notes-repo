@@ -1,6 +1,6 @@
 # Project Doc Cheatsheet
 
-<!-- Last updated: 2026-05-12 -->
+<!-- Last updated: 2026-03-19 -->
 
 Quick reference for Google Doc sync with project files. Covers linking, pushing, pulling, and comment handling.
 

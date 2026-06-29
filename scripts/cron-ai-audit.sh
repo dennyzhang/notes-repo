@@ -134,12 +134,23 @@ if [ -f "$RUNTIME_CSV" ]; then
     fi
 
     # Check for consecutive failures (same job failing 2+ times in a row)
+    # IMPORTANT: only scan the last 7 days. The previous unbounded scan kept
+    # surfacing jobs whose final run was weeks ago (e.g. ot-alert-investigator
+    # last ran 2026-06-13, removed from crontab afterward — still showed as
+    # "consecutive failures" until 2026-06-24). Filtering by recency drops
+    # those stale labels naturally. (Fixed 2026-06-24 from AI Playbook comment.)
+    seven_days_ago=$(date -d '7 days ago' '+%Y-%m-%d' 2>/dev/null || date -v-7d '+%Y-%m-%d')
     prev_job=""
     prev_exit=""
     consec_count=0
     consec_alerts=""
     while IFS=, read -r date job exit_code duration attempt; do
         [ "$date" = "date" ] && continue
+        # Skip entries older than 7 days — keeps the "consecutive failures" label
+        # tied to currently active failures, not stale history of removed crons.
+        # The date column is "YYYY-MM-DD HH:MM"; compare the date portion alone.
+        date_only="${date%% *}"
+        [ "$date_only" \< "$seven_days_ago" ] && continue
         if [ "$job" = "$prev_job" ] && [ "$exit_code" != "0" ] && [ "$prev_exit" != "0" ]; then
             consec_count=$((consec_count + 1))
             if [ "$consec_count" -ge 2 ]; then
@@ -153,7 +164,9 @@ if [ -f "$RUNTIME_CSV" ]; then
     done < "$RUNTIME_CSV"
 
     if [ -n "$consec_alerts" ]; then
-        set_score fleet 1 "Consecutive failures: $consec_alerts"
+        # Dedup job names (each shows up many times in the scan)
+        consec_alerts=$(echo "$consec_alerts" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/ *$//')
+        set_score fleet 1 "Consecutive failures (last 7d): $consec_alerts"
     fi
 else
     set_score fleet 1 "No cron-runtime.csv found"

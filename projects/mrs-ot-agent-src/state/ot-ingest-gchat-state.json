@@ -1,25 +1,41 @@
 {
-  "last_run_epoch": 1781452840,
+  "last_run_epoch": 1782403222,
   "per_space": {
     "spaces/AAQAR1xHaQU": {
-      "last_catchup_date": "2026-06-14",
+      "display_name": "RT Infra WS2: OT Reliability & Understanding",
+      "last_catchup_date": "2026-06-18",
       "last_msg_create_time": "2026-06-12T15:38:57.014943Z",
-      "skip_until_epoch": 0
+      "skip_until_epoch": 1784304190,
+      "skip_reason": "quiet: 0 messages in 7d delta window (since 2026-06-12)",
+      "first_run": true,
+      "msg_count_last_run": 0
     },
     "spaces/AAQAXSNWvcM": {
-      "last_catchup_date": "2026-06-14",
-      "last_msg_create_time": "2026-06-13T17:36:14.439007Z",
-      "skip_until_epoch": 0
+      "display_name": "MVAI OT Dev",
+      "last_catchup_date": "2026-06-25",
+      "last_msg_create_time": "2026-06-24T21:26:34.158415Z",
+      "skip_until_epoch": null,
+      "first_run": true,
+      "msg_count_last_run": 1,
+      "last_run_note": "2026-06-25: 1 new human message (below 5-msg threshold, distillation skipped). Denny shared exec-facing trunk health prototype (prototypes.internalmeta.com) by Clement Chang; noted H2 reuse potential for OT exec report per PG."
     },
     "spaces/AAQAtGhVkUw": {
-      "last_catchup_date": "2026-06-13",
+      "display_name": "IG ATS Alerting",
+      "last_catchup_date": null,
       "last_msg_create_time": null,
-      "skip_until_epoch": 1783785723
+      "skip_until_epoch": 1784203740,
+      "skip_reason": "quiet: 0 messages in 14d window",
+      "first_run": true,
+      "msg_count_last_run": 0
     },
     "spaces/AAQATpEgSyk": {
-      "last_catchup_date": "2026-06-14",
-      "last_msg_create_time": "2026-06-12T21:33:19.144799Z",
-      "skip_until_epoch": 0
+      "display_name": "MRS Online Training Oncall",
+      "last_catchup_date": "2026-06-25",
+      "last_msg_create_time": "2026-06-24T01:14:48.648959Z",
+      "skip_until_epoch": null,
+      "first_run": true,
+      "msg_count_last_run": 0,
+      "last_run_note": "2026-06-25: 0 new human messages beyond prior boundary. No change."
     }
   }
 }

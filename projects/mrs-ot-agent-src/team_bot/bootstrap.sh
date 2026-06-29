@@ -274,30 +274,6 @@ else
   config_action="installed"
 fi
 
-# ---------------------------------------------------------------------------
-# apply_space_hooks() — re-install required PreToolUse hooks into each space
-# .claude/settings.json (2026-05-29, thread GSSYzY7flFQ). The hooks live in the
-# per-space settings.json (NOT in fbcode), so a fresh reinstall loses them unless
-# re-asserted here. Delegates to apply-space-hooks.sh (bash+jq), idempotent
-# (backs up before mutate, no-op if already present). Rewritten .py->.sh on
-# 2026-05-30 (thread Q_8ELeVd7cU) so the installer can live in the notes repo
-# (.py is deny_files-blocked on notes-master) and ride the weekly notes->fbcode
-# sync to trunk. Enforces reply-in-thread + weekly-sync guard + diff-cheatsheet gate.
-# ---------------------------------------------------------------------------
-apply_space_hooks() {
-  local applier="${SCRIPT_DIR}/scripts/apply-space-hooks.sh"
-  [[ -f "${applier}" ]] || { echo "[ot-team bootstrap] no scripts/apply-space-hooks.sh; skipping" >&2; return 0; }
-  local found=0
-  for settings in "${MYCLAW_HOME}"/spaces/*/.claude/settings.json; do
-    [[ -f "${settings}" ]] || continue
-    found=1
-    bash "${applier}" "${settings}" || echo "[ot-team bootstrap] WARNING: apply-space-hooks.sh failed on ${settings}" >&2
-  done
-  [[ "${found}" -eq 0 ]] && echo "[ot-team bootstrap] no space settings.json yet; space hooks will install on next run after 'myclaw init'"
-  return 0
-}
-apply_space_hooks
-
 # Re-assert every cron job's prompt + schedule from the fbcode-tracked
 # manifest (cron-jobs/MANIFEST.json + cron-jobs/*.md). Belt-and-suspenders
 # over the Manifold sqlite restore: even a stale backup recovers to the

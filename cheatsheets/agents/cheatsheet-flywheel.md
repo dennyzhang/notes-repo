@@ -320,4 +320,21 @@ Honest accounting — what the gate does NOT yet stop, so nobody trusts it past 
 | Structural sweep (proactive) | `scripts/cron/cheatsheet-sweep.sh` (daily) |
 | Harvest cron runner | `scripts/cron/cheatsheet-harvest.sh` (weekly) — authors the Workflow at runtime |
 
-_Last updated: 2026-06-14. Maintainer: dennyzhang._
+## `run_llm` dispatch — output contract (cron LLM channels)
+
+Building a cron channel that uses `run_llm` (`scripts/lib/llm-dispatch.sh`) to make an LLM
+produce structured output? Three non-obvious behaviors, each of which silently broke a
+diff-autolearn channel before it was understood (2026-06-17):
+
+- **The output file is the captured FINAL TEXT MESSAGE, not a file the model writes.** Make
+  the model PRINT the result block as its final response and parse that. Do NOT tell it to
+  "write to $OUT" — its file write lands elsewhere AND its final message becomes a prose
+  summary, so your parser sees zero rows.
+- **`--allowedTools Read` only — never give `Write`.** An LLM cron session's `Write` reaches
+  the REAL repo working copy (the `Failed to mount phabricator CAT` warnings are unrelated to
+  filesystem writes). With `Write`, a capable model edits the live cheatsheet directly,
+  bypassing your dedup/insert helper. Read-only forces it through your controlled write path.
+- **`--model` is stripped** by `strip_model_flag`; the model is chosen by job name via
+  `resolve_backend`. Passing `--model haiku` is a no-op — set the job→model mapping instead.
+
+_Last updated: 2026-06-17. Maintainer: dennyzhang._

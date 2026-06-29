@@ -171,9 +171,9 @@ else
         mkdir -p "$backup_dir"
         cp "$file" "$backup_dir/$basename"
 
-        # LLM distillation via claude -p
+        # LLM distillation via claude -p — Sonnet (synthesis task class, per cost-and-latency.md §22)
         target_words=$((category_limit * 3 / 4))  # tokens → words (rough)
-        distilled_content=$(claude -p "You are a knowledge base curator. Your job is to COMPRESS this document while preserving all actionable information.
+        distilled_content=$(claude --model claude-sonnet-4-6 -p "You are a knowledge base curator. Your job is to COMPRESS this document while preserving all actionable information.
 
 RULES:
 - Target: ${target_words} words maximum

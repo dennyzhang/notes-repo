@@ -1,5 +1,5 @@
 {
-  "_comment": "Source-of-truth config for ot-ingest-gdocs cron. Each entry materializes as <slug>.md in this directory. Add an entry to onboard a new gdoc; remove to stop syncing. Slugs must be unique kebab-case (matched against filename).",
+  "_comment": "Source-of-truth config for ot-gdoc-context-sync cron. Each entry materializes as <slug>.md in this directory. Add an entry to onboard a new gdoc; remove to stop syncing. Slugs must be unique kebab-case (matched against filename).",
   "docs": [
     {
       "doc_id": "1PpkGgLqAB6y5Z7jJWnKgNw-N2VuuNvKIwQW0XyOluPM",
@@ -12,9 +12,24 @@
       "title": "[MRS OT Reliability] Cross-Team Follow-ups"
     },
     {
-      "doc_id": "10kawZuw5eAzpFm8ZvT8Hgy-wfx-Cjw1sPtcLJ_70wOY",
-      "slug": "mrs-ml-infra-sev-criteria",
-      "title": "MRS ML Infra SEV Criteria"
+      "doc_id": "1dTY7RlB5rTNihxG3jjL1yVvmPF1scTomSdM5sTdOx60",
+      "slug": "feed-reliability-syncs",
+      "title": "Feed Reliability Syncs"
+    },
+    {
+      "doc_id": "1GRHC5iCT1Ayt3EZZbloPTRCX-_z9ra1W3CzzNTaFrCo",
+      "slug": "runbook-online-training-jobs",
+      "title": "Runbook for Online Training Jobs"
+    },
+    {
+      "doc_id": "1MRCSe2QbEMnQn6BfxgGTOkLTs0h7UPY7rNC_wp-A0nc",
+      "slug": "ig-reliability-syncs",
+      "title": "IG Reliability Syncs"
+    },
+    {
+      "doc_id": "1CFMYV8Echaj32deWOy87iHjXpqCU2UMk2GHtX6eVPRI",
+      "slug": "video-reliability-syncs",
+      "title": "Video Reliability Syncs"
     }
   ]
 }

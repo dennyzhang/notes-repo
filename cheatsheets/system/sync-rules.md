@@ -86,5 +86,3 @@ Add a new row whenever:
 - A new cron registration / hook registration / config fix incident occurs
 
 Cite the source incident in the row (file path + date or AUTO-LEARNINGS date).
-
-_Last updated: 2026-05-12. Maintainer: dennyzhang._

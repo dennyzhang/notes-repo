@@ -61,8 +61,21 @@ run_llm "weekly-report" 2400 /dev/stdout "You are running as a cron job to gener
 
 Step 1: Read context/IMPACT.md for curated impact entries from this week.
 Step 2: Read context/myself/psc/MY-PSC.md to check what's already captured for W${WEEK_NUM}.
-Step 3: Generate the weekly status report — collect diffs, tasks, Workplace posts, and comms from the past 7 days. Use IMPACT.md entries as primary source for diff descriptions.
-Step 4: Write the draft to context/myself/psc/WEEKLY-DRAFT.md (overwrite previous).
+Step 3: **READ THE OBSERVER JOURNAL FIRST.** Read every file in ~/work/claude/my_work_journal/ dated
+  in the window ${WEEK_START} to ${WEEK_END}. These already contain: diffs authored, tasks authored,
+  Workplace posts, meetings + AI meeting notes (Quick recap + per-person Next steps), GChat DMs and
+  group threads (Denny ► lines), thanks received/given, SEVs owned. This is the PRIMARY source —
+  do NOT re-query Phab/Tasks/Workplace for things already captured here. Use live queries ONLY for
+  what the journal cannot have (e.g. diffs landed in the last few hours after the latest journal,
+  or comments on someone else's diff). Treat the journal as canonical for the week's activity.
+Step 4: Cross-reference IMPACT.md curated entries against journal diffs — journal gives raw work,
+  IMPACT.md gives business framing. Where both exist, use IMPACT.md's wording.
+Step 5: Pull behavior signals the journal makes obvious (often missed by activity-only reports):
+  - Action-item load from meeting notes (e.g. \"carried 10 items from OT handover; 7 to Li Lu, 2 to
+    Paul\" — escalate-not-grind signal worth flagging in PSC framing).
+  - Adoption signals — anyone outside Denny installing/using his tools (bigger-problems-dependency).
+  - Recognition — thanks received by name (positive-leadership evidence).
+Step 6: Write the draft to context/myself/psc/WEEKLY-DRAFT.md (overwrite previous).
 
 Format:
 
@@ -83,10 +96,13 @@ Generated: $(date +%Y-%m-%d)
 ### SEVs
 [any SEV involvement]
 
+## Behavior Signals (from journal — useful for self-coaching, not PSC body)
+[action-item load imbalance, adoption signals, recognition received, slipping commitments]
+
 ## Suggested Impact Framing
 [1-sentence PSC-ready summary for the week]
 
-Be concise. Focus on PSC-worthy items only." -- \
+Be concise. Focus on PSC-worthy items only. The journal is canonical; do not duplicate-fetch." -- \
     --allowedTools Read Write Edit Glob Grep Bash Skill Task \
     --model claude-opus-4-6 \
     --max-turns 30 \

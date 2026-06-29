@@ -1,0 +1,47 @@
+{
+ "synced_at": "2026-06-17T17:18:09Z",
+ "skills": [
+  {
+   "name": "ot-reliability-health-check",
+   "status": "OK",
+   "fbcode_commit": "4668f76d1993",
+   "fbcode_date": "2026-06-05 15:42 -0700"
+  },
+  {
+   "name": "hedwig-oncall",
+   "status": "OK",
+   "fbcode_commit": "0aad25ebc9ab",
+   "fbcode_date": "2026-06-03 17:47 -0700"
+  },
+  {
+   "name": "model-processing-freshness-reliability",
+   "status": "OK",
+   "fbcode_commit": "49624bfd7dcf",
+   "fbcode_date": "2026-03-24 11:10 -0700"
+  },
+  {
+   "name": "model-processing-freshness-latency",
+   "status": "OK",
+   "fbcode_commit": "49624bfd7dcf",
+   "fbcode_date": "2026-03-24 11:10 -0700"
+  },
+  {
+   "name": "ip-runtime-debugging-model-freshness",
+   "status": "OK",
+   "fbcode_commit": "ee728fe7ff4a",
+   "fbcode_date": "2026-03-09 10:43 -0700"
+  },
+  {
+   "name": "ip-runtime-recsys-inference-sev-review",
+   "status": "OK",
+   "fbcode_commit": "456803c63cce",
+   "fbcode_date": "2026-03-06 16:34 -0800"
+  },
+  {
+   "name": "ip-runtime-sev-team-analysis",
+   "status": "OK",
+   "fbcode_commit": "adf37c2ec073",
+   "fbcode_date": "2026-04-28 06:57 -0700"
+  }
+ ]
+}

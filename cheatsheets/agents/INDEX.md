@@ -10,8 +10,11 @@ Design philosophy + operations. (Harness wiring lives in `system/`.)
 | Recurring AI mistakes to avoid (load before non-trivial work) | `agents/ai-failure-modes.md` |
 | Building any hook / cron / workflow | `agents/workflow-design.md` |
 | Autonomous workflow design (output density, correctness, safety, durability) | `agents/autonomous-workflow-principles.md` |
+| Autonomous workflow cost + latency (model tiering, budgets, fan-out caps) | `agents/cost-and-latency.md` |
 | Closing a topic/thread — save & route session learnings | `agents/auto-save-learnings.md` |
 | Improving/adding cheatsheets (gate, tier policy, skill-harvest, anti-bloat) | `agents/cheatsheet-flywheel.md` |
 | Building agent evals (replay-eval, scoring harness) | `agents/building-agent-evals.md` |
+| Designing any tracker (painpoint, followup, alert, backlog) — intake-filter rules | `agents/tracker-intake-filter.md` |
+| Designing any coach/advisor — per-user goal calibration (don't inherit prompt defaults) | `agents/coach-personalization.md` |
 | MyClaw ops: disk full, worktree leaks, instance management | `agents/myclaw-ops.md` |
 | Deleting a MyClaw instance | `agents/myclaw-delete.md` |

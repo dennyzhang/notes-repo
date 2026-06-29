@@ -1,6 +1,6 @@
 # Customer Post Support Cheatsheet
 
-<!-- Last updated: 2026-05-12 -->
+<!-- Last updated: 2026-03-19 -->
 
 How to respond when tagged in Workplace posts or tasks about OT/training issues. Explain the problem in plain language, investigate with available tools, draft a response — but never comment directly.
 

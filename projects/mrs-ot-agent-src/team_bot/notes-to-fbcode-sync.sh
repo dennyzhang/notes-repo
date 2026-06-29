@@ -36,12 +36,6 @@ for arg in "$@"; do
         --dry-run) DRY_RUN=1 ;;
         --week=*) WEEK="${arg#--week=}" ;;
         --amend-commit=*) AMEND_COMMIT="${arg#--amend-commit=}" ;;
-        # Accepted no-op: this script NEVER submits (commit/amend only); the
-        # ot-notes-fbcode-commit cron passes --no-submit for clarity. Rejecting
-        # it (old behavior) made the commit cron's script call exit 1 every run
-        # → it then created a NEW commit each run instead of amending the weekly
-        # one → duplicate sync diffs (2026-06-04 root cause, thread aenMMohDz0c).
-        --no-submit) ;;
         *) echo "Unknown arg: $arg" >&2; exit 1 ;;
     esac
 done
@@ -104,27 +98,15 @@ if [ "$DRY_RUN" -eq 0 ]; then
                 if [ -f "$notes_src" ]; then
                     if cmp -s "$notes_src" "$fbcode_abs"; then
                         is_identical=1
-                    elif cmp -s <(awk 'BEGIN{ORS=""} {if(NR>1)print "\n"; print}' "$notes_src") \
-                               <(awk 'BEGIN{ORS=""} {if(NR>1)print "\n"; print}' "$fbcode_abs"); then
-                        # Tier-2 newline-normalized fallback: tolerate trailing-newline-only
-                        # drift (heartbeat double-write / editor sentinel diff).
-                        is_identical=1
-                    elif [ "${fbcode_path##*.}" = "py" ] && python3 -c '
-import sys, re, collections
-def rt(p):
-    s = open(p, encoding="utf-8", errors="replace").read()
-    return collections.Counter(t for t in re.findall(r"[A-Za-z_]\w*|\d[\d.]*", s) if t not in ("import", "from"))
-n = rt(sys.argv[1]); f = rt(sys.argv[2])
-sys.exit(1 if any(f[t] > n[t] for t in f) else 0)
-' "$notes_src" "$fbcode_abs" 2>/dev/null; then
-                        # Tier-3 (.py only): fbcode has NO real-token (identifier/number)
-                        # content beyond notes — the diff is pure `arc f`/Black reformat
-                        # (line-wrap, import-split, quote-normalize, reorder) and/or notes
-                        # is ahead of fbcode. No fbcode-unique logic → safe auto-revert
-                        # (notes is SoT; the mirror copy re-applies notes anyway). Aborts
-                        # only on genuine fbcode-only content. Closes the recurring arc-f-
-                        # reformat sync abort (2026-06-10: 6 tools/*.py blocked the mirror).
-                        is_identical=1
+                    else
+                        # Newline-normalized fallback: tolerate trailing-newline-only
+                        # drift (heartbeat double-write / editor sentinel diff). If
+                        # contents match after normalizing the final newline on both
+                        # sides, treat as identical → safe auto-revert (notes is SoT).
+                        if cmp -s <(awk 'BEGIN{ORS=""} {if(NR>1)print "\n"; print}' "$notes_src") \
+                                  <(awk 'BEGIN{ORS=""} {if(NR>1)print "\n"; print}' "$fbcode_abs"); then
+                            is_identical=1
+                        fi
                     fi
                 fi
                 if [ "$is_identical" -eq 1 ]; then
@@ -141,7 +123,7 @@ sys.exit(1 if any(f[t] > n[t] for t in f) else 0)
                     echo "(Note: also had identical-to-notes dirty files which would have auto-reverted:)" >&2
                     printf "%b" "$IDENTICAL_LIST" >&2
                 fi
-                echo "Resolve (notes is GROUND TRUTH; never cp/patch fbcode->notes, it clobbers notes-only content): (a) for each file, diff fbcode vs notes, MERGE only the fbcode-only real-new lines INTO notes (preserve notes-only lines), then run again; or (b) sl revert if the divergent fbcode write was a mistake. If unsure which fbcode-only content is real, escalate to operator with BOTH sides' line lists." >&2
+                echo "Resolve by either: (a) backport divergent fbcode content to notes, then run again; or (b) sl revert if the divergent fbcode write was a mistake." >&2
                 exit 1
             fi
 
@@ -170,13 +152,6 @@ while IFS= read -r src; do
     # Skip notes-only artifacts and patch-reject files
     [ "$rel" = "MIGRATION.md" ] && continue
     [[ "$rel" == *.rej ]] && continue
-
-    # Skip runtime state + sqlite caches: they mutate every cron tick, so
-    # mirroring them produces PERPETUAL false drift (and blocks the gate). The
-    # mirror's stated scope is doc/prompt only. (2026-06-04: root cause of the
-    # 31-draft sync pileup — state/*.json + crons.db churn faked drift forever.)
-    [[ "$rel" == state/* ]] && continue
-    [[ "$rel" == *.db ]] && continue
 
     # Map .dot.txt → .dot for fbcode (notes blocks .dot extension)
     fbcode_rel="$rel"
@@ -214,6 +189,7 @@ fi
 
 # --- Commit or amend ---
 NOTES_REV=$(cd "$HOME/notes" && sl log -r . -T '{node|short}' 2>/dev/null || echo "unknown")
+SYNCED_LIST=$(awk '{print "- " $0}' "$PATHS_FILE")
 WEEK_LABEL="${WEEK:-$(date -u +%G-W%V)}"
 
 if [ -n "$AMEND_COMMIT" ]; then
@@ -233,6 +209,9 @@ Summary:
 - **Fix**: $SYNC_COUNT file(s) copied notes->fbcode. Pure mirror, no semantic change.
 - **Scope**: doc/prompt only. Code paths (src/, tests/, BUCK, .llms/) untouched.
 
+Synced files:
+$SYNCED_LIST
+
 Source: notes commit $NOTES_REV on user/dennyzhang bookmark.
 
 Test Plan:
@@ -249,28 +228,10 @@ Tags: publish_when_ready"
     # skips untracked files (? in sl status), causing 'no match under directory' aborts
     # when ALL changes happen to be new files. This was a recurring failure mode
     # (3 hits 2026-05-18: 06:15, 12:42, 13:38 PT) before this fix.
-    # See ot-cron-health-guard thread `8Nzx9nUrsOI` + operator directive in
+    # See ot-cron-health-watch thread `8Nzx9nUrsOI` + operator directive in
     # thread `8Nzx9nUrsOI` 2026-05-18.
     sl add "fbcode/pe_mrs_ml/mrs_ot_agent/" 2>/dev/null || true
-    # Pre-format with arc f BEFORE the guard. sl commit runs arc f internally, so if
-    # notes has compact-style Python that arc f expands to match committed fbcode, the
-    # commit aborts with "no match under directory" (confirmed 2026-06-08: all 7 tool
-    # files were semantically identical but Black-format-different; arc f inside sl commit
-    # normalized them back to committed state). Running arc f explicitly here lets the
-    # guard see the post-formatting state and skip cleanly on style-only differences.
-    # BUG FIX (2026-06-08): `arc f <directory>` returns "No linters to run" — it only
-    # works with individual file paths. Use find to format each .py file.
-    find "fbcode/pe_mrs_ml/mrs_ot_agent/" -name "*.py" -type f -print0 2>/dev/null \
-        | xargs -0 arc f 2>/dev/null || true
-    # Guard against the no-op false-failure: when the copied files are byte-identical
-    # to fbcode (no net change — the common case once things are in sync), there is
-    # nothing to commit, and `sl commit <path>` aborts "no match under directory". The
-    # old code treated that BENIGN no-op as a hard exit-1 FAILURE → recurring false cron
-    # failures (e.g. 2026-06-07 06:15, and the manual --no-submit run). Only commit when
-    # the path actually has staged/modified changes; otherwise skip cleanly.
-    if [ -z "$(sl status "fbcode/pe_mrs_ml/mrs_ot_agent/" 2>/dev/null | grep -E '^[MARC]')" ]; then
-        echo "[notes-to-fbcode-sync] no net changes under the path (fbcode already in sync after arc f normalization); skipping commit." >&2
-    elif ! sl commit -m "$COMMIT_MSG" "fbcode/pe_mrs_ml/mrs_ot_agent/" 2>&1 >&2; then
+    if ! sl commit -m "$COMMIT_MSG" "fbcode/pe_mrs_ml/mrs_ot_agent/" 2>&1 >&2; then
         echo "[ERROR] sl commit failed" >&2
         exit 1
     fi

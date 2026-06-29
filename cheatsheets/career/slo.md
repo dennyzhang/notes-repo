@@ -51,7 +51,29 @@ Quick reference for the full SLI/SLO lifecycle: define SLIs, set SLO targets, ca
 
 ---
 
-## Multi-Window Burn Rate Alerts
+## Error Budget
+
+### Calculation
+
+```
+Error Budget = 100% - SLO Target
+
+Example: SLO = 99.95% over 7 days
+- Budget = 0.05%
+- 10M requests/week: 5,000 allowed failures
+- Time: 7 x 24 x 60 x 0.0005 = 5.04 min downtime
+```
+
+### Budget Interpretation
+
+| Budget State | Meaning | Action |
+|-------------|---------|--------|
+| **> 50% remaining** | Healthy | Ship features, experiment |
+| **25-50% remaining** | Caution | Review deploys, increase canary duration |
+| **< 25% remaining** | At risk | Freeze non-critical changes, fix reliability |
+| **Exhausted** | SLO violated | Stop feature work, fix root causes, postmortem |
+
+### Multi-Window Burn Rate Alerts
 
 | Scenario | Burn Rate | Window | Exhaustion | Response |
 |----------|-----------|--------|------------|----------|
@@ -61,22 +83,79 @@ Quick reference for the full SLI/SLO lifecycle: define SLIs, set SLO targets, ca
 
 ---
 
-## SLO Review Cadence
+## SLO Period Review
+
+### When to Run
 
 - After any SLO violation period
 - Monthly for Tier 0/1 services
 - Quarterly for Tier 2 services
 - Before half planning (input to roadmap)
 
+### Review Template
+
+```
+## SLO Period Review: [Service Name]
+
+**Period:** [Date range] | **Reviewer:** [Name]
+
+### SLO Attainment
+| SLI | Target | Actual | Status | Budget Remaining |
+|-----|--------|--------|--------|-----------------|
+| [SLI 1] | 99.95% | 99.92% | Violated | -0.03% (overspent) |
+| [SLI 2] | 99.0% | 99.5% | Met | 50% remaining |
+
+### Violation Analysis
+**SLI 1 violation (99.92% vs 99.95%):**
+- **Root cause:** [Description]
+- **Correlated incidents:** [SEV-IDs]
+- **Error budget consumed:** [X% of weekly budget in Y hours]
+
+### Action Items
+| Priority | Action | Owner | Deadline | Expected Impact |
+|----------|--------|-------|----------|-----------------|
+| P0 | [Action] | [Name] | [Date] | Prevents X% budget burn |
+
+### Recommendation
+[Keep current SLO / Tighten / Relax — with rationale]
+```
+
 ---
 
-## SEV-SLI Coverage
+## SEV-SLI Coverage Assessment
 
 PE target: **50%+ of SEVs should have corresponding SLI violations**.
+
+### Coverage Template
+
+```
+## SLI Coverage: [Team/Org]
+
+**Period:** [Date range]
+
+| SEV ID | Severity | SLI Detected? | Time to Alert | Gap |
+|--------|----------|---------------|---------------|-----|
+| [SEV-1] | SEV1 | Yes | 5 min before user reports | None |
+| [SEV-2] | SEV2 | No | N/A | Missing SLI for [component] |
+| [SEV-3] | SEV2 | Partial | 30 min after impact | Threshold too loose |
+
+**Coverage Score:** [X]% ([Y] of [Z] SEVs detected)
+**Target:** 50%+ | **Gap:** [Z-Y] SEVs uncovered
 
 ### SLI Detection Impact
 - With SLI detectors: avg MTTD = 0.53 hours (2.5x faster)
 - Without: avg MTTD = 1.32 hours
 - Error budget consumption 2.4x higher without detectors
 
-_Last updated: 2026-06-01. Maintainer: dennyzhang._
+### Gaps
+| Gap | Service | Recommended SLI | Priority |
+|-----|---------|-----------------|----------|
+| Missing coverage | [Service] | [Type + definition] | P0 |
+| Loose threshold | [Service] | Tighten to [X] | P1 |
+```
+
+---
+
+## See Also
+
+`references/impact-metrics.md`, `references/pe-reliability-metrics.md`, `references/communication-templates.md`

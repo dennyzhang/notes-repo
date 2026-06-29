@@ -28,6 +28,8 @@ Procedure:
 
    e. **Fetch markdown body.** `gdocs get <doc_id> --markdown --no-daemon 2>/dev/null > /tmp/ot-gdoc-body-<slug>.md`. If non-zero exit OR file < 10 bytes → record `error: markdown_fetch_failed` and continue. (`--no-daemon` required — same daemon-hang reason as step 3a.)
 
+      **⚠️ MULTI-TAB LIMITATION (2026-06-24).** Plain `--markdown` returns ONLY the doc's **first tab**, not all tabs. For multi-tab rolling docs (e.g. `feed-reliability-syncs`, where each tab is a sync date) this captures the **top tab**, which works ONLY while the author keeps newest-at-top — if a newer tab is added elsewhere, the sync **silently goes stale** (the worst failure for a monitoring feed). Single-tab/runbook docs (e.g. `runbook-online-training-jobs`) are unaffected. To capture full tab history or pin a tab: `gdocs get <doc_id> --expand-as-folder` (one HTML per tab) or a per-tab `--tab-id` loop over `gdocs docs tabs list`. Not yet wired (operator declined the loop 2026-06-24); tracked here so it's a known constraint, not a silent gap. If a rolling-doc slug looks stale, suspect this first.
+
    f. **Write new file.** Replace `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/references/gdocs/<slug>.md` with:
       ```
       ---

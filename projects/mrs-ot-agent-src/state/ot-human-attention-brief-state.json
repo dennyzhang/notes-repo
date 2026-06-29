@@ -1,19 +1,26 @@
 {
-  "last_run_epoch": 1781524800,
-  "last_brief_id": "2026-06-14-0800",
+  "last_run_epoch": 1782399891,
+  "last_brief_id": "brief-20260625-0800",
   "low_confidence_seen_24h": [
-    "alert-1962495167955557-needs-inv-run14019",
-    "ig-organic-feed-mtml-878102693-ne-major-run13813",
-    "sev-s675791-unknown-conf-low-run14691"
+    "S679009-overpage-vc1-26075",
+    "W1358574219570654-probe-miss-26134",
+    "2124149970-overquota-3rd-26128",
+    "S679473-misclassified-build-break",
+    "S669133-26d-chronic-batched",
+    "S679671-esrstreaming-low-conf-25jun",
+    "S679672-explore-fullsnapshot-low-conf-25jun",
+    "A1395807852427132-2120235511-103h-misclass-25jun"
   ],
   "learnings_seen_24h": [
-    "sev0-s675130-scribe-fleet-publishing-cascade",
-    "sev-killed-job-no-autorestart-omni-2122881736",
-    "detector-broken-igreels-vm-esr-T275750940-T275750949",
-    "postmortem-validator-p54-collision-run13659",
-    "ot-knowledge-curation-missed-2330-run13704",
-    "knowledge-curation-p57-obs-a1572-commit-9c2c3d6bccd8",
-    "postmortem-validator-2corrections-run14842",
-    "mrb-reset-model-store-uninit-w1350388963722513"
+    "hedwig-async-publish-red-herring-p023-D109482911",
+    "r-vc1-over-page-opened-by-check",
+    "T276623118-delivery-discipline-5plus-jun23",
+    "r-xr4-2122112224-s677645-cross-ref-miss",
+    "880283513-root-misattrib-detector-broken-vs-s669133",
+    "ed29e398ea45-applayerbehind-silent-qps0",
+    "ed29e398ea45-errswallowed-d109484777-systemic",
+    "ed29e398ea45-tgif-nomastkjob-falsepos",
+    "ed29e398ea45-scribe-catchup-sec-unset",
+    "ed29e398ea45-sparsedelta-subscriber-empty-sitevar"
   ]
 }

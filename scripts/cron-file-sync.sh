@@ -97,3 +97,6 @@ if [ "$should_pull" = true ]; then
 else
     log "Hourly pull not due yet (${elapsed}s / ${HOURLY_INTERVAL}s)"
 fi
+
+# Success heartbeat (workflow-design.md rule 2 — both branches above are non-error)
+write_heartbeat "file-sync"

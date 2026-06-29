@@ -40,10 +40,6 @@ TODAY=$(date '+%Y-%m-%d')
 LOCK_FILE="/tmp/cron-diff-signal-monitor.lock"
 ACTION_LOG="$HOME/logs/diff-signal-monitor.log"
 
-# Pylon's 1:1 delivery space (work instance). Externalized to config/DAILY-DOCS.json
-# (gchat_spaces.pylon) — see history for the 2026-05-22 migration off the dead space.
-PYLON_SPACE="spaces/$(get_gchat_space pylon)"
-
 # ─── Diff Flywheel (Stage 1/3/4) ─────────────────────────────────────────
 # All flywheel work is gated by FLYWHEEL_ENABLED. Cutover 2026-04-23: default
 # is ON. Manifest writing + attribution scan + JSON-classifier fallback are
@@ -133,6 +129,11 @@ unset CLAUDECODE 2>/dev/null || true
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/cron-alert.sh"
 
+# Pylon's 1:1 delivery space (work instance). Externalized to config/DAILY-DOCS.json
+# (gchat_spaces.pylon) — MUST be defined after sourcing cron-alert.sh (get_gchat_space
+# is defined there; calling it before source → empty PYLON_SPACE → auth error on send).
+PYLON_SPACE="spaces/$(get_gchat_space pylon)"
+
 mkdir -p "$(dirname "$ACTION_LOG")"
 
 # Stage 1 schema versioning — write `# schema=v1` header on first line so
@@ -170,7 +171,7 @@ write_escalation_manifest() {
     mkdir -p "$FLYWHEEL_ESCALATIONS_DIR" 2>/dev/null || return 0
 
     local meta_json
-    meta_json=$(timeout 15 meta phabricator.diff metadata -n "$diff_num" -o json 2>/dev/null || echo '{}')
+    meta_json=$(dsm_metadata "$diff_num" 2>/dev/null || echo '{}')
 
     DIFF_NUM="$diff_num" SIG_NAME="$signal_name" CLS="$cls" \
     FAILED="$failed" WARNINGS="$warnings" PASSED="$passed" \
@@ -231,8 +232,8 @@ flywheel_attribution_scan() {
         diff_num=$(basename "$manifest" .json)
 
         local cur_status_json cur_meta_json
-        cur_status_json=$(timeout 30 meta phabricator.diff ci-status -n "$diff_num" -o json 2>/dev/null || echo '{}')
-        cur_meta_json=$(timeout 15 meta phabricator.diff metadata -n "$diff_num" -o json 2>/dev/null || echo '{}')
+        cur_status_json=$(dsm_ci_status "$diff_num" 2>/dev/null || echo '{}')
+        cur_meta_json=$(dsm_metadata "$diff_num" 2>/dev/null || echo '{}')
 
         # LIVE land-blocking re-evaluation (D106859590 fix, 2026-05-30):
         # the ci-status aggregate (failed/warnings) can transiently read green
@@ -904,6 +905,80 @@ attempt_narrow_typefix() {
 # UI then misleadingly shows the diff as still stacked. Detect: Phab
 # depends_on non-empty AND local parent is on remote/master. Fix: call
 # remove-dependency. Read-only sl ops, no checkout, safe in any WC state.
+# ─── API Compatibility Shims (2026-06-26) ────────────────────────────────
+# meta phabricator.diff ci-status and metadata subcommands were removed
+# ~11:00 PDT 2026-06-26. These shims replace them with currently-working
+# equivalents so the monitor doesn't go blind.
+
+# Replacement for: meta phabricator.diff ci-status -n "$diff" -o json
+# Returns JSON: {failed, warnings, pending, passed, total_signals, url}
+dsm_ci_status() {
+    local diff_num="$1"
+    local raw
+    raw=$(timeout 60 meta phabricator.diff.signals list --number="$diff_num" \
+        --limit="${SIGNALS_LIMIT:-2000}" --output=json 2>/dev/null || echo '')
+    # signals list returns empty stdout when no signals match; treat as []
+    [ -z "$raw" ] && raw='[]'
+    echo "$raw" | python3 -c "
+import sys, json
+try:
+    sigs = json.loads(sys.stdin.read())
+    if not isinstance(sigs, list): sigs = []
+except:
+    sigs = []
+def cnt(st):
+    return sum(1 for x in sigs if x.get('status','').lower() == st)
+print(json.dumps({'failed': cnt('failed'), 'warnings': cnt('warning'),
+    'pending': cnt('pending'), 'passed': cnt('passed'),
+    'total_signals': len(sigs), 'url': ''}))
+" 2>/dev/null || echo '{}'
+}
+
+# Replacement for: meta phabricator.diff metadata -n "$diff" -o json
+# Returns JSON compatible with old metadata schema (missing: commit_hash,
+# land_job_status, is_landable, land_blocker, tags — set to safe defaults)
+dsm_metadata() {
+    local diff_num="$1"
+    local raw
+    raw=$(timeout 15 jf diff-properties "${diff_num}" 2>/dev/null || echo '')
+    [ -z "$raw" ] && raw='{}'
+    echo "$raw" | python3 -c "
+import sys, json
+try:
+    d = json.loads(sys.stdin.read())
+except:
+    d = {}
+repo = ''
+ap = d.get('arcanist_project') or {}
+repo = ap.get('name','') or (d.get('repository') or {}).get('name','')
+phab_status = str(d.get('status','') or '')
+is_landed = phab_status.lower() in ('committed','closed')
+is_closed = bool(d.get('is_closed', False))
+author = (d.get('author') or {}).get('unixname','')
+deps = (d.get('depends_on_diffs') or {}).get('nodes') or []
+depends_on = ','.join(f'D{n[\"number\"]}' for n in deps if n.get('number'))
+lpv = d.get('latest_phabricator_version') or {}
+latest_ver = str(lpv.get('number','') or '')
+msg = str(d.get('message','') or '')
+title = msg.split('\n')[0].strip()[:200]
+print(json.dumps({
+    'repository_name': repo,
+    'status': phab_status,
+    'is_landed': is_landed,
+    'is_closed': is_closed,
+    'author': author,
+    'depends_on': depends_on,
+    'latest_version_number': latest_ver,
+    'title': title,
+    'commit_hash': '',
+    'land_job_status': '',
+    'is_landable': False,
+    'land_blocker': 'none',
+    'tags': '',
+}))
+" 2>/dev/null || echo '{}'
+}
+
 metadata_hygiene_clear_stale_deps() {
     [ "$METADATA_HYGIENE_ENABLED" != "1" ] && return 0
     local diff_num="$1" meta_json="$2"
@@ -1160,7 +1235,7 @@ escalations=0
 for diff_num in $DIFF_NUMS; do
     queried=$((queried + 1))
 
-    raw=$(timeout 30 meta phabricator.diff ci-status -n "$diff_num" -o json 2>/dev/null || echo '')
+    raw=$(dsm_ci_status "$diff_num" 2>/dev/null || echo '')
     if [ -z "$raw" ] || ! echo "$raw" | python3 -c "import sys,json; json.loads(sys.stdin.read())" 2>/dev/null; then
         errored=$((errored + 1))
         echo "$LOG_PREFIX  $diff_num: ci-status query FAILED"
@@ -1187,7 +1262,7 @@ print(f\"DIFF_URL={d.get('url','')}\")
     # Land-status check must run BEFORE the CI-green skip, otherwise diffs
     # like D104348699 (CI-green/warn-only with LAND_RECENTLY_FAILED) get
     # bypassed (the historical bug surfaced 2026-05-08).
-    meta_json=$(timeout 15 meta phabricator.diff metadata -n "$diff_num" -o json 2>/dev/null || echo '{}')
+    meta_json=$(dsm_metadata "$diff_num" 2>/dev/null || echo '{}')
     eval "$(echo "$meta_json" | python3 -c "
 import sys, json, shlex
 try:
@@ -1227,7 +1302,7 @@ print(f\"DIFF_IS_LANDED={shlex.quote(str(d.get('is_landed','false')))}\")
     # WC-mutating; gated by WC-clean + AUTO_REBASE_ENABLED. If it rebases,
     # re-fetch meta_json so downstream checks see the new commit_hash.
     if metadata_hygiene_rebase_stale_parent "$diff_num" "$meta_json"; then
-        meta_json=$(timeout 15 meta phabricator.diff metadata -n "$diff_num" -o json 2>/dev/null || echo "$meta_json")
+        meta_json=$(dsm_metadata "$diff_num" 2>/dev/null || echo "$meta_json")
     fi
 
     # Land-failure detection — runs BEFORE the green-skip branch so that
@@ -1713,13 +1788,22 @@ fi
 echo "$LOG_PREFIX Review queue: $review_pending diff(s) awaiting your action"
 
 # ─── Send escalation message (only when needed) ──────────────────────────
-if [ "$escalations" -eq 0 ] && [ "$review_pending" -eq 0 ]; then
+# DSM_PENDING_FILE holds an escalation that a PRIOR run could not deliver
+# (both send paths failed — e.g. bot-auth lapse). It must be defined BEFORE
+# the silent-exit guard: a non-empty backlog has to force the send path even
+# on an otherwise-quiet run, or a stuck escalation never flushes (it used to
+# only flush when fresh work appeared — D-signal delivery outage 2026-06-16).
+DSM_PENDING_FILE="$REPO_DIR/state/diff-signal-pending-escalation.md"
+if [ "$escalations" -eq 0 ] && [ "$review_pending" -eq 0 ] && [ ! -s "$DSM_PENDING_FILE" ]; then
     if [ "$auto_fixed" -gt 0 ]; then
         echo "$LOG_PREFIX All non-green diffs auto-fixed silently ($auto_fixed); review queue empty."
     else
         echo "$LOG_PREFIX No escalations, no review queue. Silent exit."
     fi
     write_heartbeat "diff-signal-monitor"
+    # Only clear the alert when the delivery channel is PROVEN healthy (no
+    # undelivered backlog). Clearing on every quiet run wiped a still-valid
+    # "GChat send failed" alert within an hour, hiding the 2026-06-16 outage.
     cron_alert_clear "diff-signal-monitor"
     exit 0
 fi
@@ -1753,7 +1837,8 @@ fi
 # silently drops an alert. Flush it by prepending to this run's message; the file is
 # cleared only after a successful send below. (Tested 2026-06-16: both send paths work;
 # the gap was no durable retry when both fail transiently, as at the 16:00 cron.)
-DSM_PENDING_FILE="$REPO_DIR/state/diff-signal-pending-escalation.md"
+# (DSM_PENDING_FILE is defined above the silent-exit guard so a stuck backlog
+# forces the send path even on a quiet run.)
 if [ -s "$DSM_PENDING_FILE" ]; then
     message="_(recovered from a prior failed send)_
 $(cat "$DSM_PENDING_FILE")
@@ -1782,6 +1867,11 @@ DSM_THREAD_STATE_FILE="$REPO_DIR/state/diff-signal-thread-id"
 DSM_SAVED_THREAD=""
 [ -f "$DSM_THREAD_STATE_FILE" ] && DSM_SAVED_THREAD=$(tr -d '[:space:]' < "$DSM_THREAD_STATE_FILE" 2>/dev/null)
 
+# Both real send paths require --as-bot: the user OAuth token lacks the
+# chat.messages.create scope, so the old as-user fallback could NEVER deliver
+# (it just burned a 30s timeout before failing too — 2026-06-17). Degradation
+# is now threaded-as-bot → as-bot-to-root (loses threading, keeps delivery),
+# which is what actually works when a saved thread id goes stale.
 dsm_used_fallback=0
 if [ "$DSM_THREAD_ENABLED" = "1" ]; then
     if [ -n "$DSM_SAVED_THREAD" ]; then
@@ -1792,13 +1882,13 @@ if [ "$DSM_THREAD_ENABLED" = "1" ]; then
     fi
     send_exit=$?
     if [ "$send_exit" -ne 0 ]; then
-        echo "$LOG_PREFIX [WARN] threaded as-bot send failed (exit=$send_exit) — falling back to as-user root"
-        send_out=$(echo "$message" | timeout 30 google-mux chat send "$PYLON_SPACE" - 2>&1)
+        echo "$LOG_PREFIX [WARN] threaded as-bot send failed (exit=$send_exit) — retrying as-bot to root"
+        send_out=$(echo "$message" | timeout 30 google-mux chat --format=json send "$PYLON_SPACE" - --as-bot 2>&1)
         send_exit=$?
         dsm_used_fallback=1
     fi
 else
-    send_out=$(echo "$message" | timeout 30 google-mux chat send "$PYLON_SPACE" - 2>&1)
+    send_out=$(echo "$message" | timeout 30 google-mux chat --format=json send "$PYLON_SPACE" - --as-bot 2>&1)
     send_exit=$?
     dsm_used_fallback=1
 fi
@@ -1837,6 +1927,18 @@ else
     mkdir -p "$(dirname "$DSM_PENDING_FILE")"
     printf '%s\n' "$message" > "$DSM_PENDING_FILE"
     echo "$LOG_PREFIX Saved escalation to $DSM_PENDING_FILE — will retry next run"
+fi
+
+# ─── Comment-action: fix open Devmate/human comments on my diffs ──────────
+# The diff flywheel already enumerated my open diffs above; this closes their
+# open review comments by fixing the code (draft-only, mine-only, verify-or-
+# revert). Launched DETACHED (setsid) so its per-diff LLM fixer (~20min/diff)
+# does not block this monitor's timeout; it has its own lock + dirty-WC guard.
+# Consolidated here 2026-06-18 (Denny) instead of a separate cron schedule.
+if [ "${DRY_RUN:-0}" != "1" ]; then
+    setsid bash "$HOME/work/claude/scripts/cron-diff-comment-action.sh" \
+        >> "$HOME/logs/diff-comment-action.log" 2>&1 &
+    echo "$LOG_PREFIX launched diff-comment-action (detached background)"
 fi
 
 write_heartbeat "diff-signal-monitor"

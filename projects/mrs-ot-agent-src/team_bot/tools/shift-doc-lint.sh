@@ -282,6 +282,41 @@ while IFS= read -r li; do
   fi
 done < <(printf '%s' "$html" | perl -0ne 'while(/<li>(.*?)<\/li>/gs){my $x=$1; $x=~s/\n/ /g; print "$x\n"}')
 
+# 19) SECTION STRUCTURE & ORDER (operator 2026-06-25 "why the format doesn't follow the previous
+#     shifts?"). The 6/30 tab invented a numbered §1–§6 scheme (Headline Numbers / Daily Timeline /
+#     Open SEVs / Alerts / User Reports / Hand-off Notes) instead of the canonical template's NAMED
+#     sections, with Daily Timeline hoisted ABOVE Hand-off. Root cause: the render hand-composed the
+#     ghtml instead of filling ot-shift-summary-template.html (CLAUDE.md standing-action #1) — the
+#     pre-#19 lint caught content but never STRUCTURE, so a whole-layout swap passed clean. Two parts:
+#     (a) no numbered-§ heading scheme; (b) the core named sections must be PRESENT and in template
+#     order: Overview → Pain Points → Hand-off → Daily Timeline (Daily Timeline LAST). "Impact this
+#     shift" is template-canonical but historically optional (6/9 & 6/16 omit it), so NOT required
+#     here; a leading "🚨 …Paged" / metrics section and a trailing "Notes" section are allowed extras.
+mapfile -t _secs < <(printf '%s' "$html" | perl -0ne 'while(/<h3\b[^>]*>(.*?)<\/h3>/gs){my $t=$1; $t=~s/<[^>]+>//g; print "$t\n"}')
+_norm=(); _numbered=0
+for s in "${_secs[@]}"; do
+  printf '%s' "$s" | grep -qE '§\s*[0-9]|^\s*[0-9]+[.)] ' && _numbered=1
+  n="$(printf '%s' "$s" | perl -pe 's/§\s*\d+[a-z]?\s*//; s/^\s*\d+[.)]\s*//; s/\s*\([^)]*\)\s*$//; s/^\s+|\s+$//g' | tr '[:upper:]' '[:lower:]')"
+  _norm+=("$n")
+done
+if [ "$_numbered" = 1 ]; then
+  report "section-scheme" "shift doc uses a numbered §N section scheme — the template uses NAMED unnumbered sections (Overview / Impact / Pain Points / Hand-off / Daily Timeline). Fill ot-shift-summary-template.html, do NOT hand-compose (standing-action #1, 2026-06-25)"
+fi
+if [ "${#_secs[@]}" -gt 0 ]; then
+  _last=-1
+  for r in "overview" "pain points" "hand-off" "daily timeline"; do
+    _idx=-1
+    for i in "${!_norm[@]}"; do case "${_norm[$i]}" in *"$r"*) _idx=$i; break;; esac; done
+    if [ "$_idx" -lt 0 ]; then
+      report "section-missing" "required template section '$r' is absent — fill the template's named sections, don't invent a scheme (2026-06-25)"
+    elif [ "$_idx" -le "$_last" ]; then
+      report "section-order" "section '$r' is out of template order — must be Overview → Pain Points → Hand-off → Daily Timeline (Daily Timeline LAST, Hand-off above it) (2026-06-25)"
+    else
+      _last=$_idx
+    fi
+  done
+fi
+
 if [ "$fail" -eq 0 ]; then
   echo "shift-doc-lint: PASS — no deterministic violations" >&2
 else

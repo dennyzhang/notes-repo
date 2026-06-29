@@ -1,6 +1,6 @@
 # WWW Diff Cheatsheet
 
-<!-- Last updated: 2026-06-09 -->
+<!-- Last updated: 2026-03-22 -->
 
 WWW/Hack-specific rules for diffs in the www repo. **Read `cheatsheets/diff/common.md` first** for shared Sapling/JF patterns, submit workflows, gotchas, reviewer discovery, and test plan discovery.
 

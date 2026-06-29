@@ -1,306 +1,516 @@
 {
-  "last_run_epoch": 1781540948,
-  "_hash_method": "python3 hashlib.sha256(sqlite_prompt.strip().encode()).hexdigest() \u2014 sqlite-stripped, canonical from 12:40 PDT 2026-06-03. Notes-based hashing abandoned (extra trailing \\n in sqlite caused false positives). IMPORTANT: use per-row individual queries (not multi-row with newline splitting) to avoid multi-line prompt truncation bug discovered 2026-06-14.",
+  "last_run_epoch": 1782415019,
   "prompt_snapshots": {
+    "context-ingestor-gchat": {
+      "prompt_sha256": "89bd59871c07d89d79a73ba8462656748b2eb9bd875c940721d25c9074567d4c",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "context-ingestor-posts": {
+      "prompt_sha256": "8e096d2629b8aa62add88dcbbfd04bd1d1a0973dcd41bd58e6b5927e85dfcd50",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
     "daily-brief": {
-      "prompt_sha256": "117e36752da6e70e9d49d8afe767c59bd1950dc7229fdb876d452f36c66f3bca",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "prompt_sha256": "cadf8f603abe5b108144b3b0db2259677040af3ad090d237f7ac4d845d531f26",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "feedback-coach": {
       "prompt_sha256": "0cf1b3f3fa16b9ff23738d100580ccc4b9d589f3ce83825446561cf689628f74",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-alert-monitor": {
-      "prompt_sha256": "fee2ad191e52aa8c3cbf3c4456c3144bafd399d83c4e424f7bbd3374dc6a2fb2",
-      "last_validated_epoch": 1781399741,
+      "prompt_sha256": "cae8d8c0dc7b2e5f4b0c2e3b422cad417889d41655956a65a42abde2ebc8f1b0",
+      "last_validated_epoch": 1782314595,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "last_validation_summary": "2026-06-24 08:20 PT: PASS \u2014 rule 19 additive (post-upstream-SEV-mitigation re-eval gate with proper falsifier); OUTPUT CONTRACT front-loaded intact; no format/citation/URL changes",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-autofix-diff-drafter": {
       "prompt_sha256": "8812963e2a61c53ab4f8b2a5520d3fb87c827545b7ff44d32d55a80610b0c142",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-bot-volume-watch": {
-      "prompt_sha256": "37ee02af2dc008955c89a0532152378b7df0a05721414aec3e69988fff38d1d2",
-      "last_validated_epoch": 1781540948,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-15 09:26 PDT: PASS (subagent). Score formula correctly bracketed as [manual_fallback ONLY] when script returns error/empty. LABELING-ONLY path is unambiguously primary. DETERMINISTIC PARTITION and Score bullets are now consistent. No LLM escape route to re-compute on normal path. Fix directly addresses 09:16 FAIL. Already in alerts_posted_24h \u2014 no new alert needed."
+      "prompt_sha256": "053e9319d963b9f3ede5080b1d5ec9ef482604a7da209df7769b7a4449ebab9f",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-cron-health-guard": {
       "prompt_sha256": "a90b2eba8b9791115e3e9506439c645c4985b88ddcac2271946c5c0b120016e4",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "ot-cron-health-watch": {
+      "prompt_sha256": "dfd7e14beb4ce715275c90d317c531ec84bf7d25950217c07aea5ae5a1795dda",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-daily-learning-debugging": {
-      "prompt_sha256": "7cd6ad5832f96ac309685a1f6fe162884e52e2d0e197822ddc79822c96277d43",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 2
+      "prompt_sha256": "fb1a50651ac820d5b514836e3bc718da3c71721994a0167a275c735c3c16e163",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-daily-learning-digest": {
-      "prompt_sha256": "387b8482ec28ec0d81892cf1af4d2a7fea200c177bfb10b4f829c1311b8c2576",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "prompt_sha256": "91076e3cc36e80041caed237d234f3d5559c51f54b5b42eb25393b4df2a2a683",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-daily-learning-mitigated-alerts": {
-      "prompt_sha256": "207bb1756f58d9d72a5e1ca9f544b701726307eb9034a211e2c3e48d25adfc71",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "fail",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (fail) carried forward."
+      "prompt_sha256": "c2a0c88925dd2bec59ed1cbc5586db201d0f57389995de4dfa790e74dba8e25a",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-daily-learning-mitigated-posts": {
-      "prompt_sha256": "a15266774f1a2085f6f664b77ef44df35941ed43990baed7fc51c86a1945062c",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 2
+      "prompt_sha256": "ee21432524b9486ad3c3854285f95b96592dfad5ba5061013a785367d6f467f8",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-daily-learning-mitigated-sevs": {
-      "prompt_sha256": "9f92c1dbff603ae91b240b0fb6ffb0b3f03e6e673241089978d67c06c51faeee",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-14 11:16 PDT: hash re-baselined \u2014 diff showed only trailing blank line (strip-equivalent); content unchanged vs notes. Hash method inconsistency from truncation bug discovered 2026-06-14. Prior verdict (fail) was oscillation carry-forward; no new change detected."
+      "prompt_sha256": "32ca3c940b616dd6587f199088b8c9b1f4135165fdff547ffa52d90894e90026",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-debug-quality-weekly": {
-      "prompt_sha256": "3ff1753ad41d7e0199bc250e2eec83ad844a77e6e67570ec0a5f5684df105132",
-      "last_validated_epoch": 1781440261,
+      "prompt_sha256": "63a7859ae6b2995bf67f55d4281096a3ae4fad4ec0784d95166160c3caba8d9c",
+      "last_validated_epoch": 1782281036,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-14 05:20 PDT: PASS (subagent). Output structure aligns with prompt: title/composite/scored/per-dimension/miss-classes/wins/gap/trend all present. SEV URLs correct format. Output channel rule followed. Prior FAIL was inherited through oscillation re-baselines \u2014 no actual defect found. Note: triggered by multi-line hash bug in change detection (no actual prompt change)."
+      "last_validation_summary": "2026-06-23 23:00 PT: PASS \u2014 OUTPUT CONTRACT front-loaded (pos 4), preamble prohibition added, paste [P<id>] link enforced before body; 9-consecutive-fail cleared by edit",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-diff-task-link-reconcile": {
       "prompt_sha256": "d7f4a3f5c8d1ed84e74c7cee826916e32add7c771c9320584758ac6e7739fce2",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "ot-disk-watch": {
+      "prompt_sha256": "30a583dbb494e717e060fe24f6ffe1e96245482ffbd20e50460607c87a28cedb",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-effect-monitor": {
       "prompt_sha256": "4b90a1a6c1e3d9936bd543148d5637fcd74dc3304037b27bce25659848371eee",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-eval-goldset-curator": {
       "prompt_sha256": "ae1504d458e81913ab6a881fbfe23721ad59e8317563a70593f3391b9c4bb20a",
-      "last_validated_epoch": 1781388867,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 3
-    },
-    "ot-fleet-health": {
-      "prompt_sha256": "30794c6db4b97381e0aa8f2b34c017e68f43a48b21e39f71d2c4aa61882babae",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "exempt-script-orchestrated",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (exempt-script-orchestrated) carried forward."
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-evolve-loop": {
       "prompt_sha256": "9afe7b215e09dff9b6bc3433017a56f77539677b4b5f9d6c2758b4f1eae3da83",
-      "last_validated_epoch": 1781418813,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 23:30 PDT: New cron (first snapshot). Past run 14650 (639 chars) is a fix-narration (shard error + code fix), not a triage artifact \u2014 no alert/sev/post input to extract. Eval harness is internal state-machine logic, not a traditional triage cron. INCONCLUSIVE (1 of 3 threshold). No escalation.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "ot-fbpkg-cap-watch": {
+      "prompt_sha256": "1a9630fa5acb8a50fbff7d7427d5721410ad23a9629789e52d522d8b5a0f4f4a",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "ot-fleet-health": {
+      "prompt_sha256": "f9163e5617c55446f89b7148fb89c192fe61c281ad982c55b54a7dfc121affc5",
+      "last_validated_epoch": 1782281636,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "2026-06-23 23:10 PT: FAIL (3rd) \u2014 step1 EIGHT-scan fix confirmed; REMAINING: step2 fallback clean-gate tests z/s/p only (3 of 8); x/d/t/g/n_rc never evaluated; scans 4-8 results silently ignored in fallback path. Fix: step2 clean condition = all 8 rc==1; rc==2 handler must name all 8 scans.",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 3
+    },
+    "ot-gdoc-context-sync": {
+      "prompt_sha256": "042ded6719c1941ca2ee7c5781053bce5c2b15ef08e92e155167b9506f2e1540",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "ot-human-attention-brief": {
+      "prompt_sha256": "2b26bc3500e2d60ba02a497a3544415412eae26952d1604ee6244abedb43d18c",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-ingest-diffs": {
-      "prompt_sha256": "0b3e1255af8d222bf94c564db42e787f16ba90cadea9b62aa531139503a6efcd",
-      "last_validated_epoch": 1781415356,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 22:30 PDT: PASS (subagent). Output shape rules correct \u2014 step 6 is only send, HEARTBEAT_OK on no-drift, escalation throttled on chronic failures. Fix-don't-report pattern self-consistent. Minor: 'No drift' narration before HEARTBEAT_OK in prior run is transitional artifact, not a prompt defect."
+      "prompt_sha256": "8ede5a94702da32496cd7f88e96c0217756476eb810b32a2883e80b42e11ab0b",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-ingest-gchat": {
       "prompt_sha256": "2349dfca990b36a3f1c1cc355dc582eb117004832d9cca346608115a1cf195e7",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-ingest-gdocs": {
-      "prompt_sha256": "053267ed6718d7370e7ab6fe8070f452d8c371067958908a22e19a22f5917ec8",
-      "last_validated_epoch": 1781414400,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 22:16 PDT: New cron id (renamed from ot-ingest-gdoc). Recent run only 12 chars (HEARTBEAT_OK) \u2014 thin history, no validatable payload. INCONCLUSIVE (1 of 3 threshold). No escalation.",
-      "consecutive_inconclusive": 1
+      "prompt_sha256": "60f97475eb321f21ffb56f71dffabadb4883456bfaca6d8fad4221b6135c7336",
+      "last_validated_epoch": 1782356420,
+      "last_validation_verdict": "pass",
+      "last_validation_summary": "2026-06-24 19:56 PT: PASS \u2014 step 3e multi-tab limitation note is documentation-only (operator-declined tab-loop); no new mandatory output requirements; recurrence throttle logic intact",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-ingest-posts": {
       "prompt_sha256": "240e6c511ffafeb6aab988b7676496fc31cc0275bc5291817187a5de771fa50b",
-      "last_validated_epoch": 1781416856,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 22:56 PDT: New changes (roster from key-people.json, 4000-char body cap) are structurally sound. Narration prohibition rule present in OUTPUT CHANNEL header \u2014 prior run narration is LLM-variance, not prompt gap. No qualifying past run (145-char run < 500 threshold). Alert already in 24h window (deduped). INCONCLUSIVE (1 of 3 threshold)."
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-knowledge-curation": {
-      "prompt_sha256": "2deed3f888c7cea414c2fed359398389236ccabf1c2afa2baf8ed15f013dd50c",
-      "last_validated_epoch": 1781472759,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-14 14:30 PDT: PASS. Notes write-lock rollout (Option B, 2026-06-14) \u2014 D1 commit step now wraps sl add+commit via bash $LK. notes-sl-lock.sh verified present+executable+fail-open. Output channel rules (1:1 only \u2192 HEARTBEAT_OK), structure, and delivery logic unchanged."
+      "prompt_sha256": "50b772551294394e2592c2069939dd69bb6a7a2458be211bd88af15600f9cc25",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-knowledge-distillation": {
-      "prompt_sha256": "3115e508b43b856c55bb2930969819f8cc9b201e8c8c2bc324ac30081923cf0d",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "prompt_sha256": "690d4c7a3ddc2ad4949f90a77b4b6be6b4bb6cd0de162d8cfc8fe2078b52cf69",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-metrics-rollup": {
-      "prompt_sha256": "67b197721c46e8158c2e3cdfd62ff5ed6dae89fcd9e726125b459e776b864c4d",
-      "last_validated_epoch": 1781416856,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 22:56 PDT: Step 7 (early-warning detector) added \u2014 REPORT-FILE-ONLY, correctly designed. Past run narration before HEARTBEAT_OK is LLM-variance; prohibition rule present at OUTPUT CHANNEL header. INCONCLUSIVE (2 of 3 threshold).",
-      "consecutive_inconclusive": 2
+      "prompt_sha256": "4bd4807a5ccfacc0b128e60d809a723d821ad16efe691a2f8141d7eefe11469b",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-model-eval-monthly": {
       "prompt_sha256": "e984c2a2b574bab37c9b0ac5ee23728ba7083af7e9e5e659f8dcf6123256c4a0",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-myclaw-backup-nightly": {
-      "prompt_sha256": "1fcba243fef5eb09c320b51ecff938b19d2d2833f139ef04d6947f545585b35e",
-      "last_validated_epoch": 1781472759,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-14 14:30 PDT: PASS. Notes write-lock rollout \u2014 Phase A sl pull/add/commit wrapped via bash $LK. Script verified. Output rules (1:1 gchat \u2192 HEARTBEAT_OK on quiet, partial/full failure posts) unchanged."
+      "prompt_sha256": "8f1cd95dacb7e3bf0a51c1397e25325e95790c04836d01213ebeb951c583cf2b",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-myclaw-weekly-restart": {
-      "prompt_sha256": "2feb201ca97b53038ce1cfa6bbd7925318ef21b6dbe6f98d84e418a5387e705b",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "prompt_sha256": "2bf285f97cc2ff820e68d9bbb5fd9487e5dfa29829953a70ad267ffc7f3e7249",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-notes-commit-push": {
-      "prompt_sha256": "04e43b3acd9785c376451ca6c0082194cc791020ed43499f6498c33b9c09fae5",
-      "last_validated_epoch": 1781472759,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-14 14:30 PDT: PASS. Notes write-lock rollout \u2014 sl add/forget/commit in drift path wrapped via bash $LK + comment added. Script verified. Cloud sync, escalation, HEARTBEAT_OK delivery logic unchanged. sl status for path-arg to forget is correctly unlocked (read-only)."
+      "prompt_sha256": "c6a5e9f1829c636436d0445d421ef630d3c4fd21bf2e0215b3f78dce854156f5",
+      "last_validated_epoch": 1782401978,
+      "last_validation_verdict": "inconclusive",
+      "last_validation_summary": "2026-06-25 08:36 PT: INCONCLUSIVE (1st) \u2014 execution path changed (inline 2-commit \u2192 notes-push.sh); old run 28147 preamble was path-specific; no new-prompt run exists yet. Monitor next hourly fire for preamble recurrence.",
+      "consecutive_inconclusive": 1,
+      "consecutive_fail": 0
     },
     "ot-notes-deletion-watch": {
-      "prompt_sha256": "52df5a31723ed65c5448448e72ca9303b25d3b4487e795f7848c25003d904f52",
-      "last_validated_epoch": 1781472759,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-14 14:30 PDT: PASS. Notes write-lock rollout \u2014 Safety section updated to mandate bash $LK for allowed sl mutations (additive guard). Output channel rules (1:1 only), detection logic, and recovery flow unchanged."
+      "prompt_sha256": "c78d866faeff9e9eedb32e041cc4123738d4ccdfe3f22b7b398f28ec9de08b79",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-notes-fbcode-commit": {
-      "prompt_sha256": "1731e46818cecbe195726d9d17729cf6f3459c2744ba0b1b5429545fd676924b",
-      "last_validated_epoch": 1781414589,
+      "prompt_sha256": "0dce04a7cffcf28ffabe07f69cf719802911e0e9a236350e5f34f85bb053b4d9",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "ot-notes-fbcode-sync": {
+      "prompt_sha256": "e63a2f3f046add7c83e0d7a0032b85a1e52002707d03e7aef6282fc07dfbe7c0",
+      "last_validated_epoch": 1782319940,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 22:20 PDT: PASS (dedicated subagent). Prompt edit added explicit cases (b)/(c)/(d) delivery rule prohibiting narration before HEARTBEAT_OK \u2014 directly targets run_id=7771 violation class. Subagent: 'The rule is explicit enough to prevent the specific past violation.' Upgraded from INCONCLUSIVE (22:16 conservative pass)."
+      "last_validation_summary": "2026-06-24 09:50 PT: PASS \u2014 self-healing drift gate (NOTES_BEHIND auto-backport) is P-020 compliant; no-submit hard gate intact; output contract clean; BIDIRECTIONAL dedup stated; MANIFEST NOTES_BEHIND\u2192BIDIRECTIONAL conservative path correct",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-notes-fbcode-sync-weekly": {
-      "prompt_sha256": "df1d0863bf28a98e142fb7f27caaf669806d161303a4d22d70238a0a4376fe77",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "prompt_sha256": "2a130a8d562c348d8ee42f6d69dc509ec62093c761606c4b102138b37f787d6d",
+      "last_validated_epoch": 1782281036,
+      "last_validation_verdict": "inconclusive",
+      "last_validation_summary": "2026-06-23 23:00 PT: INCONCLUSIVE (1st) \u2014 no past runs in 7 days (Monday-only cron); cannot validate without representative triage",
+      "consecutive_inconclusive": 1,
+      "consecutive_fail": 0
     },
     "ot-notes-weekly-review-paste": {
       "prompt_sha256": "b3ee359b01971d50944fc68f93a01e2f7dce93f02eeeede3f9e3d674cf90b400",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-oauth-refresher": {
-      "prompt_sha256": "91c6cca50836454529c2b75a8c430dcc26fdc3cd4e5d6414ab0349f75210d2e1",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "prompt_sha256": "b9dab8cb2fced85f3ef4052f73ffb8dd0d264565c9846b34a794d8a7b4ec8ecd",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-post-monitor": {
-      "prompt_sha256": "019d5bd8de9a06a0b005867b9c37d261da3e3e61f53a2caafb228ef504f3f83e",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "prompt_sha256": "1facadf34afaa4c8842f432ca6b47ae04c755acb1d0bd6a6070aa265ac6819b9",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-postmortem-validator": {
-      "prompt_sha256": "27a6b31496ea0a13951edf84bdbba6410ea97c673cc7536c1b66ddfabbd450b6",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
-    },
-    "ot-prompt-change-validator": {
-      "prompt_sha256": "80c301430e02eda8e6c210db3530d34bf4cf1636809c21e653de06b1de953349",
-      "last_validated_epoch": 1781513239,
+      "prompt_sha256": "a5ca9d07865cc85896e5a7f978509128ee950f5cd6ef7a3761932aec25a05a0b",
+      "last_validated_epoch": 1782280053,
       "last_validation_verdict": "skip",
-      "last_validation_summary": "2026-06-15 01:46 PDT: self-skip, hash unchanged."
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-sev-detection-gap-audit": {
       "prompt_sha256": "9bd63a43cbc5caf488460c61ab70681d86f32a5d385b9764dc9d0181e178688a",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-sev-monitor": {
-      "prompt_sha256": "fd0cb35bbd0255b0fb4524d798295de94835cd905d0282bc91e96431d2bda8e0",
-      "last_validated_epoch": 1781399741,
+      "prompt_sha256": "0458eb420ee4bd625a1573658bb273fdbd01a0a526587bf8c8a0b6f8af26818c",
+      "last_validated_epoch": 1782400471,
       "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "last_validation_summary": "2026-06-25 08:10 PT: FAIL\u2192PASS auto-fix \u2014 Step 10 template conflicted with item 25 (HEARTBEAT_OK mid-response + run-summary block forbidden); template replaced with compliant single-line HEARTBEAT_OK {...} format; notes committed; sqlite updated=1; fix verified in sqlite.",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-sev-tag-review": {
-      "prompt_sha256": "193cf3deb34e290dccc9491df2d42bc4e86b01091603da04db61d2e12567bea4",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "prompt_sha256": "da4fa5e7e10c4d3afdadd0d34837b59b7e3b6598218ae69dea6f13e64816f322",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-shift-summary": {
-      "prompt_sha256": "32c978816da917301c016b421fab171164816b84fcb4cb0282c2912943288037",
-      "last_validated_epoch": 1781471351,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-14 14:08 PDT: PASS. Prompt edit addressed both defects from 13:20 FAIL: (1) --json flag now annotated as verified-working (used live 2026-06-13, output shape confirmed); (2) DEDUP GATE now explicit and mandatory in Step 0a.2 (skip comment if last reply is already [myclaw-ot bot reply] and no newer operator reply). Both fixes are on the correct code path. Alert already in 24h window \u2014 no new post needed."
+      "prompt_sha256": "d8daef75ee1288b21687922855ded3a632a4429881cadb4e2acecba3991dbc12",
+      "last_validated_epoch": 1782358197,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "2026-06-24 20:26 PT: FAIL (2nd) \u2014 section-structure lint added (valid gdoc guard); REMAINING: explicit multi-line/bullets prohibition still absent from OUTPUT CONTRACT. 'ONE short status line' not strong enough to prevent LLM from emitting Highlights block (proven by run 25943). Fix: add to OUTPUT CONTRACT: 'NEVER emit bullets, sections, or highlights in chat \u2014 your response is ONE LINE only.' Next fire: Tue 2026-07-01 08:30 PT.",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 2
     },
     "ot-team-chat-self-audit": {
       "prompt_sha256": "2cf7d0158d440663b06651de0b55e103d870d9a9c4d3e1b4cbd8a1bcd25b6daa",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-thread-summarizer": {
-      "prompt_sha256": "9e19dd8279cc947c4689981021350e6625414f95aee1ec2cb02aaa17a0173637",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 3
+      "prompt_sha256": "8e387775573ca8e0b6589aefe355045425fd1cba53fa4f70a6d9dab820964d2b",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "ot-triage-auditor": {
-      "prompt_sha256": "3aa8087caedc9b0a3bbf3ae337ac95dad70e0760dfea4c161a26650c3b59a1e9",
-      "last_validated_epoch": 1781371660,
+      "prompt_sha256": "b8b20ddca0257e3326efa018e06faeaf72d0354d5ee38fbb29e18a711de188d9",
+      "last_validated_epoch": 1782345303,
       "last_validation_verdict": "fail",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (fail) carried forward."
+      "last_validation_summary": "2026-06-24 16:50 PT: FAIL (1st) \u2014 Step 7 lacks explicit no-preamble prohibition; no front-loaded OUTPUT CONTRACT; past run emitted prose before HEARTBEAT_OK (pages=0, nudges=2 run delivered full text to GChat). Fix: add OUTPUT CONTRACT at prompt top + explicit \"no text before HEARTBEAT_OK\" to Step 7.",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 1
     },
     "ot-triage-summary": {
-      "prompt_sha256": "f8c88c6e73ac61fa1f89ba69b5f41b7cf7e84935641806080919febe8a782dcb",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "prompt_sha256": "6d295c761628b8b99fd7e9543c4944e302132e9aa7b52604aef57521d75fd683",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "fail",
+      "last_validation_summary": "2026-06-23 22:40 PT: FAIL (2nd, days=2) \u2014 Step 0 dedup responds HEARTBEAT_OK+JSON trailer which daemon treats as non-HEARTBEAT and delivers full string to GChat",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 2
     },
     "ot-weekly-reliability-digest": {
       "prompt_sha256": "f2a994d1ef6aa99f05c016c7c53d4e3a21f50e2c30639cd35d8bb4eb2eb566fe",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "inconclusive",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (inconclusive) carried forward.",
-      "consecutive_inconclusive": 1
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     },
     "server-disk-guard": {
       "prompt_sha256": "ae941ce72d6977623a93826ddab29cdfd933ad196e1ed34a779105824d8f855c",
-      "last_validated_epoch": 1781371660,
-      "last_validation_verdict": "pass",
-      "last_validation_summary": "2026-06-13 18:38 PDT: oscillation re-baseline (setup re-run). Prior verdict (pass) carried forward."
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "ot-prompt-change-validator": {
+      "prompt_sha256": "d67c8618a2845f79c021b9064c9ae669a71c8f45d502fd7844ea5864e5aa4375",
+      "last_validated_epoch": 1782278362,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:16 PT: self-skip (infinite-recursion guard); hash re-baselined",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
+    },
+    "ot-sli-compliance": {
+      "prompt_sha256": "f4a391ceb6c79d182ea22952dc406d3da790a69ae9df430000c88f8d98588fb8",
+      "last_validated_epoch": 1782280053,
+      "last_validation_verdict": "skip",
+      "last_validation_summary": "2026-06-23 22:40 PT: re-baselined (bulk update #2 this hour)",
+      "consecutive_inconclusive": 0,
+      "consecutive_fail": 0
     }
   },
-  "alerts_posted_24h": [
-    "ot-bot-volume-watch"
+  "alerts_posted_24h": [],
+  "pending_daily_brief": [
+    {
+      "cron_id": "ot-triage-summary",
+      "verdict": "fail",
+      "consecutive_fail": 1,
+      "detected_epoch": 1782153304,
+      "last_updated_epoch": 1782153304,
+      "summary": "Step 9 lacks explicit preamble prohibition \u2014 past run emitted 'Committed and synced. Run complete: ...' prose before the \ud83d\udcd2 digest block, violating CLAUDE.md Cron Delivery Discipline. Fix: add one sentence to Step 9: 'No prose before the digest. First content must be the \ud83d\udcd2 line.' Next fire Mon 2026-06-23 09:30 PT.",
+      "batched_reason": "11:30 PT Mon \u2014 not urgent; 22h window to fix before next fire; daily brief"
+    },
+    {
+      "cron_id": "ot-postmortem-validator",
+      "verdict": "fail",
+      "consecutive_fail": 1,
+      "detected_epoch": 1782155593,
+      "last_updated_epoch": 1782155593,
+      "summary": "FAIL (1st) \u2014 prompt lacks explicit preamble prohibition. Past run 24345 emitted prose before HEARTBEAT_OK. Fix: add \"No preamble; first token = JSON block or HEARTBEAT_OK\" to Step 6 output section.",
+      "batched_reason": "12:06 PT Mon \u2014 1st fail, 10h window before next fire (22:30 PT); batch to daily brief"
+    },
+    {
+      "cron_id": "ot-knowledge-distillation",
+      "verdict": "fail",
+      "consecutive_fail": 1,
+      "detected_epoch": 1782156559,
+      "last_updated_epoch": 1782156559,
+      "summary": "FAIL (1st) \u2014 P-023 row added to Step 4 but absent from Step 6 severity ladder. If P-023 fires alongside another \u22651-threshold row ('Operator-rule codification'), cron has undefined priority resolution. Fix: add P-023 to Step 6 between 'Validation-evidence updates' (#4) and 'Recurring followups' (#5). Secondary: action target underspecified (known-patterns.md vs per-domain doc). Next fire Mon 2026-06-22 13:30 PT.",
+      "batched_reason": "12:29 PT Mon \u2014 1st fail, ~1h window; non-urgent (latent not active bug); batch to daily brief"
+    },
+    {
+      "cron_id": "ot-fleet-health",
+      "verdict": "fail",
+      "consecutive_fail": 3,
+      "detected_epoch": 1782278362,
+      "last_updated_epoch": 1782281636,
+      "summary": "FAIL (3rd) \u2014 step1 EIGHT-scan fix landed (prior count-mismatch resolved); REMAINING: step2 fallback clean-gate tests only 3 of 8 scans (z/s/p); x/d/t/g/n_rc never evaluated in fallback \u2192 scans 4-8 silently ignored in fallback path. PRIMARY PATH (orchestrator) intact. Fix: step2 clean condition = all 8 rc==1; rc==2 handler must name all 8 scans. Next fire ~07:00 PT.",
+      "batched_reason": "2026-06-23 23:10 PT: 3rd fail, fallback-only defect, primary path OK; non-urgent (primary path works); batch to daily brief"
+    },
+    {
+      "cron_id": "ot-triage-auditor",
+      "verdict": "fail",
+      "consecutive_fail": 1,
+      "detected_epoch": 1782345303,
+      "last_updated_epoch": 1782345303,
+      "summary": "FAIL (1st) \u2014 prompt changed; Step 7 lacks no-preamble prohibition + no OUTPUT CONTRACT. Past run emitted preamble before HEARTBEAT_OK on nudges=2 run -> full text delivered to GChat. Fix: add OUTPUT CONTRACT block at prompt top; add \"no text before HEARTBEAT_OK\" to Step 7.",
+      "batched_reason": "2026-06-24 16:50 PT: 1st fail, DRAFT cron, non-urgent; batch to daily brief"
+    },
+    {
+      "cron_id": "ot-shift-summary",
+      "verdict": "fail",
+      "consecutive_fail": 2,
+      "detected_epoch": 1782356420,
+      "last_updated_epoch": 1782358197,
+      "summary": "FAIL (2nd) \u2014 section-structure lint added (valid, independent fix); REMAINING: explicit multi-line/bullets prohibition still absent from OUTPUT CONTRACT. LLM ignores 'ONE short status line' and emits Highlights block (run 25943 evidence). Fix: add 'NEVER emit bullets/sections/highlights in chat \u2014 ONE LINE only' to OUTPUT CONTRACT. Next fire: Tue 2026-07-01.",
+      "batched_reason": "2026-06-24 19:56 PT: 1st fail, next fire 7 days away, non-urgent; batch to daily brief"
+    },
+    {
+      "cron_id": "ot-sev-monitor",
+      "verdict": "auto-fixed",
+      "consecutive_fail": 0,
+      "detected_epoch": 1782400471,
+      "last_updated_epoch": 1782400471,
+      "summary": "Step 10 output template conflicted with item 25 (HEARTBEAT_OK + run-summary block = forbidden shape). Auto-fix: template replaced with HEARTBEAT_OK {json} one-liner. Notes committed, sqlite updates=1, FIX_VERIFIED.",
+      "batched_reason": "2026-06-25 08:10 PT: auto-fixed, non-urgent; batch to daily brief"
+    }
   ],
-  "_last_run_note": "2026-06-15 09:26 PDT: 44 crons checked (self-skip), 1 changed (ot-bot-volume-watch), 1 validated, pass: 1, fail: 0, inconclusive: 0, alerts_posted: 0 (already in 24h window, fix verified PASS)."
+  "_meta": {
+    "crons_tracked": 55,
+    "last_run": "2026-06-25 12:16 PT: 54 checked (excl. self); 0 changed; 0 validated; 0 fail, 0 inconclusive, 0 alerts_posted",
+    "hash_normalization": "rstrip() via Python sqlite3 directly (NOT shell pipe); fixed 2026-06-23 08:26 PT"
+  }
 }

@@ -228,6 +228,30 @@ Why: "feels noisy" can't be improved; a tracked ratio can. Practice: instrument
 the target metric (signal-to-noise, precision, recall), review it on a cadence,
 and prune the worst offender each cycle.
 
+**15b. No orphan artifacts — every producer needs a consumer; flywheel or escalate (2026-06-17).**
+Why: writing a cheatsheet nobody enforces, a lint nobody runs, a log nobody
+reads, or a draft that never lands is waste — the effort produced an artifact,
+not a behavior change. The flywheel is the *pairing* (producer → consumer →
+feedback signal); a producer alone is half a wheel that doesn't turn. Practice
+(at design time, BEFORE building the producer): (1) name the consumer in the
+same breath as the producer ("this lint is consumed by the Edit/Write hook";
+"this digest is consumed by the daily-brief"; "this learnings-log is consumed
+by the weekly distillation cron") — if you can't, don't build the producer;
+(2) ship the pairing **together** in one pass, not "I'll wire the consumer
+later" (it's how backlog forms — §completion-contract §3); (3) verify the
+consumer actually fires on the producer's output the first cycle, then
+periodically; (4) if you can't build the consumer (it requires an external
+service, a permission you don't have, a human-in-loop you can't automate),
+**escalate to the operator with one precise question** — never just ship the
+producer and hope. Sibling of §14 (close-the-learning-loop, but generalized
+beyond corrections) and §14b (the consumer is often the mechanical gate). The
+test: for every artifact you write this turn, can you name what reads it and
+when? Originating example: `cheatsheets/agents/cost-and-latency.md` was
+written before its enforcement hook (`cron-audit.sh` + Edit/Write hook); the
+hook was planned in the same task list so the pairing is intact — without it,
+the cheatsheet would have been an orphan rule joining the pile of "prose that
+gets skipped under task focus" (§14b).
+
 ---
 
 **14b. Enforce rules mechanically, not by prose.**
@@ -329,6 +353,13 @@ never stop at draft/queue/prose; **complete** = landed + live + verified + durab
 ---
 
 ## V. SAFETY — least privilege, reversible by default
+
+> **Cost + latency live in a sibling file.** Principles 21–28 (cost as measured outcome, model tiering, latency
+> budget, fast-path gating, graceful-partial, concurrency cap) and pre-ship checks 9–13 are in
+> `cost-and-latency.md`. The pre-ship gate above is reliability/correctness/safety; the sibling extends it with
+> spend and wall-clock.
+
+
 
 **16. Reversible beats gone.**
 Why: autonomy multiplies the blast radius of a destructive mistake. Practice:

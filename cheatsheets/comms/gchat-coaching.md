@@ -2,6 +2,21 @@
 
 Quick reference for live message coaching + daily review. Loaded by /my-comms and routine doc.
 
+## Generic Coaching Rules (apply to EVERY coach output — digest, drill, influence, drafts)
+
+1. **One item, once — no duplication; maximize info density.** Every distinct action and every
+   person appears EXACTLY ONCE across the whole message. The "one move", "stakeholder watch", and
+   "Coach Drafts" sources routinely name the SAME thing — merge into one line, never list it per
+   source. Nothing in a drill-down/detail block may repeat the loop/top block. Each line must carry
+   NEW information or be cut. Lead with the action; metadata after.
+
+2. **AI-era leverage — driving 10x DIRECT outcomes with AI is the EXPECTED TL behavior, not a gap.**
+   The old "scale through people / ≥60% network / others must depend on you / get adoption" model is
+   OUTDATED. A TL who uses AI to 10x their own direct/immediate output IS high-leverage — score it as
+   a WIN, never as a "center-of-gravity = self" blocker or a plateau. The leverage question is *"did you
+   use AI to 10x the outcome?"* — not *"did others do it / adopt it?"*. People-adoption is one optional
+   form of spread, no longer the bar; its absence is NOT a plateau. (Denny 2026-06-28.)
+
 ## Decision Tree (use this when drafting)
 
 ```
@@ -149,4 +164,4 @@ Format: `YYYY-MM-DD | recipient | sent/edited/skipped | response_type | note`
 
 This feeds back into the priority ranking — if "question" consistently gets engagement but "credit" doesn't change response rate, deprioritize credit coaching.
 
-_Last updated: 2026-05-12. Maintainer: dennyzhang._
+_Last updated: 2026-06-28. Maintainer: dennyzhang._

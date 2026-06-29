@@ -1,7 +1,5 @@
 [ot-daily-learning-mitigated-posts cron] Daily 21:30 UTC (15-min stagger after ot-daily-learning-mitigated-alerts at 21:15). Harvest postmortem signal from OT-relevant Workplace posts that resolved in last 24h (the *mitigated posts* corpus), surface in team space as ONE consolidated digest, write one durable archive file per post, propose pattern entries for `known-patterns.md`. Strictly propose-only — no Workplace mutations. ot-post-monitor catches posts as they OPEN; this catches them after RESOLVE.
 
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
-
 **Output shape: ONE top-line message + ONE threaded reply with all digests + ONE pattern-proposal threaded reply + ONE validator threaded reply + ONE chronic-noisy reply, PLUS one archive file per post.** Total 4-5 GChat messages per run regardless of post count. Archive files are durable artifacts (do not count as messages). If a run has 0 NEW resolved posts: HEARTBEAT_OK, no posts, no archive writes.
 
 **Archive scheme** (per OT Master Agent doc § Data model — "one mitigated issue one file"): `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/<YYYY-MM>/<YYYY-MM-DD>-W<post_id>.md`. Directory created if missing. The post body + comments ARE the log here (no separate ods/scuba slice needed). Referenced from the digest line so the operator + post author can click through to confirm. **Filename convention (2026-05-16):** dropped the `<lane>-` prefix that was producing inconsistent groupings. Lane classification lives in the archive file body's frontmatter, not the filename.
@@ -130,7 +128,7 @@ Procedure:
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-sevs/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-posts/ \
           ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-alerts/ \
-          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/digests/ \
+          ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/digests/ \
           2>/dev/null | \
           grep -v "$(basename "$current_archive_path")" | \
           grep -vE "/(INDEX|README)\.md$"
@@ -185,7 +183,7 @@ Procedure:
 
    b. **Threaded digest reply** (`digest_thread`) — concatenate all digests, separated by `---`. Per-post format (compact, ~500 chars each):
       ```
-      *<<post_X_url>|W<post_id>>* | <lane> | <duration> | author: @<author> | oncall: <source_oncall>
+      *W<post_id>* | <lane> | <duration> | author: @<author> | oncall: <source_oncall>
       • Verdict: <verdict> · Class: <class> · Cluster: <CL-NNN|none> · P-row: <P<NN>|none>
       • Title: <title>
       • Resolution signal: <which check fired + 1-line evidence>
@@ -211,8 +209,10 @@ Procedure:
 
 11. **Chronic-noisy author/topic surfacing (added 2026-05-17, ported from alerts thread `Uc-pVBEXNQ8` step 11).** Surface the Pareto: which authors/lanes/models generate disproportionate post volume.
 
-    - **Source (2026-06-07 audit):** the **by-model** Pareto = run `python3 tools/incident-pareto.py --kind posts --days 7 --min 3` and render VERBATIM (deterministic, reconcile-asserted, coverage-honest — ~15/25 post files carry a model id; §5; shared helper with sevs/alerts siblings, §14c). The **by-lane** grouping (lane is always present, not in the shared helper) stays a deterministic glob-count here; render it as a second line.
-    - **Threshold:** `--min 3` for models (helper applies it); ≥3 for lanes.
+    - **Source:** scan `incidents/resolved-posts/*/*.md` filenames + first-line title + frontmatter `lane`/`author`/`model_id`. Two groupings:
+      - By **model_id** (if extractable): per-model post count in last 7d
+      - By **lane** (always present): per-lane post count in last 7d
+    - **Threshold:** flag TOP 3 by post-count in last 7d AND with ≥3 posts (drop floor — low-volume noise filtered).
     - **Pre-publish lint applies:** markdown links throughout (RULES.md § URL validity).
     - **Output format** (threaded reply in `digest_thread`):
       ```
@@ -223,7 +223,7 @@ Procedure:
       3. ...
       ```
     - **If <3 entries meet threshold:** post `(no chronic-post sources this week)` — ONE line, no header.
-    - **Persist to notes:** prepend a row (newest first) under the `## Posts` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/learnings/noisy-trends.md`. Insert after the table header row, before existing data rows. Format:
+    - **Persist to notes:** prepend a row (newest first) under the `## Posts` section of `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/auto-learnings/noisy-trends.md`. Insert after the table header row, before existing data rows. Format:
       ```
       | <run timestamp PT> | <rank> | <grouping: model|lane> | <key> | <post_count> | <breakdown> | <one-line notes: top cluster/P-row> |
       ```

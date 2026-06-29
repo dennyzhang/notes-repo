@@ -85,3 +85,6 @@ else
     cron_alert "github-sync" "git push to GitHub failed — check SSH key and remote"
     exit 1
 fi
+
+# Success path only — heartbeat (per workflow-design.md rule 2)
+write_heartbeat "sync-to-github"

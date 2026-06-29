@@ -82,6 +82,29 @@ myclaw logs --instance <name> -f
 myclaw destroy <name>
 ```
 
+## CLAUDE.md Authoring — Formatting Rules That Affect Enforcement
+
+Claude enforces rules based on formatting, not just content. Improperly formatted rules are ignored or treated as prose.
+
+**Three rules (from Chris Davies, 2026-06-17):**
+
+1. **Use `-` dashes, never `•` bullets.** Bullet-formatted lists are ignored. Only dash lists are parsed as directives.
+
+2. **Bold all declaratives.** `ALWAYS`, `NEVER`, `MUST`, `HARD` — they must be `**ALWAYS**`, `**NEVER**`, `**MUST**`, `(**HARD**)`. Plain caps are treated as prose emphasis, not enforcement markers.
+
+3. **Put a `## IMPORTANT` block at the top (before all other sections).** This is where the highest-priority, most-violated rules live. Claude reads top-to-bottom; important rules buried at line 500 lose to early context.
+
+```markdown
+## IMPORTANT
+
+- **ALWAYS** continue work until the task is fully complete. Do **NOT** stop to ask for confirmation on reversible actions.
+- **NEVER** confirmation-bait the operator. Act when confident; only stop for irreversible or external-surface mutations.
+```
+
+**Diagnostic:** If Claude is repeatedly ignoring a rule, run `/insights-to-px` against the CLAUDE.md — it can surface formatting issues. Or ask Claude to analyze the file for formatting problems.
+
+**Blast radius:** A badly formatted CLAUDE.md causes "undefined behavior" (Chris's words) — rules that look present to human readers are invisible to the model.
+
 ## Key Paths
 
 | Path | Purpose |

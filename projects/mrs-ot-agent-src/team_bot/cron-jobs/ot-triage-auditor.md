@@ -1,8 +1,6 @@
-# ot-triage-auditor
+# ot-triage-auditor — draft spec
 
-**OUTPUT CHANNEL = OPERATOR 1:1 ONLY (2026-05-30 migration).** This cron is operator-facing plumbing with no team-wide value — its output must NEVER appear in the team space `spaces/AAQA2bZMw24`. Mechanism: for any real/actionable output, make an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 --reply-in-thread=<existing thread, or append `# new-topic`> --text="…"` to the operator 1:1, THEN respond with EXACTLY `HEARTBEAT_OK` (nothing else) so the daemon's default team-channel auto-delivery posts nothing. NEVER emit a post-block, summary, or narration as your final response — the daemon auto-delivers the final response to the team space `spaces/AAQA2bZMw24`. No-op runs: just `HEARTBEAT_OK`.
-
-**Status**: LIVE (enabled, interval 30min) as of 2026-06-07. Created 2026-05-19 by live session in thread `2w5Schmk83U` per operator request "C" (prototype + formalize); graduated from the phased rollout to live. (The stale `DRAFT` marker created no-op-handling ambiguity flagged by ot-prompt-change-validator 2026-06-07 — a running cron must not be marked DRAFT.)
+**Status**: DRAFT (not yet enabled). Created 2026-05-19 by live session in thread `2w5Schmk83U` per operator request "C" (prototype + formalize).
 
 **Purpose**: post-hoc audit of `ot-alert-monitor` + `ot-sev-monitor` triage outputs. Catches:
 - Cross-ref step misses (SEVs / alerts / patterns the cron should have found)
@@ -19,7 +17,7 @@ Surfaces results via escalation ladder (silent → in-thread → morning brief �
 
 ## Schedule
 - **Interval**: every 30 min (5-10 min lag after typical ot-alert-monitor / ot-sev-monitor completion windows)
-- **Excludes**: itself + ot-cron-health-guard (avoid recursion)
+- **Excludes**: itself + ot-cron-health-watch (avoid recursion)
 - **Time budget**: ~5 min per run (operator-set 2026-05-19 thread `2w5Schmk83U` — extra headroom for thorough R-rule evaluation and cross-ref queries; matches existing heavy crons like ot-alert-monitor / ot-sev-monitor)
 
 ## State file
@@ -66,8 +64,6 @@ sqlite3 -separator '|' /home/dennyzhang/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw
 - `ot-sev-monitor` (hourly, gchat) — SEV triages
 - `ot-post-monitor` (15-min, Workplace) — Workplace post triages
 - `ot-triage-summary` (daily, gchat + auto-files tasks) — catches the T271102844 class where bot pattern-summaries get cited as authoritative downstream
-
-**Org-scope handling (2026-06-07, ot-prompt-change-validator Issue 2):** the auditor inherits org-filtering from upstream — the alert/sev/post monitors apply `is_in_mrs_org_scope()` at triage time, so their triage outputs are already MRS-org-bounded. The auditor therefore does NOT re-filter inputs. **But do NOT *skip* an out-of-scope audit entry** (the validator's suggested fix): if a triage target ever IS out-of-scope, that means the upstream org-gate LEAKED — exactly the failure the auditor exists to catch. So **flag it as an `org-scope-leak` discrepancy** (the upstream monitor triaged an out-of-org item), don't drop it. Skipping would hide the leak; flagging surfaces it for the upstream fix.
 
 Workplace-surface gotcha: `ot-post-monitor`'s output schema uses `posted reply` markers (not `Bot reply: <url>`), and R-EV1 (TZ rendering) needs slightly different handling since Workplace posts don't expose `alert_created_time` epochs directly — use post `created_time` field instead.
 
@@ -154,13 +150,13 @@ Append one JSONL record per audited triage. Cap log file at 10000 lines (rotate 
 
 ### Step 7 — Respond
 
-**DELIVERY DISCIPLINE (HARD, 2026-05-30 — operator: "you have sent many msgs… only keep the useful ones; useful msgs get buried"):** the daemon posts your final response to GChat verbatim after stripping a leading `HEARTBEAT_OK`. NEVER emit narration/preamble as final text — no "Audit complete. 168 lines in log…", no "Records written. Now composing…", no "Composing output.", no "All necessary data is in. Auditing the results now." Do the audit silently; the response below is the ENTIRE output. **No-op path (no new triages to audit): respond EXACTLY `HEARTBEAT_OK {triages_audited: 0}` and NOTHING before it — not a single preamble line. Any text preceding `HEARTBEAT_OK` is delivered to chat verbatim (the recurring narration-leak; ot-prompt-change-validator 2026-06-07 caught an "Auditing now" preamble leaking).**
-
 ```
 HEARTBEAT_OK {triages_audited: N, findings: F, pages: P, nudges: NU, self_heals: SH, passes: PA, in_thread_followups_posted: FU}
 ```
 
-**Post to GChat ONLY when `pages >= 1`** — a page = a real misattribution/fabrication the operator must see. In that case, send the page ping via an EXPLICIT `meta google.chat.message send --space-name=spaces/AAQAVOjYc80 ...` to the operator 1:1 (per the OUTPUT CHANNEL header), THEN respond with EXACTLY the `HEARTBEAT_OK {…}` line. **The final response is ALWAYS `HEARTBEAT_OK {…}` — NEVER the page ping itself** (the daemon auto-delivers a non-HEARTBEAT_OK final response to the team space `spaces/AAQA2bZMw24`, which would leak the page out of the 1:1). For EVERY other outcome — including `nudges >= 1` and `self_heals >= 1` — respond EXACTLY the `HEARTBEAT_OK {…}` line and post nothing. Nudges/self-heals are logged to the JSONL audit trail (step 6) for trend review, NOT delivered to chat (changed 2026-05-30: nudge-tier posts were the single largest noise source — 8 delivered msgs in one day — and carry no operator action).
+If `pages == 0 AND nudges == 0 AND self_heals == 0`: respond JSON-summary only, no gchat post (per RULES.md signal-only).
+
+If `pages >= 1`: also post the real-time ping per step 3 (NOT in thread; new top-level message in space).
 
 ---
 
@@ -195,7 +191,7 @@ This auditor's R-rules map 1:1 to the 17-item backlog of prompt-edits identified
 | #5 app_layer_pkg variant fidelity | R-EV4 |
 | #6 Family-level recurrence detector | R-VC4 |
 | #7 Carryover re-verification | R-XR4 |
-| #8 MISSED_COMPLETION detector | (separate — lives in ot-cron-health-guard) |
+| #8 MISSED_COMPLETION detector | (separate — lives in ot-cron-health-watch) |
 | #9 Temporal coincidence ≠ causation | R-EV4 (related) |
 | #10 OneDetection re-fire dedup explanation | (reference doc edit, not auditor) |
 | #11 Pre-fire freshness check | R-EV3 |
@@ -206,7 +202,7 @@ This auditor's R-rules map 1:1 to the 17-item backlog of prompt-edits identified
 | #16 SEV scan filter audit | R-XR2 |
 | #17 Model-id substring scan | R-XR1 |
 
-Coverage: 14 of 17 backlog items map to auditor rules. #8 lives in ot-cron-health-guard (already covered there). #10 is reference-doc only. The remaining 14 collapse into 11 R-rules — single auditor cron instead of 17 cron-prompt patches.
+Coverage: 14 of 17 backlog items map to auditor rules. #8 lives in ot-cron-health-watch (already covered there). #10 is reference-doc only. The remaining 14 collapse into 11 R-rules — single auditor cron instead of 17 cron-prompt patches.
 
 ---
 

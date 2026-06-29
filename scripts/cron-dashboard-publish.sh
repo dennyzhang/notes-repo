@@ -11,6 +11,7 @@
 # Stable URL -> state/cron-dashboard-url.txt (read by cron-ai-health.sh).
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/cron-alert.sh"  # provides write_heartbeat / cron_alert / cron_log
 HTML="/tmp/cron-dashboard.html"
 MOUNT="$HOME/gdrive"
 URL_FILE="$SCRIPT_DIR/../state/cron-dashboard-url.txt"
@@ -34,6 +35,7 @@ url=$(echo "$out" | grep -oE 'COLLAB_URL=.*' | cut -d= -f2-)
 if [ -n "$url" ]; then
     echo "$url" > "$URL_FILE"
     echo "[OK] dashboard published (stable URL): $url"
+    write_heartbeat "cron-dashboard-publish"   # success path only (workflow-design.md rule 2)
 else
     echo "[ERROR] no COLLAB_URL in: $out" >&2
     exit 1

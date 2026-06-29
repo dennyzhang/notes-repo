@@ -157,5 +157,3 @@ Evidence:
 ```
 
 Every claim in that draft has adjacent evidence: lead cites the exception type → log below; "crash-looping since X" → attempts URL; "byte-identical" → 3 timestamps; "regression surface is P2286002932" → fbpkg build time + owner; "NOT platform oncall" → tag + class evidence.
-
-_Last updated: 2026-05-23. Maintainer: dennyzhang._

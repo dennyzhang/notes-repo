@@ -269,6 +269,4 @@ For impact quantification anti-patterns (vague scope, missing confidence, effort
 
 ## See Also
 
-`oncall/sev.md` (SEV impact framing), `career/impact-quantifier.md` (quantifying impact), `career/communication.md` (collaboration framing), `career/level-expectations.md`, `career/four-axes.md`
-
-_Last updated: 2026-05-12. Maintainer: dennyzhang._
+`oncall/sev.md` (SEV impact framing), `career/impact-quantifier.md` (quantifying impact), `career/communication.md` (collaboration framing), `references/level-expectations.md`, `references/four-axes.md`

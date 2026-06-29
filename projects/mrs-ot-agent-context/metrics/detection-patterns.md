@@ -219,7 +219,7 @@ The bot should propose new patterns when it encounters incidents that thresholds
 - query_sequence:
   1. Q-001 — confirm example age trend
   2. Q-040 — check Scribe QPS (is upstream data drying up?)
-  3. KM-U3 — check the per-mast-job DPP starvation ODS (fburl.com/canvas/pzoyunzx) + scribe token ingress (Scuba dpp_stats_v2); a scribe-ingress drop = upstream scribe/region drain. Corroborate with the trainer INFO log `DataClient.cpp "Current output queue size is: N"` (one short snapshot can mislead — trust the per-job ODS/ingress trend). S674219 root = EAG/DR scribe drain (S674227, fix D94521578).
+  3. Check DPP dashboard — are workers healthy?
   4. Q-002 — check training QPS (is training consuming data faster than pipeline can supply?)
 - what_causes_this:
   - Scribe category throughput decreased (upstream logging change)

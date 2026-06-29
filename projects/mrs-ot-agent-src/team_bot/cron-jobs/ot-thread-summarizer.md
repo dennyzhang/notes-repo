@@ -8,7 +8,7 @@ Per-thread context currently lives only in `~/.myclaw-ot-bot/spaces/AAQAVOjYc80/
 
 State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/thread-summarizer-state.json` — `{"summarized_threads": {"<thread_id>": <summarized_epoch>, ...}, "last_run_epoch": <int>}`. Per-id dict for hold-down semantics (a re-active thread can re-summarize after 7 days).
 
-Output: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/debug-threads/<YYYY-MM>/<type>-<YYYY-MM-DD-HHMM>-<id>-<topic-slug>.md` (type = `auto-` or `human-`).
+Output: `~/notes/users/dennyzhang/projects/mrs-ot-agent-context/bot-debugging-threads/<YYYY-MM>/<type>-<YYYY-MM-DD-HHMM>-<id>-<topic-slug>.md` (type = `auto-` or `human-`).
 
 Time budget: ~3 min per thread; cap 5 threads per run.
 
@@ -98,7 +98,7 @@ Time budget: ~3 min per thread; cap 5 threads per run.
       - **Followups section MUST be empty** if no explicit followup was discussed — do NOT invent next-steps. Operator-facing accuracy beats summary completeness.
       - **Char cap 3000 — same as triage outputs**. If thread is long, summarize what mattered, not everything.
 
-5. **Write the summary file.** Path: `mrs-ot-agent-context/incidents/debug-threads/<YYYY-MM>/<type>-<YYYY-MM-DD-HHMM>-<id>-<topic-slug>.md`. `mkdir -p` the month directory if missing.
+5. **Write the summary file.** Path: `mrs-ot-agent-context/bot-debugging-threads/<YYYY-MM>/<type>-<YYYY-MM-DD-HHMM>-<id>-<topic-slug>.md`. `mkdir -p` the month directory if missing.
    - **Type prefix:** `auto-` if the bot handled the thread without operator correction; `human-` if the operator corrected the bot's verdict, attribution, routing, or provided context the bot should have found on its own.
    - **Timestamp:** first message time in PT, format `YYYY-MM-DD-HHMM` (24h). Enables chronological sorting within the month directory.
    - **Classification signal:** scan thread messages for operator corrections — look for patterns like: "wrong", "no that's not right", "why you wait", "should have", "actually it's", reattribution, new R-rule/P-row created from the exchange. Any correction → `human-`. Confirmatory-only ("ok", "thanks", "good", no corrections) → `auto-`.
@@ -106,7 +106,10 @@ Time budget: ~3 min per thread; cap 5 threads per run.
 
 6. **Update state.** Set `summarized_threads[thread_id] = now_epoch`.
 
-7. **NEVER send a gchat notification — not per-summary, not a consolidated digest.** This cron is durable-archive plumbing: the value is the `.md` learning files written to notes (reviewable there), NOT a chat ping telling the operator they exist. The "📝 Distilled N threads" digest was pure run-summary noise in the operator 1:1 (operator 2026-06-04 thread `C2naImRX58I`: "why ask" — the digest stated the world, needed no action → drop it). Whether N=0 or N=5, the final response is the SAME: emit `HEARTBEAT_OK {threads_summarized: N, threads_re_summarized: M, threads_skipped: K, archive_root: ~/notes/.../bot-debugging-threads/<YYYY-MM>/}`. The metrics object on the first token line is for the auditor only; the daemon delivers nothing for a `HEARTBEAT_OK` response.
+7. **NO gchat notification per summary** (would be noise — 5 summaries per run × 4 runs/day = 20 noisy messages). Instead: at end of run, emit `HEARTBEAT_OK {threads_summarized: N, threads_re_summarized: M, threads_skipped: K, archive_root: ~/notes/.../bot-debugging-threads/<YYYY-MM>/}`. If N>0, ONE consolidated digest message:
+   ```
+   📝 [ot-thread-summarizer] Distilled <N> conversation thread(s) into notes archive. Latest: <topic-of-most-recent>.
+   ```
 
 8. **Persist state, respond HEARTBEAT_OK.**
 

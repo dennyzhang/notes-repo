@@ -129,17 +129,46 @@ for name, fires in sorted(job_fires.items()):
     age = now - last
     if age > threshold:
         print(f"{name}\t{int(age)}\t{int(threshold)}")
+
+# ── DROPPED-JOB detection via self-maintaining manifest (silent-death class) ──
+# The loop above only sees jobs in the CURRENT crontab, so a deleted line is
+# invisible — the job just stops with zero alarm (ai-health hit this 2026-06-18:
+# line dropped, ran 33h earlier, nothing fired). A naive "has a heartbeat but no
+# crontab line" check false-positives on PARENT-INVOKED sub-jobs (backups,
+# nightly-digest, diff-comment-action, ...) which emit heartbeats but never have
+# their own line. Instead: keep a manifest = every job ever seen DIRECTLY in the
+# crontab. Alarm only when a manifest entry vanishes from the current crontab.
+# New directly-scheduled jobs auto-join; parent-invoked jobs never enter it.
+manifest_path = os.path.join(os.path.dirname(heartbeat_dir), "cron-expected.txt")
+prev = set()
+try:
+    with open(manifest_path) as f:
+        prev = {ln.strip() for ln in f if ln.strip()}
+except Exception:
+    pass
+current = set(job_fires.keys())
+for jn in sorted(prev - current):   # was directly scheduled before, gone now
+    print(f"{jn}\t0\t86400\tDROPPED")
+try:  # self-maintain: remember every directly-scheduled job (incl. dropped, so it re-alarms until re-added)
+    with open(manifest_path, "w") as f:
+        f.write("\n".join(sorted(prev | current)) + "\n")
+except Exception:
+    pass
 PY
 )
 
 stale_count=0
-while IFS=$'\t' read -r name age thresh; do
+while IFS=$'\t' read -r name age thresh kind; do
     [ -z "$name" ] && continue
     stale_count=$((stale_count + 1))
     # human-friendly units: minutes under 2h, else hours
     if [ "$age" -lt 7200 ]; then age_s="$(( age / 60 ))m"; else age_s="$(( age / 3600 ))h"; fi
-    if [ "$thresh" -lt 7200 ]; then thr_s="$(( thresh / 60 ))m"; else thr_s="$(( thresh / 3600 ))h"; fi
-    msg="STALE: no successful run in ${age_s} (expected within ${thr_s}) — cron job stopped firing"
+    if [ "$kind" = "DROPPED" ]; then
+        msg="DROPPED: was directly scheduled before but has NO crontab line now — silently unscheduled, re-add it"
+    else
+        if [ "$thresh" -lt 7200 ]; then thr_s="$(( thresh / 60 ))m"; else thr_s="$(( thresh / 3600 ))h"; fi
+        msg="STALE: no successful run in ${age_s} (expected within ${thr_s}) — cron job stopped firing"
+    fi
     echo "$LOG_PREFIX $name: $msg"
     cron_alert "$name" "$msg" 2>/dev/null || true
 done <<< "$STALE"

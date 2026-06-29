@@ -1,34 +1,33 @@
 {
-  "last_run_epoch": 1781280035,
+  "last_run_epoch": 1782144019,
   "per_space": {
     "spaces/AAQAR1xHaQU": {
-      "last_catchup_date": "2026-06-12",
+      "last_catchup_date": "2026-06-22",
       "last_msg_create_time": "2026-06-12T08:38:57-07:00",
       "display_name": "RT Infra WS2: OT Reliability & Understanding",
       "slug": "rtinfra-ws2",
-      "notes": "1 human msg (P0 exception); S675130 SEV0 site-outage + S675238 AI training fleet pause (all jobs disabled 08:07am PDT); fleet-wide alert suppression required while SEV active"
+      "notes": "0 new human msgs this week (boundary msg only); low signal — no distillation"
     },
     "spaces/AAQAXSNWvcM": {
-      "last_catchup_date": "2026-06-11",
-      "last_msg_create_time": "2026-06-11T15:16:34-07:00",
+      "last_catchup_date": "2026-06-22",
+      "last_msg_create_time": "2026-06-17T15:27:14-07:00",
       "display_name": "MVAI OT Dev",
       "slug": "mvai-ot-dev",
-      "notes": "0 new human msgs (Thanks Bot only); no distillation this run; carry-forward: S669019 closed (py3.10 revert, Paul Lu credited)"
+      "notes": "0 new human msgs this week (boundary msg only); low signal — no distillation"
     },
     "spaces/AAQAtGhVkUw": {
-      "last_catchup_date": "2026-05-18",
-      "last_msg_create_time": "2026-05-14T12:11:48-07:00",
+      "last_catchup_date": "2026-06-22",
+      "last_msg_create_time": "2026-05-26T11:04:41-07:00",
       "display_name": "IG ATS Alerting",
       "slug": "ig-ats-alerting",
-      "skip_until_epoch": 1782144399,
-      "notes": "0 new msgs since last run; back-off 4 weeks (until ~2026-06-22)"
+      "notes": "5 human msgs distilled (back-off window 2026-05-18 to 2026-06-22; burst on 2026-05-26 missed during back-off); bad_sparse sub-class + D105212397 routing + S656663 daily false-positive"
     },
     "spaces/AAQATpEgSyk": {
-      "last_catchup_date": "2026-06-11",
-      "last_msg_create_time": "2026-06-10T16:43:02-07:00",
+      "last_catchup_date": "2026-06-22",
+      "last_msg_create_time": "2026-06-18T11:13:50-07:00",
       "display_name": "MRS Online Training Oncall",
       "slug": "mrs-ot-oncall",
-      "notes": "0 new msgs (cursor only returned); no distillation this run; carry-forward: routing table fburl.com/collab-files/90kcp6mg pending Li/Paul review; OT bot deep-dive session planned"
+      "notes": "2 msgs seen (remindme bot + Denny #remindme command); 0 human OT msgs — no distillation"
     }
   }
 }

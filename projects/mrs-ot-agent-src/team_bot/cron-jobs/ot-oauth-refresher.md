@@ -21,28 +21,23 @@ Source: thread `4BK7HJHkzB0` 2026-05-28 21:14 PT — operator asked *"should we 
    ```bash
    STATE=~/.myclaw-ot-bot/spaces/AAQAVOjYc80/ot-oauth-refresher-state.json
    PRIOR_FAIL=$(jq -r '.consecutive_failures // 0' "$STATE" 2>/dev/null || echo 0)
-   # PRESERVE last_alert_epoch — was hardcoded `null` every run (2026-06-07 audit),
-   # which killed anti-spam AND the recovery edge (the field could never persist).
-   PRIOR_ALERT=$(jq -r '.last_alert_epoch // "null"' "$STATE" 2>/dev/null || echo null)
-   if [ $REFRESH_EXIT -eq 0 ]; then NEW_FAIL=0; else NEW_FAIL=$((PRIOR_FAIL + 1)); fi
-   # Fire on ">=3 AND not-yet-alerted" (catches a climb past 3 even if the exact 2->3
-   # tick was skipped — the old `==3 && PRIOR==2` edge silently missed those). Clear
-   # on recovery; otherwise carry the prior alert-epoch forward.
-   FIRE_ALERT=0; FIRE_RECOVERY=0
-   if [ "$NEW_FAIL" -ge 3 ] && [ "$PRIOR_ALERT" = "null" ]; then NEW_ALERT=$(date +%s); FIRE_ALERT=1
-   elif [ "$NEW_FAIL" -eq 0 ]; then NEW_ALERT=null; [ "$PRIOR_ALERT" != "null" ] && FIRE_RECOVERY=1
-   else NEW_ALERT=$PRIOR_ALERT; fi
+   if [ $REFRESH_EXIT -eq 0 ]; then
+     NEW_FAIL=0
+   else
+     NEW_FAIL=$((PRIOR_FAIL + 1))
+   fi
    jq -n --argjson ok "$([ $REFRESH_EXIT -eq 0 ] && echo true || echo false)" \
-         --argjson now "$(date +%s)" --argjson fail "$NEW_FAIL" --argjson alert "$NEW_ALERT" \
-         '{last_refresh_epoch: $now, last_refresh_ok: $ok, consecutive_failures: $fail, last_alert_epoch: $alert}' \
+         --argjson now "$(date +%s)" \
+         --argjson fail "$NEW_FAIL" \
+         '{last_refresh_epoch: $now, last_refresh_ok: $ok, consecutive_failures: $fail, last_alert_epoch: null}' \
      > "$STATE.tmp" && mv "$STATE.tmp" "$STATE"
    ```
 
-3. **Escalation gate** — post ONE gchat line to spaces/AAQAVOjYc80 ONLY when `FIRE_ALERT=1` (NEW_FAIL≥3 AND not-yet-alerted, computed in step 2 from the preserved `last_alert_epoch`). Anti-spam is now state-backed, not the fragile exact-edge. Format:
+3. **Escalation gate (edge-triggered)** — post ONE gchat line to spaces/AAQAVOjYc80 ONLY when `consecutive_failures` crosses 3 (i.e., NEW_FAIL == 3 and PRIOR_FAIL == 2). Avoids spam. Format:
    ```
    🚫 [ot-oauth-refresher] buck2 refresh failed 3 ticks (~30 min). May affect downstream meta-CLI / gchat-read 403 recovery. Manual buck2 health check recommended.
    ```
-   If `FIRE_RECOVERY=1` (NEW_FAIL==0 after a previous alert), post ONE recovery line: `✓ [ot-oauth-refresher] refresh recovered after N consecutive failures.`
+   If `consecutive_failures` returns to 0 after a previous alert, post ONE recovery line: `✓ [ot-oauth-refresher] refresh recovered after N consecutive failures.`
 
 4. **Respond** — silent on success: `HEARTBEAT_OK refresh-ok` for success path, `HEARTBEAT_OK refresh-failed n=$NEW_FAIL` on failure (no gchat unless escalation gate fires). Per brevity discipline (`feedback_brevity-discipline`), this cron MUST NOT emit user-facing messages on normal operation.
 
@@ -61,4 +56,4 @@ Source: thread `4BK7HJHkzB0` 2026-05-28 21:14 PT — operator asked *"should we 
 
 ## Provenance
 
-Created 2026-05-28 21:50 PT. Source thread: `4BK7HJHkzB0`. Companion to: ot-cron-health-guard class-7 parity validator (catches the L66 wrapper getting bypassed), ot-sev-monitor / ot-alert-monitor / ot-post-monitor step 0.5 (reactive 403 recovery). This cron closes the loop on the OAuth-403 transient class.
+Created 2026-05-28 21:50 PT. Source thread: `4BK7HJHkzB0`. Companion to: ot-cron-health-watch class-7 parity validator (catches the L66 wrapper getting bypassed), ot-sev-monitor / ot-alert-monitor / ot-post-monitor step 0.5 (reactive 403 recovery). This cron closes the loop on the OAuth-403 transient class.

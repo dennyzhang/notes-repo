@@ -28,8 +28,8 @@ SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTEXT_DIR="$(cd "${SRC_DIR}/../mrs-ot-agent-context" && pwd)"
 HIST_ROOT="${CONTEXT_DIR}/state/fleet-health-history"
 
-Z_FILE="" S_FILE="" P_FILE=""
-Z_RC="" S_RC="" P_RC=""
+Z_FILE="" S_FILE="" P_FILE="" N_FILE=""
+Z_RC="" S_RC="" P_RC="" N_RC=""
 RUN_TS=""
 DRY_RUN=false
 
@@ -41,6 +41,8 @@ while [[ $# -gt 0 ]]; do
     --scribe-rc) S_RC="$2";   shift 2 ;;
     --perf)      P_FILE="$2"; shift 2 ;;
     --perf-rc)   P_RC="$2";   shift 2 ;;
+    --ne)        N_FILE="$2"; shift 2 ;;
+    --ne-rc)     N_RC="$2";   shift 2 ;;
     --run-ts)    RUN_TS="$2"; shift 2 ;;
     --dry-run)   DRY_RUN=true; shift ;;
     -h|--help)   grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -48,6 +50,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# NE is optional (4th persisted scan; legacy callers omit it → recorded absent,
+# never blocks the run). zombie/scribe/perf stay required.
 for v in Z_FILE S_FILE P_FILE; do
   [[ -n "${!v}" ]] || { echo "missing required arg for ${v}" >&2; exit 2; }
 done
@@ -60,6 +64,10 @@ done
 for v in Z_RC S_RC P_RC; do
   [[ -n "${!v}" ]] || { echo "WARN: ${v} empty (scan rc not captured) — coercing to 2/error" >&2; printf -v "$v" '2'; }
 done
+# NE: only coerce-to-error when the FILE was supplied but its rc wasn't captured.
+if [[ -n "${N_FILE}" && -z "${N_RC}" ]]; then
+  echo "WARN: N_RC empty (ne scan rc not captured) — coercing to 2/error" >&2; N_RC=2
+fi
 [[ -n "${RUN_TS}" ]] || RUN_TS="$(date +%s)"
 
 RUN_MONTH="$(date -d "@${RUN_TS}" +%Y-%m)"
@@ -74,6 +82,7 @@ RUN_OBJ="$(
   Z_FILE="${Z_FILE}" Z_RC="${Z_RC}" \
   S_FILE="${S_FILE}" S_RC="${S_RC}" \
   P_FILE="${P_FILE}" P_RC="${P_RC}" \
+  N_FILE="${N_FILE}" N_RC="${N_RC}" \
   python3 - <<'PY'
 import json, os
 
@@ -116,18 +125,26 @@ def scan(path, rc):
 z = scan(os.environ["Z_FILE"], os.environ["Z_RC"])
 s = scan(os.environ["S_FILE"], os.environ["S_RC"])
 p = scan(os.environ["P_FILE"], os.environ["P_RC"])
+# NE is optional: persist it only when a file was supplied (back-compat with
+# callers that don't pass --ne). Absent → not in scans/totals, not in healthy.
+n_file = os.environ.get("N_FILE", "")
+n = scan(n_file, os.environ.get("N_RC", "2")) if n_file else None
 
-healthy = all(x["rc"] == 1 for x in (z, s, p))
+scans = {"zombie": z, "scribe_age": s, "perf": p}
+totals = {"zombie": z["count"], "training_age": s["count"], "perf": p["count"]}
+healthy_parts = [z, s, p]
+if n is not None:
+    scans["ne"] = n
+    totals["ne"] = n["count"]
+    healthy_parts.append(n)
+
+healthy = all(x["rc"] == 1 for x in healthy_parts)
 run = {
     "run_ts": int(os.environ["RUN_TS"]),
     "run_iso": os.environ["RUN_ISO"],
     "healthy": healthy,
-    "totals": {
-        "zombie": z["count"],
-        "training_age": s["count"],
-        "perf": p["count"],
-    },
-    "scans": {"zombie": z, "scribe_age": s, "perf": p},
+    "totals": totals,
+    "scans": scans,
 }
 print(json.dumps(run, separators=(",", ":")))
 PY

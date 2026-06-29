@@ -107,6 +107,36 @@ For how all pieces connect (hooks → scripts → state → commands), see `syst
 7. Inject cheatsheets via `load_cheatsheet` when spawning `claude -p` sessions
 8. Create preflight sentinels via `create_preflight_sentinels` before sessions that may `jf submit`
 
+## Observer / Consumer Naming Convention
+
+When N crons need the same expensive data (GChat history, diff metadata, oncall
+roster, etc.), build ONE **observer** that fetches + caches and N
+**consumers** that read the cache. This amortizes API cost, prevents config
+drift between fetchers, and makes the dependency graph visible from filenames
+alone.
+
+**Naming:**
+- Observer: `cron-<domain>-observer.sh` (e.g., `cron-gchat-observer.sh`)
+- Consumers: `cron-<domain>-consumer-<purpose>.sh` (e.g.,
+  `cron-gchat-consumer-digest.sh`, `cron-gchat-consumer-learnings.sh`)
+
+**Cache contract:**
+- Observer writes to `state/<domain>-cache/<entity>/...` with a `MANIFEST.json`
+  per entity and a top-level `INDEX.json` listing every cached entity.
+- Cache files are markdown (or JSON) with a YAML frontmatter so consumers
+  can grep/parse without re-fetching.
+- Observer schedule must be ≥ 2× faster than the fastest consumer schedule
+  (so consumers always see fresh-ish data without waiting on a fresh fetch).
+
+**Consumer rules:**
+- Consumers NEVER fetch the source directly — they read the cache.
+- Consumer fails loud if cache is missing or stale (older than `MAX_CACHE_AGE`).
+- Adding a new consumer = create a new `cron-<domain>-consumer-<name>.sh`,
+  register it in `setup-claude.sh`. The observer doesn't change.
+
+**Reference:** `cron-gchat-observer.sh` (the canonical example) +
+`state/gchat-cache/` (the cache layout). Built 2026-06-17.
+
 ## Hook Conventions
 
 1. Fast exit first: `case` statement to skip irrelevant commands

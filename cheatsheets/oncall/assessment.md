@@ -1,6 +1,6 @@
 # Oncall Health Cheatsheet
 
-<!-- Last updated: 2026-06-11 -->
+<!-- Last updated: 2026-03-19 -->
 
 Quick reference for assessing oncall quality, identifying toil patterns, planning improvements, and converting oncall pain into funded projects.
 
@@ -22,7 +22,7 @@ Quick reference for assessing oncall quality, identifying toil patterns, plannin
 
 ## Templates
 
-Assessment, Improvement Plan, Leadership Report, and Shift Report templates are in `oncall/oncall-templates.md`. Load on demand.
+Assessment, Improvement Plan, Leadership Report, and Shift Report templates are in `references/oncall-templates.md`. Load on demand.
 
 ---
 
@@ -274,7 +274,7 @@ The decoded alert ID contains structured fields separated by `@#$`:
 
 ## Oncall Shift Report Template
 
-Full template (with SEV blocks, alert tables, timeline, data gathering, and writing principles) is in `oncall/oncall-templates.md`. Load on demand when generating reports.
+Full template (with SEV blocks, alert tables, timeline, data gathering, and writing principles) is in `references/oncall-templates.md`. Load on demand when generating reports.
 
 ---
 
@@ -289,4 +289,4 @@ Full template (with SEV blocks, alert tables, timeline, data gathering, and writ
 
 ## See Also
 
-`career/impact-metrics.md`, `oncall/pe-reliability-metrics.md`, `career/anti-patterns.md`
+`references/impact-metrics.md`, `references/pe-reliability-metrics.md`, `references/anti-patterns.md`

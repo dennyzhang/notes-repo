@@ -1,4 +1,5 @@
 [ot-daily-learning-digest cron] Daily 7:50 AM PT. ONE consolidated summary of what the bot LEARNED in the last 24h, delivered to Denny's 1:1 (spaces/AAQAVOjYc80) so he can (a) audit the learning quality and give feedback, (b) learn alongside the bot daily. Purpose: collapse 6+ learning surfaces (memory deltas, notes commits, cron-prompt amendments, mega-learnings, validator catches, draft diffs) into ONE skim-in-60-sec digest. Not a replacement for the per-surface crons — a meta-view over them.
+
 Created 2026-05-28 per Denny request in team-space thread (he asked "what's the point of this brief?" + "I'm thinking to polish this daily msg as a summary for what your ai daily auto-learning").
 
 Files:
@@ -30,7 +31,7 @@ Procedure:
 
    d. **ot-knowledge-curation output** — last in-window run from `job_runs`. Extract: mega-learnings appended count, drafted diff D-numbers, validator-status verdict.
       ```bash
-      sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/myclaw.db "SELECT raw_response FROM job_runs WHERE job_id='ot-knowledge-curation' AND run_at > '$WINDOW_START' ORDER BY run_at DESC LIMIT 1;"  # was job_runs.db (nonexistent → silent empty); fixed 2026-06-07 audit
+      sqlite3 ~/.myclaw-ot-bot/spaces/AAQAVOjYc80/job_runs.db "SELECT raw_response FROM job_runs WHERE job_id='ot-knowledge-curation' AND run_at > '$WINDOW_START' ORDER BY run_at DESC LIMIT 1;"
       ```
 
    e. **ot-postmortem-validator catches** — last in-window run. Extract count + class of misattributions/fabrications caught.
@@ -50,7 +51,7 @@ Procedure:
 
 5. **URL discipline.** Every cited reference MUST be a verifiable URL, not bare shorthand. Resolve before writing per ot-daily-learning-debugging step 4a table (S→sevmanager, W→workplace.post describe, A→onedetection, D→phabricator.diff URL, T→tasks URL). Forbidden: bare `W<digits>` token. If resolve fails: `<unresolvable post id N>`.
 
-6. **Render digest.** Single gchat post to spaces/AAQAVOjYc80. Cap total length ≤3000 chars. **Each `<headline>` is the substantive LEARNING itself — what changed + why it matters, in plain words — NOT a topic-label or a filename; the `<file_path>`/URL is the drill-in link, not the content (CLAUDE.md §Cron Output Effectiveness: every line tells the reader what they now KNOW / should DO, never bot-as-database). `why:` is a one-line reason, not a bare URL.** Format:
+6. **Render digest.** Single gchat post to spaces/AAQAVOjYc80. Cap total length ≤3000 chars. Format:
 
    ```
    🧠 *Daily learning digest — <YYYY-MM-DD>*  (window: <hours>h, <N> signals)
@@ -89,7 +90,7 @@ Procedure:
 
 7. **Update state file** with `last_run_iso`, `cited_headlines` (append today's headlines, trim to last 200), `last_digest_message_url` (returned by gchat send).
 
-8. **Respond EXACTLY `HEARTBEAT_OK {digest_sent: <true|false>, signals: <N>, sections: <M>}`** — the literal token plus the same-line `{metrics}` object for the auditor, and NOTHING else: no preamble, no "now sending the digest", no run-summary, no narration before OR after. The digest is the explicit gchat post in step 6 — that IS the delivered message; step 8 only suppresses the daemon's double-delivery. Any text wrapping `HEARTBEAT_OK` is auto-delivered to chat verbatim (the narration-leak class — ot-prompt-change-validator 2026-06-07).
+8. **Respond HEARTBEAT_OK** to suppress daemon double-delivery.
 
 Safety:
 - NEVER post to team space (spaces/AAQA2bZMw24) or any space other than spaces/AAQAVOjYc80. This is a private audit channel for Denny only.

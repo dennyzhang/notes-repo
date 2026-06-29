@@ -10,4 +10,3 @@
 | Weekly oncall rotation handover | `oncall/handoff.md` |
 | Weekly shift summary, oncall report, end-of-shift post | `oncall/shift-summary.md` |
 | **Writing a cross-team issue report** (post + paste) | `oncall/issue-report.md` |
-| Converting SEV findings into landed follow-up diffs (prevent recurrence) | `oncall/sev-followup-diffs.md` |

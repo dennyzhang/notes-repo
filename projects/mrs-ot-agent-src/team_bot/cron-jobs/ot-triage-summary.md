@@ -4,6 +4,23 @@ State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/triage-sum
 
 ## Procedure
 
+0. **DEDUP GUARD — execute first, before any other step.** A daemon scheduler race condition fires this job twice within 1–5 min on most weekdays (documented Jun 2–22; T276766497). To prevent duplicate work and duplicate GChat messages, check if a prior run completed recently:
+
+   ```bash
+   python3 -c "
+   import json, time, os
+   f = os.path.expanduser('~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/triage-summary-state.json')
+   try:
+       d = json.load(open(f))
+       print(int(time.time() - d.get('last_run_epoch', 0)))
+   except:
+       print(9999)
+   "
+   ```
+   If result is **< 600** (another run completed within the last 10 minutes): stop immediately.
+   Respond exactly: `HEARTBEAT_OK {"dedup": true, "cause": "prior_run_within_10min"}`
+   No prose, no further steps, no state reads.
+
 1. **Read state file.** Extract `summarized_ids`. If file missing/corrupt, default empty set + create file fresh.
 
 2. **Enumerate candidate issues from last 48h of cron output.** Query sqlite `job_runs`:
@@ -62,9 +79,19 @@ State file: `~/notes/users/dennyzhang/projects/mrs-ot-agent-src/state/triage-sum
 
 8. **Append to `summarized_ids` state.** Persist atomically. Update `last_run_epoch` to now.
 
-9. **NO GChat digest (2026-05-30 merge — folded into `daily-brief`).** This cron is now **file-writing only**: write the durable per-issue resolved summaries (steps 7–8) and respond with EXACTLY `HEARTBEAT_OK` — NEVER post a digest to GChat. The morning "Recently resolved (last 48h)" rollup is rendered by `daily-brief` (its section 5) as part of the single merged morning team digest; a separate `📒 Daily triage summary` post here would duplicate it. The durable files this cron writes remain the system of record that `daily-brief` and `ot-shift-summary` read from.
+9. **Send GChat digest to `spaces/AAQAVOjYc80`** if any summaries written:
+   ```
+   📒 [Daily triage summary — N resolved | YYYY-MM-DD]
+   - SEVs: <count>
+   - Alerts: <count>
+   - Posts: <count>
+   - False alarms (R16): <count>
+   - Out-of-scope drops (R18): <count>
+   Files: ~/notes/users/dennyzhang/projects/mrs-ot-agent-context/incidents/resolved-{sevs|alerts|posts}/<YYYY-MM>/
+   ```
+   Cap 800 chars. Then respond `HEARTBEAT_OK`.
 
-10. **If zero new resolved issues** → respond `HEARTBEAT_OK` only. (Same as the normal path — this cron never posts to GChat anymore.)
+10. **If zero new resolved issues** → respond exactly `HEARTBEAT_OK` — no prose, no preamble, no "nothing to do" context. The token must be the first content on the first line. Do NOT send anything to GChat. (DD-preamble class, T276623118: prose before HEARTBEAT_OK causes the daemon to treat the response as delivered content.)
 
 ## Safety / failure modes
 

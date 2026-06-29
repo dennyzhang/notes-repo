@@ -4,7 +4,7 @@
 |------|------|
 | PSC, self-review, perf summary, impact framing | `career/psc.md` |
 | SLO definition, error budget, burn rate | `career/slo.md` |
-| Project docs, status updates, proposals | `career/project-doc.md` (proposal-writer system prompt: `career/SYSTEM-PROMPT-PROJECT-PROPOSAL.md`) |
+| Project docs, status updates, proposals | `career/project-doc.md` |
 | Quantifying impact, metrics, normKW, eng-hours | `career/impact-quantifier.md` |
 | 1:1 prep, cross-team asks, Workplace posts, feedback | `career/communication.md` |
 | Capacity planning, GPU sizing, cost analysis | `career/capacity.md` |

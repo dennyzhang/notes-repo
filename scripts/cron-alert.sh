@@ -751,6 +751,18 @@ cron_diagnose_and_fix() {
         return 1
     fi
 
+    # API CLIENT errors (HTTP 4xx / INVALID_ARGUMENT / invalid tab id / malformed request) are the
+    # CALLER's fault — a wrong tab id, bad content, or stale resource. Restarting google-mux NEVER
+    # fixes a 400; the daemon faithfully forwarded a bad request. Must be caught BEFORE the generic
+    # "google-mux implicated" check below, because the error text contains "googleapis" (the API URL)
+    # and would otherwise be misread as a daemon issue. Escalate so it gets a real fix.
+    # (nightly-routine looped ~daily restarting gmux for a 400 "invalid tab ID" after the 2026-06-19
+    # doc restructure orphaned its hardcoded t.0 tab — Denny 2026-06-26 "why can't you push further".)
+    if echo "$stderr_sample" | grep -q -i -E 'HTTP 4[0-9][0-9]|INVALID_ARGUMENT|invalid tab id|Cannot apply request to an invalid|FAILED_PRECONDITION'; then
+        echo "[diagnose] API client error (4xx/INVALID_ARGUMENT, e.g. invalid tab id) — caller request is wrong; NOT a daemon issue; no fix, escalating"
+        return 1
+    fi
+
     # Auth/DCAT/token failure — daemon might be wedged
     if echo "$stderr_sample" | grep -q -i -E 'DCAT|auth|token|credential|untrusted|Access denied'; then
         echo "[diagnose] Auth failure detected — restarting google-mux daemon"

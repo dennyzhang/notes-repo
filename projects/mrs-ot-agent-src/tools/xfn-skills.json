@@ -1,0 +1,51 @@
+{
+  "_doc": "XFN (cross-functional) skills imported from their fbcode source-of-truth into the OT MyClaw's local skill load path. fbcode is canonical; the agent-market/claude-templates marketplace is a downstream snapshot that can lag (newly-landed components take hours-to-days to roll out), so we copy from fbcode directly and re-sync. Follows the mvai-skill management pattern. Add a skill = add one row here + re-run tools/sync-xfn-skills.sh.",
+  "fbsource_root": "~/fbsource",
+  "dest_skills_dir": "~/.myclaw-ot-bot/spaces/AAQAVOjYc80/.claude/skills",
+  "notes_mirror": "~/notes/users/dennyzhang/projects/mrs-ot-agent-src/xfn_skills",
+  "context_skills_dir": "~/notes/users/dennyzhang/projects/mrs-ot-agent-context/references/xfn-skills",
+  "skills": [
+    {
+      "name": "ot-reliability-health-check",
+      "fbcode_path": "fbcode/claude-templates/components/skills/ot-reliability-health-check",
+      "poc": "mvai-ot oncall",
+      "why": "OT reliability health check: job uptime, training throughput, checkpoint cadence, snapshot freshness, streaming health. Migrated from skill-sources.json (ot-ingest-gdocs Part 2) 2026-06-17."
+    },
+    {
+      "name": "hedwig-oncall",
+      "fbcode_path": "fbcode/claude-templates/components/plugins/team-hedwig/skills/hedwig-oncall",
+      "poc": "hedwig oncall",
+      "why": "OT publish-path debug: streaming staleness, flow-control throttling, delivery-rate drops, FlowTracker rate decision. Drives the chronic example-age lag investigation."
+    },
+    {
+      "name": "model-processing-freshness-reliability",
+      "fbcode_path": "fbcode/claude-templates/components/plugins/model-processing/skills/freshness-reliability",
+      "poc": "model_processing oncall",
+      "why": "Query APS+IEN publish success rates (full snapshot, sparse delta, dense delta) via Scuba. Used when OT freshness SLO is degraded to identify which publish path is failing."
+    },
+    {
+      "name": "model-processing-freshness-latency",
+      "fbcode_path": "fbcode/claude-templates/components/plugins/model-processing/skills/freshness-latency",
+      "poc": "model_processing oncall",
+      "why": "Query P50/P99 publish latency for APS+IEN via Scuba. Used during ATS spike or model-age SLO breach to identify whether latency or reliability is the bottleneck."
+    },
+    {
+      "name": "ip-runtime-debugging-model-freshness",
+      "fbcode_path": "fbcode/ip_runtime/skills/debugging-model-freshness",
+      "poc": "ip_runtime oncall",
+      "why": "Reproduce and debug Sigrid Predictor snapshot loading: inplace update, delta/streaming updates, snapshot transitions. Covers the serving-side of the OT pipeline (publisher -> predictor load)."
+    },
+    {
+      "name": "ip-runtime-recsys-inference-sev-review",
+      "fbcode_path": "fbcode/ip_runtime/skills/recsys-inference-sev-review",
+      "poc": "ip_runtime oncall",
+      "why": "SEV investigation for RecSys inference serving stack (Sigrid Predictor, IPNext, GPU runtime). Used when a freshness SEV or ATS regression may be rooted in the predictor/serving layer rather than the training/publish pipeline."
+    },
+    {
+      "name": "ip-runtime-sev-team-analysis",
+      "fbcode_path": "fbcode/ip_runtime/skills/sev-team-analysis",
+      "poc": "ip_runtime oncall",
+      "why": "Analyze SEVs for Runtime Team ownership and root cause attribution. Used when triaging whether an OT incident is in-lane (MRS) vs predictor/runtime team domain."
+    }
+  ]
+}

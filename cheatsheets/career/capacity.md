@@ -127,6 +127,4 @@ Confidence: High, based on zero-traffic analysis over 6 months.
 
 ## See Also
 
-`career/impact-metrics.md`, `career/anti-patterns.md`, `career/communication-templates.md`
-
-_Last updated: 2026-05-12. Maintainer: dennyzhang._
+`references/impact-metrics.md`, `references/anti-patterns.md`, `references/communication-templates.md`

@@ -111,6 +111,14 @@ meta calendar.meeting create \
 
 ## What NOT to use
 
+### `meta google.meet create` + `meta google.calendar.event create` — NEVER use this combo
+
+**This was the mistake made on 2026-06-23 when scheduling a 1:1 with Wanli Ma.**
+
+Don't create a Meet/Zoom link separately and then attach it to a calendar event manually. The `meta google.meet create` command creates a Google Meet link (wrong VC provider) and `meta zoom.meeting create` + `meta google.calendar.event create` as separate steps requires manual link insertion and has no AI notes.
+
+**Always use `meta calendar.meeting create --ai-summary`** — one command, Zoom auto-enabled, AI notes enabled.
+
 ### `~/.claude/skills/calendar/scripts/create-meeting.py` — avoid
 
 The shell script wrapped around `google-mux`. Two problems:
@@ -151,5 +159,3 @@ The `create-meeting.py` script's `--google-meet` brokenness is also worth a fric
 - `meta calendar.meeting create --help` — canonical flag list
 - `meta calendar.meeting update --help` — for retroactive AI-summary / attendee changes
 - Calendar skill: `/home/dennyzhang/.claude/skills/calendar/SKILL.md` (its 2-step Zoom workflow predates `--ai-summary` and is now obsolete for this purpose)
-
-_Last updated: 2026-05-12. Maintainer: dennyzhang._

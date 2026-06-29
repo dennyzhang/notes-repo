@@ -56,7 +56,9 @@ fetch_qps_json() {
   # result; PIPESTATUS gives us the query's rc through the pipe.
   local NOW START QPS_COMPACT qrc lib_dir
   NOW=$(date +%s)
-  START=$(( NOW - HOURS * 3600 ))
+  # HOURS may be a float (e.g. 0.25); bash integer arithmetic rejects decimals
+  # with a fatal syntax error that bypasses `if` guards — use python for this.
+  START=$(python3 -c "print(int($NOW - $HOURS * 3600))" 2>/dev/null) || START=$(( NOW - 3600 ))
   lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   QPS_COMPACT=$(timeout 90 meta ods.metric query \
     -e "regex(mast.mvai-training-online-${EID}.*.dpp_worker.*)" \

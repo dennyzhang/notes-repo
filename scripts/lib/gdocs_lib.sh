@@ -660,7 +660,18 @@ gdocs_prepend_today_section() {
         echo "$LOG_PREFIX   [WARN] Insert attempt $insert_attempt/3 failed ($label), retrying in 5s..."
         sleep 5
     done
-    gdocs_track_error "prepend insert failed after 3 attempts ($label): $(tail -3 "$insert_err2" | tr '\n' ' ')"
+    # Persist the FULL insert stderr — tail -3 alone discarded the real Google
+    # API error (logged only a "} }" fragment, 2026-06-21/22 nightly-routine
+    # failures), so root-causing the insert failure was impossible from the log.
+    local fail_dump="$HOME/logs/gdocs-prepend-insert-fail.log"
+    {
+        echo "===== $(date '+%Y-%m-%d %H:%M:%S') prepend insert failed ($label) doc=$doc_id tab=$tab_id fmt=$fmt lines=$line_count ====="
+        cat "$insert_err2" 2>/dev/null
+        echo "----- content tail (last 300B of $content_file): -----"
+        tail -c 300 "$content_file" 2>/dev/null
+        echo
+    } >> "$fail_dump" 2>/dev/null
+    gdocs_track_error "prepend insert failed after 3 attempts ($label): $(tail -5 "$insert_err2" | tr '\n' ' ' | tail -c 300) [full error+content: $fail_dump]"
     rm -f "$insert_err2"
     return 1
 }
@@ -897,15 +908,32 @@ gdoc_address_comments_first() {
     local doc_id="$1"
     [ -z "$doc_id" ] && { echo "${LOG_PREFIX:-} [WARN] gdoc_address_comments_first: no doc_id"; return 0; }
 
-    # Count OPEN comments via the gdocs CLI (NOT meta google.docs.comment list): meta is
-    # BLIND to docs with personal-gmail contributors (e.g. the AI Playbook) and returns 0,
-    # so the gate silently no-ops on exactly the docs it is meant to handle (found 2026-06-15).
-    # gdocs excludes resolved by default; we count comment-row IDs (col 1, single-leading-
-    # space + alnum id). This includes orphaned ghosts — acceptable: over-trigger beats blind
-    # no-op, and the LLM pass below reconciles ghosts.
+    # Count OPEN (unresolved) comments via raw Drive API.
+    # NOT using `gdocs comments list` — that CLI returns ALL comments (resolved + unresolved)
+    # with no filter flag, so counting comment-ID-shaped lines was counting resolved ones too
+    # (bug found 2026-06-22: 82 "open" reported when all 276 comments were actually resolved).
+    # NOT using `meta google.docs.comment list` — blind to personal-gmail contributors.
+    # Drive API caps pageSize at 100 for the /comments endpoint (tightened ~2026-06-22:
+    # pageSize=1000 now returns HTTP 400; the old "1000 per call" docstring was wrong).
+    # `if open >= 1` is the only check we make, so an under-count is fine — pagination
+    # would only matter to report an exact total, which we don't need.
+    # Wrapped in `|| true` so a JSON parse failure (e.g. transient API error) cannot
+    # kill the parent script under `set -e` — silent kill stranded the AI Playbook push
+    # for 3 days (06-22 → 06-24) before this fix.
     local open
-    open=$(gdocs comments list "$doc_id" --untrusted-authors-mode 2>/dev/null \
-        | tail -n +2 | cut -c1-13 | grep -cE '^ [A-Za-z0-9]{9,12} *$')
+    open=$( { google-mux api call GET \
+        "https://www.googleapis.com/drive/v3/files/${doc_id}/comments?supportsAllDrives=true&fields=comments(resolved)&pageSize=100&includeDeleted=false" \
+        2>/dev/null \
+        | python3 -c "import json,sys
+try:
+    d = json.load(sys.stdin)
+    print(sum(1 for c in d.get('comments',[]) if not c.get('resolved',False)))
+except Exception as e:
+    sys.stderr.write(f'[gdoc_address_comments_first] api/parse error: {e}\n')
+    print(0)
+" 2>&1; } || true )
+    # Strip any stderr that leaked through; keep only the trailing integer.
+    open=$(echo "$open" | tail -1 | tr -dc '0-9')
     open="${open:-0}"
 
     if ! [ "$open" -ge 1 ] 2>/dev/null; then
